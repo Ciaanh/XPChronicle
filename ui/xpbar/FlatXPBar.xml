@@ -1,0 +1,154 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/
+..\..\..\Blizzard_SharedXML\UI.xsd">
+
+	<!-- Flat XP Bar Template (solid colors, modern style) -->
+	<Frame name="XPC_FlatXPBarTemplate" virtual="true" mixin="XPC_FlatXPBarMixin" frameStrata="LOW" enableMouse="true" fixedFrameStrata="true">
+		<Size x="565" y="30"/>
+		<Layers>
+			<!-- Background layer -->
+			<Layer level="BACKGROUND">
+				<Texture parentKey="Background" setAllPoints="true">
+					<Color r="0" g="0" b="0" a="0.5"/>
+				</Texture>
+			</Layer>
+			
+			<!-- Flash effect overlay -->
+			<Layer level="OVERLAY" textureSubLevel="3">
+				<Texture parentKey="GainFlash" hidden="true">
+					<Anchors>
+						<Anchor point="TOPLEFT"/>
+						<Anchor point="BOTTOMRIGHT"/>
+					</Anchors>
+				</Texture>
+			</Layer>
+		</Layers>
+		<Frames>
+			<!-- XP StatusBar (solid color, no texture atlas) -->
+			<StatusBar parentKey="StatusBar" minValue="0" maxValue="1" defaultValue="0">
+				<Size x="565" y="30"/>
+				<Anchors>
+					<Anchor point="BOTTOMLEFT" x="0" y="0"/>
+					<Anchor point="BOTTOMRIGHT" x="0" y="0"/>
+				</Anchors>
+				<!-- Solid color set in Lua -->
+				<BarColor r="0.5" g="0.31" b="1.0"/>
+				<BarTexture file="Interface\Buttons\WHITE8X8"/>
+				<Layers>
+					<!-- Rested XP overlay - on top of StatusBar fill -->
+					<Layer level="ARTWORK" textureSubLevel="1">
+						<Texture parentKey="RestedOverlay" file="Interface\Buttons\WHITE8X8">
+							<Size x="0" y="30"/>
+							<Anchors>
+								<Anchor point="BOTTOMLEFT" x="0" y="0"/>
+							</Anchors>
+							<Color r="0.31" g="0.56" b="1.0" a="0.54"/>
+						</Texture>
+					</Layer>
+					
+					<!-- Quest overlay - complete quests - on top of rested -->
+					<Layer level="ARTWORK" textureSubLevel="2">
+						<Texture parentKey="QuestOverlayComplete" hidden="true" file="Interface\Buttons\WHITE8X8">
+							<Size x="0" y="30"/>
+							<Anchors>
+								<Anchor point="BOTTOMLEFT" x="0" y="0"/>
+							</Anchors>
+							<Color r="1.0" g="0.59" b="0.0" a="0.8"/>
+						</Texture>
+					</Layer>
+					
+					<!-- Quest overlay - incomplete quests -->
+					<Layer level="ARTWORK" textureSubLevel="3">
+						<Texture parentKey="QuestOverlayIncomplete" hidden="true" file="Interface\Buttons\WHITE8X8">
+							<Size x="0" y="30"/>
+							<Anchors>
+								<Anchor point="BOTTOMLEFT" x="0" y="0"/>
+							</Anchors>
+							<Color r="1.0" g="1.0" b="0.0" a="0.85"/>
+						</Texture>
+					</Layer>
+				</Layers>
+			</StatusBar>
+			
+			<!-- Overlay frame for text (separate from StatusBar for proper layering) -->
+			<Frame parentKey="OverlayFrame" frameStrata="MEDIUM" setAllPoints="true">
+				<Layers>
+					<Layer level="ARTWORK" textureSubLevel="5">
+						<!-- Level text - left side -->
+						<FontString parentKey="LevelText" inherits="TextStatusBarTextLarge" hidden="true">
+							<Anchors>
+								<Anchor point="LEFT" x="8" y="0"/>
+							</Anchors>
+							<Color r="1.0" g="1.0" b="1.0"/>
+							<Shadow>
+								<Offset x="2" y="-2"/>
+								<Color r="0" g="0" b="0" a="0.8"/>
+							</Shadow>
+						</FontString>
+						<!-- XP text - center -->
+						<FontString parentKey="XPText" inherits="TextStatusBarTextLarge" hidden="true">
+							<Anchors>
+								<Anchor point="CENTER" x="0" y="0"/>
+							</Anchors>
+							<Color r="1.0" g="1.0" b="1.0"/>
+							<Shadow>
+								<Offset x="2" y="-2"/>
+								<Color r="0" g="0" b="0" a="0.8"/>
+							</Shadow>
+						</FontString>
+						<!-- Percent text - right side -->
+						<FontString parentKey="PercentText" inherits="TextStatusBarTextLarge" hidden="true">
+							<Anchors>
+								<Anchor point="RIGHT" x="-8" y="0"/>
+							</Anchors>
+							<Color r="1.0" g="1.0" b="1.0"/>
+							<Shadow>
+								<Offset x="2" y="-2"/>
+								<Color r="0" g="0" b="0" a="0.8"/>
+							</Shadow>
+						</FontString>
+					</Layer>
+				</Layers>
+			</Frame>
+		</Frames>
+		<Scripts>
+			<OnLoad method="OnLoad"/>
+			<OnEvent method="OnEvent"/>
+			<OnShow method="OnShow"/>
+			<OnHide method="OnHide"/>
+			<OnEnter method="OnEnter"/>
+			<OnLeave method="OnLeave"/>
+			<OnMouseDown method="OnMouseDown"/>
+			<OnMouseUp method="OnMouseUp"/>
+		</Scripts>
+	</Frame>
+
+	<!-- Container Template (simple, no border) -->
+	<Frame name="XPC_FlatXPBarContainerTemplate" virtual="true" mixin="XPC_FlatXPBarContainerMixin">
+		<Size x="565" y="30"/>
+		<Frames>
+			<!-- XP Bar (no offset needed for left/right, but offset up for below-bar text) -->
+			<Frame parentKey="Bar" inherits="XPC_FlatXPBarTemplate">
+				<Anchors>
+					<Anchor point="TOP" x="0" y="0"/>
+				</Anchors>
+			</Frame>
+			<!-- Below-bar text container (uses common template) -->
+			<Frame parentKey="BelowBarTextContainer" inherits="XPC_BelowBarTextContainerTemplate">
+				<Anchors>
+					<Anchor point="TOP" relativePoint="BOTTOM" x="0" y="0"/>
+				</Anchors>
+			</Frame>
+		</Frames>
+		<Scripts>
+			<OnLoad method="OnLoad"/>
+		</Scripts>
+	</Frame>
+
+	<!-- Main Flat XP Bar Instance (hidden by default - controller shows based on barStyle) -->
+	<Frame name="XPC_FlatXPBar" parent="UIParent" inherits="XPC_FlatXPBarContainerTemplate" hidden="true">
+		<Anchors>
+			<Anchor point="BOTTOM" relativePoint="BOTTOM" x="0" y="100"/>
+		</Anchors>
+	</Frame>
+
+</Ui>

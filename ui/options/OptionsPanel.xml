@@ -1,0 +1,373 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/ ..\\..\\Blizzard_SharedXML\\UI.xsd">
+
+    <Frame name="XPChronicleOptionsPanel" hidden="true" mixin="XPChronicleOptionsMixin">
+        <Size x="700" y="640"/>
+        <Frames>
+            <Frame parentKey="ScrollBox" inherits="WowScrollBoxList">
+                <Anchors>
+                    <Anchor point="TOPLEFT" x="8" y="-8"/>
+                    <Anchor point="BOTTOMRIGHT" x="-26" y="12"/>
+                </Anchors>
+                <Frames>
+                    <Frame parentKey="ContentFrame">
+                        <Size x="560" y="1550"/>
+                        <Anchors>
+                            <Anchor point="TOPLEFT"/>
+                        </Anchors>
+                        <Layers>
+                            <Layer level="ARTWORK">
+                                <FontString parentKey="TitleText" inherits="GameFontNormalLarge">
+                                    <Anchors>
+                                        <Anchor point="TOPLEFT" x="16" y="-16"/>
+                                    </Anchors>
+                                </FontString>
+                                <FontString parentKey="SubtitleText" inherits="GameFontHighlightSmall">
+                                    <Anchors>
+                                        <Anchor point="TOPLEFT" relativeKey="$parent.TitleText" relativePoint="BOTTOMLEFT" x="0" y="-8"/>
+                                    </Anchors>
+                                    <Size x="520" y="0"/>
+                                </FontString>
+                            </Layer>
+                        </Layers>
+                        <Frames>
+                            <Frame parentKey="OptionsContainer">
+                                <Anchors>
+                                    <Anchor point="TOPLEFT" relativeKey="$parent.SubtitleText" relativePoint="BOTTOMLEFT" x="0" y="-12"/>
+                                </Anchors>
+                                <Size x="520" y="200"/>
+                                <Frames>
+                                    <Frame parentKey="BarSettingsHeader" inherits="XPC_ConfigSectionHeader">
+                                        <Anchors>
+                                            <Anchor point="TOPLEFT" x="12" y="0"/>
+                                            <Anchor point="RIGHT"/>
+                                        </Anchors>
+                                    </Frame>
+                                        <Frame parentKey="Row_barStyle" inherits="XPC_ConfigDropdownTemplate">
+                                            <Anchors>
+                                                <Anchor point="TOPLEFT" relativeKey="$parent.BarSettingsHeader" relativePoint="BOTTOMLEFT" x="0" y="-8"/>
+                                                <Anchor point="RIGHT"/>
+                                            </Anchors>
+                                            <KeyValues>
+                                                <KeyValue key="configKey" value="barStyle" type="string"/>
+                                            </KeyValues>
+                                        </Frame>
+                                        <Frame parentKey="Row_hideBlizzardBar" inherits="XPC_ConfigCheckboxTemplate" hidden="true">
+                                            <Anchors>
+                                                <Anchor point="TOPLEFT" relativeKey="$parent.Row_barStyle" relativePoint="BOTTOMLEFT" x="0" y="0"/>
+                                                <Anchor point="RIGHT"/>
+                                            </Anchors>
+                                            <KeyValues>
+                                                <KeyValue key="configKey" value="hideBlizzardBar" type="string"/>
+                                            </KeyValues>
+                                        </Frame>
+                                        <Frame parentKey="Row_barLocked" inherits="XPC_ConfigCheckboxTemplate" hidden="true">
+                                            <Anchors>
+                                                <Anchor point="TOPLEFT" relativeKey="$parent.Row_hideBlizzardBar" relativePoint="BOTTOMLEFT" x="0" y="0"/>
+                                                <Anchor point="RIGHT"/>
+                                            </Anchors>
+                                            <KeyValues>
+                                                <KeyValue key="configKey" value="barLocked" type="string"/>
+                                            </KeyValues>
+                                        </Frame>
+
+                                    <Frame parentKey="QuestFeaturesHeader" inherits="XPC_ConfigSectionHeader">
+                                        <Anchors>
+                                            <Anchor point="TOPLEFT" relativeKey="$parent.Row_barLocked" relativePoint="BOTTOMLEFT" x="0" y="-20"/>
+                                            <Anchor point="RIGHT"/>
+                                        </Anchors>
+                                    </Frame>
+                                        <Frame parentKey="Row_showQuestXP" inherits="XPC_ConfigCheckboxTemplate">
+                                            <Anchors>
+                                                <Anchor point="TOPLEFT" relativeKey="$parent.QuestFeaturesHeader" relativePoint="BOTTOMLEFT" x="0" y="-8"/>
+                                                <Anchor point="RIGHT"/>
+                                            </Anchors>
+                                            <KeyValues>
+                                                <KeyValue key="configKey" value="showQuestXP" type="string"/>
+                                            </KeyValues>
+                                        </Frame>
+                                        <Frame parentKey="Row_showCompleteQuestOverlay" inherits="XPC_ConfigCheckboxTemplate">
+                                            <Anchors>
+                                                <Anchor point="TOPLEFT" relativeKey="$parent.Row_showQuestXP" relativePoint="BOTTOMLEFT" x="0" y="0"/>
+                                                <Anchor point="RIGHT"/>
+                                            </Anchors>
+                                            <KeyValues>
+                                                <KeyValue key="configKey" value="showCompleteQuestOverlay" type="string"/>
+                                            </KeyValues>
+                                        </Frame>
+                                        <Frame parentKey="Row_showIncompleteQuestOverlay" inherits="XPC_ConfigCheckboxTemplate">
+                                            <Anchors>
+                                                <Anchor point="TOPLEFT" relativeKey="$parent.Row_showCompleteQuestOverlay" relativePoint="BOTTOMLEFT" x="0" y="0"/>
+                                                <Anchor point="RIGHT"/>
+                                            </Anchors>
+                                            <KeyValues>
+                                                <KeyValue key="configKey" value="showIncompleteQuestOverlay" type="string"/>
+                                            </KeyValues>
+                                        </Frame>
+
+                                    <Frame parentKey="TextDisplayHeader" inherits="XPC_ConfigSectionHeader">
+                                        <Anchors>
+                                            <Anchor point="TOPLEFT" relativeKey="$parent.Row_showIncompleteQuestOverlay" relativePoint="BOTTOMLEFT" x="0" y="-20"/>
+                                            <Anchor point="RIGHT"/>
+                                        </Anchors>
+                                    </Frame>
+                                        <Frame parentKey="Row_abbreviateNumbers" inherits="XPC_ConfigCheckboxTemplate">
+                                            <Anchors>
+                                                <Anchor point="TOPLEFT" relativeKey="$parent.TextDisplayHeader" relativePoint="BOTTOMLEFT" x="0" y="0"/>
+                                                <Anchor point="RIGHT"/>
+                                            </Anchors>
+                                            <KeyValues>
+                                                <KeyValue key="configKey" value="abbreviateNumbers" type="string"/>
+                                            </KeyValues>
+                                        </Frame>
+                                        <Frame parentKey="Row_showBarAtMaxLevel" inherits="XPC_ConfigCheckboxTemplate">
+                                            <Anchors>
+                                                <Anchor point="TOPLEFT" relativeKey="$parent.Row_abbreviateNumbers" relativePoint="BOTTOMLEFT" x="0" y="0"/>
+                                                <Anchor point="RIGHT"/>
+                                            </Anchors>
+                                            <KeyValues>
+                                                <KeyValue key="configKey" value="showBarAtMaxLevel" type="string"/>
+                                            </KeyValues>
+                                        </Frame>
+
+                                        <Frame parentKey="TextOnBarHeader" inherits="XPC_ConfigSubSectionHeader">
+                                            <Anchors>
+                                                <Anchor point="TOPLEFT" relativeKey="$parent.Row_showBarAtMaxLevel" relativePoint="BOTTOMLEFT" x="0" y="-8"/>
+                                                <Anchor point="RIGHT"/>
+                                            </Anchors>
+                                        </Frame>
+                                            <Frame parentKey="Row_showLevelText" inherits="XPC_ConfigCheckboxTemplate">
+                                                <Anchors>
+                                                    <Anchor point="TOPLEFT" relativeKey="$parent.TextOnBarHeader" relativePoint="BOTTOMLEFT" x="0" y="0"/>
+                                                    <Anchor point="RIGHT"/>
+                                                </Anchors>
+                                                <KeyValues>
+                                                    <KeyValue key="configKey" value="showLevelText" type="string"/>
+                                                </KeyValues>
+                                            </Frame>
+                                            <Frame parentKey="Row_showXPText" inherits="XPC_ConfigCheckboxTemplate">
+                                                <Anchors>
+                                                    <Anchor point="TOPLEFT" relativeKey="$parent.Row_showLevelText" relativePoint="BOTTOMLEFT" x="0" y="0"/>
+                                                    <Anchor point="RIGHT"/>
+                                                </Anchors>
+                                                <KeyValues>
+                                                    <KeyValue key="configKey" value="showXPText" type="string"/>
+                                                </KeyValues>
+                                            </Frame>
+                                            <Frame parentKey="Row_showRemainingXP" inherits="XPC_ConfigCheckboxTemplate">
+                                                <Anchors>
+                                                    <Anchor point="TOPLEFT" relativeKey="$parent.Row_showXPText" relativePoint="BOTTOMLEFT" x="16" y="-6"/>
+                                                    <Anchor point="RIGHT"/>
+                                                </Anchors>
+                                                <KeyValues>
+                                                    <KeyValue key="configKey" value="showRemainingXP" type="string"/>
+                                                </KeyValues>
+                                            </Frame>
+                                            <Frame parentKey="Row_showPercentage" inherits="XPC_ConfigCheckboxTemplate">
+                                                <Anchors>
+                                                    <Anchor point="TOPLEFT" relativeKey="$parent.Row_showRemainingXP" relativePoint="BOTTOMLEFT" x="-16" y="-6"/>
+                                                    <Anchor point="RIGHT"/>
+                                                </Anchors>
+                                                <KeyValues>
+                                                    <KeyValue key="configKey" value="showPercentage" type="string"/>
+                                                </KeyValues>
+                                            </Frame>
+                                            <Frame parentKey="Row_showQuestPercent" inherits="XPC_ConfigCheckboxTemplate">
+                                                <Anchors>
+                                                    <Anchor point="TOPLEFT" relativeKey="$parent.Row_showPercentage" relativePoint="BOTTOMLEFT" x="16" y="0"/>
+                                                    <Anchor point="RIGHT"/>
+                                                </Anchors>
+                                                <KeyValues>
+                                                    <KeyValue key="configKey" value="showQuestPercent" type="string"/>
+                                                </KeyValues>
+                                            </Frame>
+
+                                        <Frame parentKey="TextBelowBarHeader" inherits="XPC_ConfigSubSectionHeader">
+                                            <Anchors>
+                                                <Anchor point="TOPLEFT" relativeKey="$parent.Row_showQuestPercent" relativePoint="BOTTOMLEFT" x="-16" y="-16"/>
+                                                <Anchor point="RIGHT"/>
+                                            </Anchors>
+                                        </Frame>
+                                            <Frame parentKey="TextLeftLabelHeader">
+                                                <Anchors>
+                                                    <Anchor point="TOPLEFT" relativeKey="$parent.TextBelowBarHeader" relativePoint="BOTTOMLEFT" x="16" y="-16"/>
+                                                </Anchors>
+                                                <Size x="500" y="18"/>
+                                                <Layers>
+                                                    <Layer level="ARTWORK">
+                                                        <FontString parentKey="Text" inherits="GameFontNormalSmall">
+                                                            <Anchors>
+                                                                <Anchor point="TOPLEFT"/>
+                                                            </Anchors>
+                                                            <Color r="0.8" g="0.8" b="0.8"/>
+                                                        </FontString>
+                                                    </Layer>
+                                                </Layers>
+                                            </Frame>
+                                                <Frame parentKey="Row_showXPPerHourText" inherits="XPC_ConfigCheckboxTemplate">
+                                                    <Anchors>
+                                                        <Anchor point="TOPLEFT" relativeKey="$parent.TextLeftLabelHeader" relativePoint="BOTTOMLEFT" x="0" y="0"/>
+                                                        <Anchor point="RIGHT"/>
+                                                    </Anchors>
+                                                    <KeyValues>
+                                                        <KeyValue key="configKey" value="showXPPerHourText" type="string"/>
+                                                    </KeyValues>
+                                                </Frame>
+                                                <Frame parentKey="Row_showTimeToLevelText" inherits="XPC_ConfigCheckboxTemplate">
+                                                    <Anchors>
+                                                        <Anchor point="TOPLEFT" relativeKey="$parent.Row_showXPPerHourText" relativePoint="BOTTOMLEFT" x="0" y="0"/>
+                                                        <Anchor point="RIGHT"/>
+                                                    </Anchors>
+                                                    <KeyValues>
+                                                        <KeyValue key="configKey" value="showTimeToLevelText" type="string"/>
+                                                    </KeyValues>
+                                                </Frame>
+
+                                            <!-- <Frame parentKey="TextMiddleLabelHeader">
+                                                <Anchors>
+                                                    <Anchor point="TOPLEFT" relativeKey="$parent.Row_showTimeToLevelText" relativePoint="BOTTOMLEFT" x="0" y="-16"/>
+                                                </Anchors>
+                                                <Size x="500" y="18"/>
+                                                <Layers>
+                                                    <Layer level="ARTWORK">
+                                                        <FontString parentKey="Text" inherits="GameFontNormalSmall">
+                                                            <Anchors>
+                                                                <Anchor point="TOPLEFT"/>
+                                                            </Anchors>
+                                                            <Color r="0.8" g="0.8" b="0.8"/>
+                                                        </FontString>
+                                                    </Layer>
+                                                </Layers>
+                                            </Frame> -->
+
+                                            <Frame parentKey="TextRightLabelHeader">
+                                                <Anchors>
+                                                    <Anchor point="TOPLEFT" relativeKey="$parent.Row_showTimeToLevelText" relativePoint="BOTTOMLEFT" x="0" y="-16"/>
+                                                </Anchors>
+                                                <Size x="500" y="18"/>
+                                                <Layers>
+                                                    <Layer level="ARTWORK">
+                                                        <FontString parentKey="Text" inherits="GameFontNormalSmall">
+                                                            <Anchors>
+                                                                <Anchor point="TOPLEFT"/>
+                                                            </Anchors>
+                                                            <Color r="0.8" g="0.8" b="0.8"/>
+                                                        </FontString>
+                                                    </Layer>
+                                                </Layers>
+                                            </Frame>
+                                                <Frame parentKey="Row_showSessionTimeText" inherits="XPC_ConfigCheckboxTemplate">
+                                                    <Anchors>
+                                                        <Anchor point="TOPLEFT" relativeKey="$parent.TextRightLabelHeader" relativePoint="BOTTOMLEFT" x="0" y="0"/>
+                                                        <Anchor point="RIGHT"/>
+                                                    </Anchors>
+                                                    <KeyValues>
+                                                        <KeyValue key="configKey" value="showSessionTimeText" type="string"/>
+                                                    </KeyValues>
+                                                </Frame>
+                                                <Frame parentKey="Row_showLevelTimeText" inherits="XPC_ConfigCheckboxTemplate">
+                                                    <Anchors>
+                                                        <Anchor point="TOPLEFT" relativeKey="$parent.Row_showSessionTimeText" relativePoint="BOTTOMLEFT" x="0" y="0"/>
+                                                        <Anchor point="RIGHT"/>
+                                                    </Anchors>
+                                                    <KeyValues>
+                                                        <KeyValue key="configKey" value="showLevelTimeText" type="string"/>
+                                                    </KeyValues>
+                                                </Frame>
+
+                                    <Frame parentKey="ColorsHeader" inherits="XPC_ConfigSectionHeader">
+                                        <Anchors>
+                                            <Anchor point="TOPLEFT" relativeKey="$parent.Row_showLevelTimeText" relativePoint="BOTTOMLEFT" x="-16" y="-20"/>
+                                            <Anchor point="RIGHT"/>
+                                        </Anchors>
+                                    </Frame>
+                                        <Frame parentKey="ColorRow_xpBar" inherits="XPC_ConfigColorPickerTemplate">
+                                            <Anchors>
+                                                <Anchor point="TOPLEFT" relativeKey="$parent.ColorsHeader" relativePoint="BOTTOMLEFT" x="0" y="-8"/>
+                                                <Anchor point="RIGHT"/>
+                                            </Anchors>
+                                            <KeyValues>
+                                                <KeyValue key="configKey" value="xpBar" type="string"/>
+                                                <KeyValue key="previewType" value="statusbar" type="string"/>
+                                            </KeyValues>
+                                        </Frame>
+                                        <Frame parentKey="ColorRow_xpBarRested" inherits="XPC_ConfigColorPickerTemplate">
+                                            <Anchors>
+                                                <Anchor point="TOPLEFT" relativeKey="$parent.ColorRow_xpBar" relativePoint="BOTTOMLEFT" x="0" y="-8"/>
+                                                <Anchor point="RIGHT"/>
+                                            </Anchors>
+                                            <KeyValues>
+                                                <KeyValue key="configKey" value="xpBarRested" type="string"/>
+                                                <KeyValue key="previewType" value="statusbar" type="string"/>
+                                            </KeyValues>
+                                        </Frame>
+                                        <Frame parentKey="ColorRow_questComplete" inherits="XPC_ConfigColorPickerTemplate">
+                                            <Anchors>
+                                                <Anchor point="TOPLEFT" relativeKey="$parent.ColorRow_xpBarRested" relativePoint="BOTTOMLEFT" x="0" y="-8"/>
+                                                <Anchor point="RIGHT"/>
+                                            </Anchors>
+                                            <KeyValues>
+                                                <KeyValue key="configKey" value="questComplete" type="string"/>
+                                                <KeyValue key="previewType" value="texture" type="string"/>
+                                            </KeyValues>
+                                        </Frame>
+                                        <Frame parentKey="ColorRow_questIncomplete" inherits="XPC_ConfigColorPickerTemplate">
+                                            <Anchors>
+                                                <Anchor point="TOPLEFT" relativeKey="$parent.ColorRow_questComplete" relativePoint="BOTTOMLEFT" x="0" y="-8"/>
+                                                <Anchor point="RIGHT"/>
+                                            </Anchors>
+                                            <KeyValues>
+                                                <KeyValue key="configKey" value="questIncomplete" type="string"/>
+                                                <KeyValue key="previewType" value="texture" type="string"/>
+                                            </KeyValues>
+                                        </Frame>
+                                        <Frame parentKey="ColorRow_rested" inherits="XPC_ConfigColorPickerTemplate">
+                                            <Anchors>
+                                                <Anchor point="TOPLEFT" relativeKey="$parent.ColorRow_questIncomplete" relativePoint="BOTTOMLEFT" x="0" y="-8"/>
+                                                <Anchor point="RIGHT"/>
+                                            </Anchors>
+                                            <KeyValues>
+                                                <KeyValue key="configKey" value="rested" type="string"/>
+                                                <KeyValue key="previewType" value="texture" type="string"/>
+                                            </KeyValues>
+                                        </Frame>
+                                </Frames>
+                            </Frame>
+
+                            <Button parentKey="ResetSettingsButton" inherits="UIPanelButtonTemplate">
+                                <Size x="150" y="22"/>
+                                <Anchors>
+                                    <Anchor point="TOPLEFT" relativeKey="$parent.OptionsContainer.ColorRow_rested" relativePoint="BOTTOMLEFT" x="16" y="-24"/>
+                                </Anchors>
+                            </Button>
+                            <Button parentKey="ResetBarPositionButton" inherits="UIPanelButtonTemplate">
+                                <Size x="150" y="22"/>
+                                <Anchors>
+                                    <Anchor point="LEFT" relativeKey="$parent.ResetSettingsButton" relativePoint="RIGHT" x="10" y="0"/>
+                                </Anchors>
+                            </Button>
+                            <Button parentKey="ResetStatsButton" inherits="UIPanelButtonTemplate">
+                                <Size x="150" y="22"/>
+                                <Anchors>
+                                    <Anchor point="LEFT" relativeKey="$parent.ResetBarPositionButton" relativePoint="RIGHT" x="10" y="0"/>
+                                </Anchors>
+                            </Button>
+                        </Frames>
+                    </Frame>
+                </Frames>
+            </Frame>
+
+            <!-- Modern MinimalScrollBar with auto-hide behavior -->
+            <EventFrame parentKey="ScrollBar" inherits="MinimalScrollBar">
+                <Anchors>
+                    <Anchor point="TOPLEFT" relativeKey="$parent.ScrollBox" relativePoint="TOPRIGHT" x="2" y="0"/>
+                    <Anchor point="BOTTOMLEFT" relativeKey="$parent.ScrollBox" relativePoint="BOTTOMRIGHT" x="2" y="0"/>
+                </Anchors>
+            </EventFrame>
+        </Frames>
+        <Scripts>
+            <OnLoad method="OnLoad"/>
+            <OnShow method="OnPanelShow"/>
+        </Scripts>
+    </Frame>
+</Ui>

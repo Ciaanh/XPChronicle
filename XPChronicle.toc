@@ -1,0 +1,56 @@
+## Interface: 110205
+## Title: XP Chronicle
+## Notes: Enhanced experience bar with quest XP tracking and leveling statistics
+## Author: Ciaanh
+## Version: 1.0.0
+## SavedVariables: XPChronicleDB
+## Category: Quests & Leveling
+## IconTexture: 4675649
+
+# Libraries
+libs\LibStub\LibStub.lua
+libs\AceLocale-3.0\AceLocale-3.0.lua
+
+# Localization (English only for 1.0)
+locales\enUS.lua
+
+app/core/AddOn.lua
+app/core/Locale.lua
+app/core/Utils.lua
+app/core/Logger.lua
+app/core/Defaults.lua
+app/core/SavedVariables.lua
+
+app/services/SessionService.lua
+app/services/TimePlayedService.lua
+app/services/LevelHistoryService.lua
+app/services/QuestXPService.lua
+
+app/config/OptionsMetadata.lua
+app/config/Config.lua
+app/config/SlashCommands.lua
+
+# XP Bar - Blizzard bar control (loaded before controller)
+ui/xpbar/BlizzardBarControl.lua
+
+app/features/xpbar/XPBarController.lua
+app/features/stats/StatsController.lua
+app/features/options/OptionsController.lua
+
+ui/components/FrameUtils.lua
+ui/options/Options.lua
+ui/mixins/PositionStoreMixin.lua
+ui/mixins/DraggableFrameMixin.lua
+
+# XP Bar components
+ui/xpbar/XPBarColors.lua
+ui/xpbar/XPBarMixinBase.lua
+ui/xpbar/XPBarTextFormatter.lua
+ui/xpbar/XPBarTooltip.lua
+ui/xpbar/LegacyXPBarMixin.lua
+ui/xpbar/FlatXPBarMixin.lua
+ui/xpbar/XPBarView.lua
+
+ui/stats/StatsView.lua
+
+Frames.xml

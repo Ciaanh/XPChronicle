@@ -1,0 +1,17 @@
+# WoW AddOn files
+*.bak
+*.orig
+*.swp
+*~
+.DS_Store
+
+# IDE files
+.vscode/
+.idea/
+
+# Temporary files
+/tmp/
+
+# Other
+refs
+Feature plans

@@ -1,0 +1,54 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/ ..\\..\\Blizzard_SharedXML\\UI.xsd">
+
+    <Frame name="XPChronicleStatsFrame" parent="UIParent" inherits="BasicFrameTemplateWithInset" hidden="true" mixin="XPChronicleStatsMixin">
+        <Size x="300" y="400"/>
+        <Anchors>
+            <Anchor point="CENTER"/>
+        </Anchors>
+        <Frames>
+            <ScrollFrame parentKey="ScrollFrame" inherits="UIPanelScrollFrameTemplate">
+                <Anchors>
+                    <Anchor point="TOPLEFT" relativeKey="$parent.InsetBg" relativePoint="TOPLEFT" x="4" y="-30"/>
+                    <Anchor point="BOTTOMRIGHT" relativeKey="$parent.InsetBg" relativePoint="BOTTOMRIGHT" x="-24" y="4"/>
+                </Anchors>
+                <ScrollChild>
+                    <Frame parentKey="ContentFrame">
+                        <Size x="260" y="600"/>
+                        <Anchors>
+                            <Anchor point="TOPLEFT"/>
+                        </Anchors>
+                        <Layers>
+                            <Layer level="ARTWORK">
+                                <FontString parentKey="StatsText" inherits="GameFontNormal">
+                                    <Anchors>
+                                        <Anchor point="TOPLEFT" x="10" y="-10"/>
+                                        <Anchor point="TOPRIGHT" x="-10" y="-10"/>
+                                    </Anchors>
+                                </FontString>
+                            </Layer>
+                        </Layers>
+                    </Frame>
+                </ScrollChild>
+            </ScrollFrame>
+            <Button parentKey="RefreshButton" inherits="UIPanelButtonTemplate">
+                <Size x="80" y="22"/>
+                <Anchors>
+                    <Anchor point="BOTTOM" relativePoint="BOTTOM" x="0" y="12"/>
+                </Anchors>
+            </Button>
+        </Frames>
+        <Layers>
+            <Layer level="ARTWORK">
+                <FontString parentKey="TitleText" inherits="GameFontHighlight">
+                    <Anchors>
+                        <Anchor point="TOP" relativePoint="TOP" x="0" y="-5"/>
+                    </Anchors>
+                </FontString>
+            </Layer>
+        </Layers>
+        <Scripts>
+            <OnLoad method="OnLoad"/>
+        </Scripts>
+    </Frame>
+</Ui>

@@ -1,0 +1,252 @@
+<!--
+    XP Chronicle - Options Panel Templates
+    Two-column layout templates inspired by TotalRP3
+-->
+<Ui xmlns="http://www.blizzard.com/wow/ui/"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+    xsi:schemaLocation="http://www.blizzard.com/wow/ui/ ..\\..\\FrameXML\\UI.xsd">
+
+    <!-- ============================================================
+         BUTTON TEMPLATES
+         Basic UI components used throughout the options panel
+         ============================================================ -->
+
+    <!-- Custom CheckButton Template for Options
+         Standard checkbox with text label to the right
+    -->
+    <CheckButton name="XPChronicleCheckButtonTemplate" virtual="true">
+        <Size x="32" y="32"/>
+        <HitRectInsets left="0" right="-200" top="0" bottom="0"/>
+        <NormalTexture file="Interface\Buttons\UI-CheckBox-Up"/>
+        <PushedTexture file="Interface\Buttons\UI-CheckBox-Down"/>
+        <HighlightTexture file="Interface\Buttons\UI-CheckBox-Highlight" alphaMode="ADD"/>
+        <CheckedTexture file="Interface\Buttons\UI-CheckBox-Check"/>
+        <DisabledCheckedTexture file="Interface\Buttons\UI-CheckBox-Check-Disabled"/>
+        <Layers>
+            <Layer level="ARTWORK">
+                <FontString parentKey="Text" inherits="GameFontHighlight">
+                    <Anchors>
+                        <Anchor point="LEFT" relativePoint="RIGHT" x="0" y="0"/>
+                    </Anchors>
+                </FontString>
+            </Layer>
+        </Layers>
+    </CheckButton>
+
+    <!-- Custom Radio Button Template
+         Radio button with text label to the right
+    -->
+    <CheckButton name="XPChronicleRadioButtonTemplate" virtual="true">
+        <Size x="24" y="24"/>
+        <HitRectInsets left="0" right="-150" top="0" bottom="0"/>
+        <NormalTexture parentKey="NormalTexture" file="Interface\Buttons\UI-RadioButton">
+            <TexCoords left="0" right="0.25" top="0" bottom="1"/>
+        </NormalTexture>
+        <CheckedTexture parentKey="CheckedTexture" file="Interface\Buttons\UI-RadioButton">
+            <TexCoords left="0.25" right="0.5" top="0" bottom="1"/>
+        </CheckedTexture>
+        <HighlightTexture file="Interface\Buttons\UI-RadioButton" alphaMode="ADD">
+            <TexCoords left="0.5" right="0.75" top="0" bottom="1"/>
+        </HighlightTexture>
+        <Layers>
+            <Layer level="ARTWORK">
+                <FontString parentKey="Text" inherits="GameFontHighlight">
+                    <Anchors>
+                        <Anchor point="LEFT" relativePoint="RIGHT" x="2" y="0"/>
+                    </Anchors>
+                </FontString>
+            </Layer>
+        </Layers>
+    </CheckButton>
+
+    <!-- ============================================================
+         CONFIG ROW TEMPLATES
+         Two-column layout templates for settings
+         ============================================================ -->
+
+    <!-- Base two-column config row template
+         Label on LEFT, control space on RIGHT
+    -->
+    <Frame name="XPC_ConfigRowBase" virtual="true">
+        <Size x="0" y="35"/>
+        <Layers>
+            <Layer level="OVERLAY">
+                <!-- Label text (left-aligned) -->
+                <FontString parentKey="Label" inherits="GameFontHighlight" justifyH="LEFT">
+                    <Anchors>
+                        <Anchor point="LEFT" x="16"/>
+                        <Anchor point="RIGHT" x="-180"/>
+                    </Anchors>
+                </FontString>
+            </Layer>
+        </Layers>
+    </Frame>
+
+    <!-- Dropdown config row (label + dropdown button)
+         Uses WowStyle1DropdownTemplate (Dragonflight 10.0+)
+    -->
+    <Frame name="XPC_ConfigDropdownTemplate" inherits="XPC_ConfigRowBase" virtual="true">
+        <Frames>
+            <DropdownButton parentKey="Dropdown" inherits="WowStyle1DropdownTemplate">
+                <Size x="150" y="28"/>
+                <Anchors>
+                    <Anchor point="RIGHT" x="-16"/>
+                </Anchors>
+            </DropdownButton>
+        </Frames>
+    </Frame>
+
+    <!-- Slider config row (label + slider with steppers)
+         Uses MinimalSliderWithSteppersTemplate (Blizzard built-in)
+    -->
+    <Frame name="XPC_ConfigSliderTemplate" inherits="XPC_ConfigRowBase" virtual="true">
+        <Frames>
+            <Frame parentKey="Slider" inherits="MinimalSliderWithSteppersTemplate">
+                <Size x="140" y="20"/>
+                <Anchors>
+                    <Anchor point="RIGHT" x="-16"/>
+                </Anchors>
+            </Frame>
+        </Frames>
+    </Frame>
+
+    <!-- Checkbox config row (label on left, checkbox on right)
+         Two-column variant of standard checkbox
+    -->
+    <Frame name="XPC_ConfigCheckboxTemplate" inherits="XPC_ConfigRowBase" virtual="true">
+        <Frames>
+            <CheckButton parentKey="Checkbox" inherits="XPChronicleCheckButtonTemplate">
+                <Anchors>
+                    <Anchor point="RIGHT" x="-16"/>
+                </Anchors>
+            </CheckButton>
+        </Frames>
+    </Frame>
+
+    <!-- Color picker config row (label + description on left, swatch + preview on right)
+         Two-column layout with compact design
+    -->
+    <Frame name="XPC_ConfigColorPickerTemplate" virtual="true">
+        <Size x="0" y="70"/>
+        <Layers>
+            <Layer level="OVERLAY">
+                <!-- Label text (left-aligned, top) -->
+                <FontString parentKey="Label" inherits="GameFontHighlight" justifyH="LEFT">
+                    <Anchors>
+                        <Anchor point="TOPLEFT" x="16" y="-8"/>
+                        <Anchor point="TOPRIGHT" x="-280" y="-8"/>
+                    </Anchors>
+                </FontString>
+                <!-- Description text (left-aligned, below label) -->
+                <FontString parentKey="Description" inherits="GameFontHighlightSmall" justifyH="LEFT" wordwrap="true" nonspacewrap="true">
+                    <Anchors>
+                        <Anchor point="TOPLEFT" relativeKey="$parent.Label" relativePoint="BOTTOMLEFT" x="0" y="-4"/>
+                        <Anchor point="TOPRIGHT" x="-280" y="0"/>
+                    </Anchors>
+                </FontString>
+                <!-- Value text (right column, below swatch/preview) -->
+                <FontString parentKey="ValueText" inherits="GameFontHighlightSmall" justifyH="LEFT">
+                    <Anchors>
+                        <Anchor point="TOPRIGHT" x="-5" y="-50"/>
+                    </Anchors>
+                    <Size x="230" y="0"/>
+                </FontString>
+            </Layer>
+        </Layers>
+        <Frames>
+            <!-- Color swatch button (right column, top) -->
+            <Button parentKey="Swatch">
+                <Size x="24" y="24"/>
+                <Anchors>
+                    <Anchor point="TOPRIGHT" x="-16" y="-8"/>
+                </Anchors>
+                <Layers>
+                    <Layer level="BACKGROUND">
+                        <Texture parentKey="Background"/>
+                    </Layer>
+                    <Layer level="ARTWORK">
+                        <Texture parentKey="Texture"/>
+                    </Layer>
+                    <Layer level="HIGHLIGHT">
+                        <Texture parentKey="Highlight"/>
+                    </Layer>
+                </Layers>
+            </Button>
+            <!-- Status bar preview (to the left of swatch) -->
+            <StatusBar parentKey="StatusPreview">
+                <Size x="200" y="18"/>
+                <Anchors>
+                    <Anchor point="RIGHT" relativeKey="$parent.Swatch" relativePoint="LEFT" x="-10" y="0"/>
+                </Anchors>
+                <BarTexture file="Interface\\TargetingFrame\\UI-StatusBar"/>
+                <Layers>
+                    <Layer level="BACKGROUND">
+                        <Texture parentKey="BackgroundTexture"/>
+                    </Layer>
+                </Layers>
+            </StatusBar>
+            <!-- Texture preview (to the left of swatch, hidden by default) -->
+            <Frame parentKey="TexturePreview">
+                <Size x="200" y="18"/>
+                <Anchors>
+                    <Anchor point="RIGHT" relativeKey="$parent.Swatch" relativePoint="LEFT" x="-10" y="0"/>
+                </Anchors>
+                <Layers>
+                    <Layer level="ARTWORK">
+                        <Texture parentKey="Texture"/>
+                    </Layer>
+                </Layers>
+            </Frame>
+        </Frames>
+    </Frame>
+
+    <!-- Section header with divider line
+         Gold header text with horizontal divider below
+    -->
+    <Frame name="XPC_ConfigSectionHeader" virtual="true">
+        <Size x="0" y="35"/>
+        <Layers>
+            <Layer level="OVERLAY">
+                <!-- Gold section title -->
+                <FontString parentKey="Title" inherits="GameFontNormalLarge" justifyH="LEFT">
+                    <Anchors>
+                        <Anchor point="LEFT" x="16"/>
+                        <Anchor point="RIGHT" x="-16"/>
+                    </Anchors>
+                    <Color r="1.0" g="0.82" b="0.0"/> <!-- Gold -->
+                </FontString>
+            </Layer>
+            <Layer level="ARTWORK">
+                <!-- Horizontal divider line below header -->
+                <Texture parentKey="Divider">
+                    <Anchors>
+                        <Anchor point="TOPLEFT" relativeKey="$parent.Title" relativePoint="BOTTOMLEFT" y="-4"/>
+                        <Anchor point="RIGHT" relativeKey="$parent.Title" relativePoint="RIGHT"/>
+                    </Anchors>
+                    <Size x="0" y="1"/>
+                    <Color r="0.5" g="0.5" b="0.5" a="0.5"/>
+                </Texture>
+            </Layer>
+        </Layers>
+    </Frame>
+
+    <!-- Sub-section header
+         Gold header text
+    -->
+    <Frame name="XPC_ConfigSubSectionHeader" virtual="true">
+        <Size x="0" y="35"/>
+        <Layers>
+            <Layer level="OVERLAY">
+                <!-- Gold section title -->
+                <FontString parentKey="Title" inherits="GameFontNormal" justifyH="LEFT">
+                    <Anchors>
+                        <Anchor point="LEFT" x="16"/>
+                        <Anchor point="RIGHT" x="-16"/>
+                    </Anchors>
+                    <Color r="1.0" g="0.82" b="0.0"/> <!-- Gold -->
+                </FontString>
+            </Layer>
+        </Layers>
+    </Frame>
+
+</Ui>
