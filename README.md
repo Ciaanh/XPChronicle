@@ -38,7 +38,6 @@ Access the options panel via **Game Menu → AddOns → XP Chronicle** or type `
 ## Documentation
 
 - **`ARCHITECTURE.md`** - Technical overview and system architecture
-- **`CLEANUP_SUMMARY.md`** - Recent changes and improvements
 
 ## License
 
