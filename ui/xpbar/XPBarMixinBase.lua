@@ -311,13 +311,65 @@ function XPC_XPBarMixinBase:OnLevelUp(newLevel)
 		end
 	end
 
-	self:FullUpdate()
+	-- Play level-up celebration if enabled
+	local db = Addon.db or {}
+	if db.levelUpCelebration then
+		self:PlayLevelUpCelebration(newLevel)
+	else
+		-- Just do normal update if celebration disabled
+		self:FullUpdate()
+	end
 
 	-- Update level text immediately
 	self:UpdateLevelText()
 	
 	-- Update all text including quest-related displays
 	self:UpdateAllText()
+end
+
+-----------------------------------
+-- Level-Up Celebration Animation
+-----------------------------------
+
+function XPC_XPBarMixinBase:PlayLevelUpCelebration(newLevel)
+	local db = Addon.db or {}
+	
+	-- Celebration configuration
+	local speedMultiplier = 1.0
+	if db.celebrationSpeed == "fast" then
+		speedMultiplier = 0.7
+	elseif db.celebrationSpeed == "slow" then
+		speedMultiplier = 1.5
+	end
+	
+	-- Trigger gold flash
+	self:TriggerLevelUpFlash(speedMultiplier)
+	
+	-- Schedule full bar update after flash
+	C_Timer.After(1.0 * speedMultiplier, function()
+		if self and self.FullUpdate then
+			self:FullUpdate()
+		end
+	end)
+end
+
+function XPC_XPBarMixinBase:TriggerLevelUpFlash(speedMultiplier)
+	speedMultiplier = speedMultiplier or 1.0
+	
+	if not self.SetFlashAlpha then
+		return
+	end
+	
+	-- Gold color for level-up flash (different from XP gain)
+	self.animationState.flashingXPGain = true
+	self.animationState.flashStartTime = GetTime()
+	self.animationState.flashDuration = 1.0 * speedMultiplier
+	self.animationState.isLevelUpFlash = true  -- Mark as level-up flash
+	
+	-- Start flash animation
+	if not self:GetScript("OnUpdate") then
+		self:SetScript("OnUpdate", self.OnAnimationUpdate)
+	end
 end
 
 -----------------------------------
@@ -749,41 +801,10 @@ function XPC_XPBarMixinBase:UpdateRateText()
 		end
 	end
 
-	-- If no session data yet, try to fall back to level-based stats
+	-- If still no session data, clear text
 	if not hasSessionData then
-		-- Try to get level-based stats as fallback
-		if Addon.App and Addon.App.Services then
-			local LevelHistoryService = Addon.App.Services.LevelHistoryService
-			if LevelHistoryService then
-				local currentLevel = UnitLevel("player")
-				local levelTable = LevelHistoryService:GetLevelTable()
-				if levelTable and levelTable[currentLevel] then
-					local levelData = levelTable[currentLevel]
-					if levelData.levelStart then
-						local levelTime = time() - levelData.levelStart
-						local levelGainedXP = self.state.currentXP -- Current XP in this level
-						
-						-- Only calculate if we have meaningful level time (at least 60 seconds)
-						if levelTime >= 60 and levelGainedXP > 0 then
-							hasSessionData = true -- Use level data as fallback
-							xpPerHour = math.floor((levelGainedXP / levelTime) * 3600)
-
-							-- Calculate time to level
-							local remainingXP = self.state.maxXP - self.state.currentXP
-							if xpPerHour > 0 and remainingXP > 0 then
-								timeToLevel = math.floor((remainingXP / xpPerHour) * 3600)
-							end
-						end
-					end
-				end
-			end
-		end
-		
-		-- If still no data, clear text
-		if not hasSessionData then
-			self.RateText:SetText("")
-			return
-		end
+		self.RateText:SetText("")
+		return
 	end
 
 	-- Build text based on what's enabled
@@ -835,7 +856,7 @@ function XPC_XPBarMixinBase:UpdateSessionText()
 				end
 
 				-- Use realLevelTime from TIME_PLAYED_MSG if available (accurate server-side time)
-				-- Fall back to levelStart calculation if not available
+				-- Fall back to showing 0 if not available
 				if showLevelTime then
 					if session.realLevelTime and session.realLevelTime > 0 then
 						-- Add elapsed time since last TIME_PLAYED_MSG for real-time updates
@@ -843,15 +864,6 @@ function XPC_XPBarMixinBase:UpdateSessionText()
 						if session.lastTimePlayedRequest and session.lastTimePlayedRequest > 0 then
 							local elapsed = time() - session.lastTimePlayedRequest
 							levelSeconds = levelSeconds + elapsed
-						end
-					else
-						local LevelHistoryService = Addon.App.Services.LevelHistoryService
-						if LevelHistoryService then
-							local currentLevel = UnitLevel("player")
-							local levelTable = LevelHistoryService:GetLevelTable()
-							if levelTable and levelTable[currentLevel] and levelTable[currentLevel].levelStart then
-								levelSeconds = time() - levelTable[currentLevel].levelStart
-							end
 						end
 					end
 				end

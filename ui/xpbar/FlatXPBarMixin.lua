@@ -264,16 +264,22 @@ function XPC_FlatXPBarMixin:SetFlashAlpha(alpha)
 	end
 	
 	if alpha > 0 then
-		-- Update flash color based on rested state
-		local isRested = self.animationState.isRestedGain
-		if isRested then
-			-- Use user's rested color for flash
-			local c = XPC_XPBarColors:GetUserColor(Color.Rested)
-			self.GainFlash:SetColorTexture(c.r, c.g, c.b, alpha)
+		-- Check if this is a level-up flash (gold color)
+		if self.animationState and self.animationState.isLevelUpFlash then
+			-- Gold color for level-up celebration
+			self.GainFlash:SetColorTexture(1.0, 0.84, 0.0, alpha)
 		else
-			-- Use user's XP bar color for flash
-			local c = XPC_XPBarColors:GetUserColor(Color.XpBar)
-			self.GainFlash:SetColorTexture(c.r, c.g, c.b, alpha)
+			-- Update flash color based on rested state for XP gains
+			local isRested = self.animationState.isRestedGain
+			if isRested then
+				-- Use user's rested color for flash
+				local c = XPC_XPBarColors:GetUserColor(Color.Rested)
+				self.GainFlash:SetColorTexture(c.r, c.g, c.b, alpha)
+			else
+				-- Use user's XP bar color for flash
+				local c = XPC_XPBarColors:GetUserColor(Color.XpBar)
+				self.GainFlash:SetColorTexture(c.r, c.g, c.b, alpha)
+			end
 		end
 		self.GainFlash:Show()
 	else

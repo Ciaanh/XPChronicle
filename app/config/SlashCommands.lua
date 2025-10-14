@@ -135,6 +135,61 @@ function SlashCommands:Handle(message)
         return
     end
 
+    -- Test commands
+    if command == "test" then
+        local testCommand = string.lower(arg or "")
+        
+        if testCommand == "celebration" or testCommand == "levelup" then
+            -- Test level-up celebration animation
+            -- Try to get the active bar (Legacy or Flat)
+            local bar = nil
+            local barType = Addon.db and Addon.db.barStyle or "legacy"
+            
+            if barType == "flat" and _G.XPC_FlatXPBar then
+                bar = _G.XPC_FlatXPBar.Bar
+            elseif barType == "legacy" and _G.XPC_LegacyXPBar then
+                bar = _G.XPC_LegacyXPBar.Bar
+            end
+            
+            if bar and bar.PlayLevelUpCelebration then
+                local currentLevel = UnitLevel("player")
+                print("|cFF00FF00XP Chronicle:|r Testing level-up celebration for level " .. currentLevel)
+                bar:PlayLevelUpCelebration(currentLevel)
+            else
+                print("|cFFFF0000XP Chronicle:|r XP Bar not available (current style: " .. barType .. ")")
+                print("Try: /xpc style legacy or /xpc style flat")
+            end
+            return
+        end
+        
+        if testCommand == "flash" then
+            -- Test XP gain flash
+            local bar = nil
+            local barType = Addon.db and Addon.db.barStyle or "legacy"
+            
+            if barType == "flat" and _G.XPC_FlatXPBar then
+                bar = _G.XPC_FlatXPBar.Bar
+            elseif barType == "legacy" and _G.XPC_LegacyXPBar then
+                bar = _G.XPC_LegacyXPBar.Bar
+            end
+            
+            if bar and bar.TriggerXPGainFlash then
+                print("|cFF00FF00XP Chronicle:|r Testing XP gain flash")
+                bar:TriggerXPGainFlash(false) -- false = not rested
+            else
+                print("|cFFFF0000XP Chronicle:|r XP Bar not available (current style: " .. barType .. ")")
+                print("Try: /xpc style legacy or /xpc style flat")
+            end
+            return
+        end
+        
+        -- Show test help
+        print("|cFF00FF00XP Chronicle:|r Test commands:")
+        print("  /xpc test celebration - Test level-up celebration animation")
+        print("  /xpc test flash - Test XP gain flash effect")
+        return
+    end
+
     printUnknown(command)
 end
 

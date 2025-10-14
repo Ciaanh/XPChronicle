@@ -34,6 +34,31 @@ local defaults = {
     flashOnGain = true,
     pauseOnHover = true,
     
+    -- Level-Up Celebration Settings
+    levelUpCelebration = true,
+    celebrationSparkles = false,  -- Disabled by default for performance
+    celebrationSound = true,
+    celebrationSpeed = "normal",  -- "fast", "normal", "slow"
+    
+    -- Bar Style Variations
+    barStyleVariation = "default",  -- "default", "gradient", "animated", "minimalist", "glowing", "segmented"
+    
+    -- Auto-Hide at Max Level
+    maxLevelBehavior = "always_show",  -- "always_show", "auto_hide", "show_on_hover", "minimal_mode"
+    
+    -- Fade In/Out Effects
+    fadeWhenInactive = false,
+    fadeDelay = 5.0,  -- seconds
+    idleOpacity = 0.0,  -- 0-100, 0 = fully hidden
+    fadeInSpeed = 0.3,  -- seconds
+    fadeOutSpeed = 0.5,  -- seconds
+    
+    -- Font Customization
+    textFontFace = "Fonts\\FRIZQT__.TTF",
+    textFontSize = 12,
+    textFontOutline = "NONE",  -- "NONE", "OUTLINE", "THICKOUTLINE"
+    textFontShadow = false,
+    
     -- Color Settings
     colors = {
         -- XP Bar and Rested colors (Flat bar only - Legacy uses fixed Blizzard atlases)

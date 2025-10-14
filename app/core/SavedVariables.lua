@@ -23,26 +23,11 @@ function SavedVariables:EnsureDefaults(defaults)
 
     Addon.db = XPChronicleDB
     Addon.db.sessionData = Addon.db.sessionData or {}
-    Addon.db.levelData = Addon.db.levelData or {}
 
     local playerName = UnitName("player") or "Unknown"
     local realmName = GetRealmName() or "Unknown"
     local playerKey = string.format("%s-%s", playerName, realmName)
     Addon.playerKey = playerKey
-
-    Addon.db.levelData[playerKey] = Addon.db.levelData[playerKey] or {}
-
-    local currentLevel = UnitLevel("player")
-    local levelTable = Addon.db.levelData[playerKey]
-    levelTable[currentLevel] = levelTable[currentLevel] or {}
-
-    if not levelTable[currentLevel].levelStart then
-        levelTable[currentLevel].levelStart = time()
-    end
-
-    if levelTable[currentLevel].xpAtStart == nil then
-        levelTable[currentLevel].xpAtStart = UnitXP("player")
-    end
 end
 
 function SavedVariables:GetDB()
@@ -55,13 +40,13 @@ function SavedVariables:GetSessionData()
     return db.sessionData
 end
 
-function SavedVariables:GetLevelData()
-    local db = self:GetDB()
-    db.levelData = db.levelData or {}
-    return db.levelData
-end
-
 function SavedVariables:GetPlayerKey()
+    -- Generate playerKey on-demand if not yet initialized
+    if not Addon.playerKey then
+        local playerName = UnitName("player") or "Unknown"
+        local realmName = GetRealmName() or "Unknown"
+        Addon.playerKey = string.format("%s-%s", playerName, realmName)
+    end
     return Addon.playerKey
 end
 

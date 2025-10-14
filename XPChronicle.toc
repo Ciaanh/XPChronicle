@@ -2,7 +2,7 @@
 ## Title: XP Chronicle
 ## Notes: Enhanced experience bar with quest XP tracking and leveling statistics
 ## Author: Ciaanh
-## Version: 1.0.0
+## Version: 1.0.1
 ## SavedVariables: XPChronicleDB
 ## Category: Quests & Leveling
 ## IconTexture: 4675649
@@ -23,7 +23,6 @@ app/core/SavedVariables.lua
 
 app/services/SessionService.lua
 app/services/TimePlayedService.lua
-app/services/LevelHistoryService.lua
 app/services/QuestXPService.lua
 
 app/config/OptionsMetadata.lua

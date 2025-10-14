@@ -1,4 +1,6 @@
--- XP Chronicle Stats View
+-- XP Chronicle Stats View - Book-Style Two-Page Layout
+-- Left Page: Current Level Stats
+-- Right Page: Current Session Stats
 local Addon = XPChronicle
 Addon.UI = Addon.UI or {}
 Addon.UI.Views = Addon.UI.Views or {}
@@ -11,7 +13,7 @@ local Utils = Addon.Utils or {}
 local FrameUtils = Addon.UI.Components and Addon.UI.Components.FrameUtils
 local PositionStoreMixin = Addon.UI.Mixins and Addon.UI.Mixins.PositionStoreMixin
 local DraggableFrameMixin = Addon.UI.Mixins and Addon.UI.Mixins.DraggableFrameMixin
-local QuestXPService = Addon.App and Addon.App.Services and Addon.App.Services.QuestXPService
+local SessionService = Addon.App and Addon.App.Services and Addon.App.Services.SessionService
 
 local frame
 
@@ -29,6 +31,7 @@ function StatsFrameMixin:OnLoad()
 
     statsFrame:SetClampedToScreen(true)
 
+    -- Initialize draggable frame functionality
     if PositionStoreMixin and DraggableFrameMixin then
         Mixin(statsFrame, PositionStoreMixin, DraggableFrameMixin)
         statsFrame:InitPositionStorage(
@@ -55,39 +58,41 @@ function StatsFrameMixin:OnLoad()
         FrameUtils.EnableDrag(statsFrame, { button = "LeftButton" })
     end
 
-    if statsFrame.TitleText then
-        statsFrame.TitleText:SetText("XP Chronicle")
-    end
-
-    if statsFrame.ScrollFrame and statsFrame.ContentFrame then
-        statsFrame.ScrollFrame:SetClipsChildren(true)
-        statsFrame.ScrollFrame:SetScrollChild(statsFrame.ContentFrame)
-    end
-
-    if statsFrame.ContentFrame and statsFrame.ContentFrame.StatsText then
-        local statsText = statsFrame.ContentFrame.StatsText
-        if statsText.SetJustifyH then
-            statsText:SetJustifyH("LEFT")
-        end
-        if statsText.SetJustifyV then
-            statsText:SetJustifyV("TOP")
-        end
-    end
-
+    -- Setup close button
     if statsFrame.CloseButton then
         statsFrame.CloseButton:SetScript("OnClick", function(btn)
             btn:GetParent():Hide()
         end)
     end
 
-    if statsFrame.RefreshButton then
-        statsFrame.RefreshButton:SetText("Refresh")
-        statsFrame.RefreshButton:SetScript("OnClick", function()
-            View:Update()
-        end)
-    end
+    -- Initialize auto-refresh timer
+    statsFrame.updateTimer = 0
+    statsFrame.updateInterval = 2.5  -- Auto-refresh every 2.5 seconds
 
+    -- Initial update
     View:Update()
+end
+
+function StatsFrameMixin:OnShow()
+    -- Reset timer when shown
+    self.updateTimer = 0
+    -- Immediate update when shown
+    View:Update()
+end
+
+function StatsFrameMixin:OnHide()
+    -- Reset timer when hidden (cleanup)
+    self.updateTimer = 0
+end
+
+function StatsFrameMixin:OnUpdate(elapsed)
+    -- Auto-refresh logic
+    self.updateTimer = (self.updateTimer or 0) + elapsed
+    
+    if self.updateTimer >= self.updateInterval then
+        self.updateTimer = 0
+        View:Update()
+    end
 end
 
 function View:Initialize(controller)
@@ -133,167 +138,192 @@ function View:Toggle()
     end
 end
 
-local function collectLevelHistory()
-    local levelHistory = {}
-    if not (Addon.db and Addon.playerKey and Addon.db.levelData) then
-        return levelHistory
-    end
-
-    local levelTable = Addon.db.levelData[Addon.playerKey]
-    if not levelTable then
-        return levelHistory
-    end
-
-    for level, data in pairs(levelTable) do
-        table.insert(levelHistory, { level = level, data = data })
-    end
-
-    table.sort(levelHistory, function(a, b)
-        return a.level < b.level
-    end)
-
-    return levelHistory
-end
-
-local function formatLevelLine(entry)
-    local level = entry.level
-    local data = entry.data or {}
-
-    if data.levelEnd then
-        -- Completed level
-        local levelTime = Addon.App.Services.LevelHistoryService:GetLevelDuration(level)
-        local timeStr = Utils.FormatTime(levelTime)
-        
-        -- Add XP gained if available
-        local xpInfo = ""
-        if data.xpAtStart and data.xpAtEnd then
-            local xpGained = data.xpAtEnd - data.xpAtStart
-            xpInfo = string.format(" - %s XP", Utils.FormatNumber(xpGained))
-        end
-        
-        -- Format completion date if available
-        local dateStr = ""
-        if data.levelEnd then
-            dateStr = string.format(" (Completed: %s)", date("%m/%d/%Y", data.levelEnd))
-        end
-        
-        return string.format("  Level %d: %s%s%s", level, timeStr, xpInfo, dateStr)
-    else
-        -- In progress level
-        local elapsed = 0
-        if data.levelStart then
-            elapsed = math.max(0, time() - data.levelStart)
-        end
-        
-        local xpInfo = ""
-        if data.xpAtStart then
-            local currentXP = UnitXP("player")
-            local xpGained = math.max(0, currentXP - data.xpAtStart)
-            xpInfo = string.format(", %s XP gained", Utils.FormatNumber(xpGained))
-        end
-        
-        return string.format("  Level %d: In Progress (%s elapsed%s)", level, Utils.FormatTime(elapsed), xpInfo)
-    end
-end
-
 function View:Update()
     local statsFrame = self:GetFrame()
     if not statsFrame then return end
 
-    local contentFrame = statsFrame.ContentFrame
-    local statsText = contentFrame and contentFrame.StatsText
-    if not statsText then
-        return
-    end
+    -- Update Left Page (Current Level Stats)
+    self:UpdateLevelStats(statsFrame)
+    
+    -- Update Right Page (Session Stats)
+    self:UpdateSessionStats(statsFrame)
+end
 
+-- Update left page with current level statistics
+function View:UpdateLevelStats(statsFrame)
+    if not (statsFrame and statsFrame.LeftPage) then return end
+    
+    local leftPage = statsFrame.LeftPage
+    local content = leftPage.Content
+    if not content then return end
+    
+    -- Get current player stats
+    local currentLevel = UnitLevel("player")
     local currentXP = UnitXP("player")
     local maxXP = UnitXPMax("player")
-    local currentLevel = UnitLevel("player")
-    local restedXP = GetXPExhaustion() or 0
-
-    if maxXP == 0 then
-        maxXP = 1
-    end
-
-    local _, questComplete, questIncomplete = self:GetQuestXP()
-
     local remainingXP = math.max(0, maxXP - currentXP)
-
-    local session = Addon.App.Services.SessionService:GetSession()
-    local sessionElapsed = time() - session.sessionStart
-    local sessionXP = session.gainedXP
+    local restedXP = GetXPExhaustion() or 0
     
+    -- Calculate progress percentage
+    local percent = (currentXP / math.max(maxXP, 1)) * 100
+    
+    -- Get session data for level time tracking
+    local session = SessionService and SessionService:GetSession()
+    
+    -- Get time on this level (from session service)
+    local levelTime = 0
+    if session and session.realLevelTime then
+        levelTime = session.realLevelTime
+    end
+    
+    -- Calculate XP rate for THIS LEVEL (not just current session)
+    -- This uses the XP gained during this level divided by time spent on this level
+    local levelXPRate = 0  -- XP per second for this level
+    if levelTime > 0 and currentXP > 0 then
+        levelXPRate = currentXP / levelTime  -- XP per second
+    end
+    
+    -- Calculate time to next level based on current level's XP rate
+    local timeToLevel = nil
+    if levelXPRate > 0 and remainingXP > 0 then
+        timeToLevel = remainingXP / levelXPRate  -- in seconds
+    end
+    
+    -- Update current level
+    if content.CurrentLevelValue then
+        content.CurrentLevelValue:SetText(tostring(currentLevel))
+    end
+    
+    -- Update current XP
+    if content.CurrentXPValue then
+        content.CurrentXPValue:SetText(Utils.ShortNumber(currentXP))
+    end
+    
+    -- Update max XP
+    if content.MaxXPValue then
+        content.MaxXPValue:SetText(Utils.ShortNumber(maxXP))
+    end
+    
+    -- Update progress
+    if content.ProgressValue then
+        content.ProgressValue:SetText(string.format("%.1f%%", percent))
+    end
+    
+    -- Update remaining XP
+    if content.RemainingXPValue then
+        content.RemainingXPValue:SetText(Utils.ShortNumber(remainingXP))
+    end
+    
+    -- Update rested XP
+    if content.RestedXPValue then
+        if restedXP > 0 then
+            content.RestedXPValue:SetText(Utils.ShortNumber(restedXP))
+        else
+            content.RestedXPValue:SetText("None")
+        end
+    end
+    
+    -- Update quest XP
+    if content.QuestXPValue then
+        local totalQuestXP, completeQuestXP, incompleteQuestXP = self:GetQuestXP()
+        
+        if totalQuestXP > 0 then
+            local questPercent = (totalQuestXP / math.max(maxXP, 1)) * 100
+            content.QuestXPValue:SetText(string.format("%s (%.1f%%)", 
+                Utils.ShortNumber(totalQuestXP), questPercent))
+        else
+            content.QuestXPValue:SetText("None")
+        end
+    end
+    
+    -- Update time on this level
+    if content.LevelTimeValue then
+        if levelTime > 0 then
+            content.LevelTimeValue:SetText(Utils.FormatDuration(levelTime))
+        else
+            content.LevelTimeValue:SetText("N/A")
+        end
+    end
+    
+    -- Update time to next level
+    if content.TimeToLevelValue then
+        if timeToLevel and timeToLevel > 0 then
+            content.TimeToLevelValue:SetText(Utils.FormatDuration(timeToLevel))
+        else
+            content.TimeToLevelValue:SetText("N/A")
+        end
+    end
+end
+
+-- Update right page with session statistics
+function View:UpdateSessionStats(statsFrame)
+    if not (statsFrame and statsFrame.RightPage) then return end
+    
+    local rightPage = statsFrame.RightPage
+    local content = rightPage.Content
+    if not content then return end
+    
+    -- Get session data
+    local session = SessionService and SessionService:GetSession()
+    if not session then
+        session = {
+            sessionStart = time(),
+            gainedXP = 0,
+            realLevelTime = 0
+        }
+    end
+    
+    -- Calculate session duration
+    local sessionElapsed = time() - (session.sessionStart or time())
+    local sessionXP = session.gainedXP or 0
+    
+    -- Calculate XP per hour
     local xpPerHour = 0
     if sessionElapsed > 0 and sessionXP > 0 then
-        xpPerHour = (sessionXP / sessionElapsed) * 3600
-    end
-
-    local timeToLevel
-    if xpPerHour > 0 then
-        timeToLevel = remainingXP / xpPerHour
-    end
-
-    local lines = {}
-
-    table.insert(lines, string.format("|cFFFFD700Level:|r %d", currentLevel))
-    table.insert(lines, string.format("|cFFFFD700XP:|r %s / %s (%s remaining)", Utils.FormatNumber(currentXP), Utils.FormatNumber(maxXP), Utils.FormatNumber(remainingXP)))
-    
-    if restedXP > 0 then
-        table.insert(lines, string.format("|cFFFFD700Rested:|r %s (%s)", Utils.FormatNumber(restedXP), XPC_XPBarTextFormatter:FormatPercent(restedXP, maxXP, 1)))
-    end
-
-    if questComplete > 0 or questIncomplete > 0 then
-        table.insert(lines, "")
-        table.insert(lines, "|cFFFFD700Quest XP:|r")
-        if questComplete > 0 then
-            table.insert(lines, string.format("  |cFFFFD700Complete:|r %s", Utils.FormatNumber(questComplete)))
-        end
-        if questIncomplete > 0 then
-            table.insert(lines, string.format("  |cFFFFD700Incomplete:|r %s", Utils.FormatNumber(questIncomplete)))
-        end
-    end
-
-    table.insert(lines, "")
-    table.insert(lines, "|cFFFFD700Session:|r")
-    table.insert(lines, string.format("  |cFFFFD700Time:|r %s", Utils.FormatTime(sessionElapsed)))
-    table.insert(lines, string.format("  |cFFFFD700XP Gained:|r %s", Utils.FormatNumber(sessionXP)))
-    if xpPerHour > 0 then
-        table.insert(lines, string.format("  |cFFFFD700XP/Hour:|r %s", Utils.FormatNumber(xpPerHour)))
-    end
-
-    table.insert(lines, "")
-    table.insert(lines, "|cFFFFD700Time to Level:|r")
-    if timeToLevel then
-        table.insert(lines, string.format("  |cFFFFD700Current Rate:|r %s", Utils.FormatTime(timeToLevel)))
-    else
-        table.insert(lines, "  |cFFFFD700Current Rate:|r Calculating...")
+        xpPerHour = math.floor((sessionXP / sessionElapsed) * 3600)
     end
     
-    local levelTime = session.realLevelTime or 0
-    if levelTime > 0 then
-        table.insert(lines, string.format("  |cFFFFD700This Level:|r %s", Utils.FormatTime(levelTime)))
-    else
-        -- Fallback to calculated level time if realLevelTime not available
-        local levelData = Addon.db.levelData and Addon.playerKey and Addon.db.levelData[Addon.playerKey]
-        if levelData and levelData[currentLevel] and levelData[currentLevel].levelStart then
-            local calcLevelTime = math.max(0, time() - levelData[currentLevel].levelStart)
-            if calcLevelTime > 0 then
-                table.insert(lines, string.format("  |cFFFFD700This Level:|r %s", Utils.FormatTime(calcLevelTime)))
-            end
+    -- Calculate levels gained this session
+    local levelsGained = 0
+    if SessionService and SessionService.GetSession then
+        -- TODO: Track levels gained in session
+        levelsGained = 0
+    end
+    
+    -- Update session duration
+    if content.SessionDurationValue then
+        content.SessionDurationValue:SetText(Utils.FormatDuration(sessionElapsed))
+    end
+    
+    -- Update session start time
+    if content.SessionStartValue then
+        local startTime = date("%H:%M", session.sessionStart or time())
+        content.SessionStartValue:SetText(startTime)
+    end
+    
+    -- Update XP gained
+    if content.SessionXPValue then
+        content.SessionXPValue:SetText(Utils.ShortNumber(sessionXP))
+    end
+    
+    -- Update levels gained
+    if content.LevelsGainedValue then
+        content.LevelsGainedValue:SetText(tostring(levelsGained))
+    end
+    
+    -- Update XP per hour
+    if content.XPPerHourValue then
+        if xpPerHour > 0 then
+            content.XPPerHourValue:SetText(Utils.ShortNumber(xpPerHour))
+        else
+            content.XPPerHourValue:SetText("Calculating...")
         end
     end
-
-    local levelHistory = collectLevelHistory()
-    if #levelHistory > 0 then
-        table.insert(lines, "")
-        table.insert(lines, "|cFFFFD700Level History:|r")
-
-        for _, entry in ipairs(levelHistory) do
-            table.insert(lines, formatLevelLine(entry))
-        end
+    
+    -- Update total session XP (same as gained)
+    if content.TotalSessionXPValue then
+        content.TotalSessionXPValue:SetText(Utils.ShortNumber(sessionXP))
     end
-
-    statsText:SetText(table.concat(lines, "\n"))
 end
 
 function View:GetQuestXP(forceRefresh)
