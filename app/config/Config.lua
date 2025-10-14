@@ -6,8 +6,6 @@ Addon.App.Config = Addon.App.Config or {}
 local Config = Addon.Config
 local Utils = Addon.Utils or {}
 local metadata = Addon.App.Config.OptionsMetadata or {}
-local SessionService = Addon.App.Services and Addon.App.Services.SessionService
-local QuestXPService = Addon.App.Services and Addon.App.Services.QuestXPService
 local TimePlayedService = Addon.App.Services and Addon.App.Services.TimePlayedService
 local L = function(key, ...) return Addon.L and Addon.L(key, ...) or key end
 
@@ -16,19 +14,19 @@ local optionDetails = metadata.optionDetails or {}
 local optionOrder = metadata.optionOrder or {}
 local colorOptionsList = metadata.colorOptionsList or {}
 
-local optionMap = {}
-for key, detail in pairs(optionDetails) do
-    if not detail.key then
-        detail.key = key
-    end
-    if detail.commandKeys then
-        for _, alias in ipairs(detail.commandKeys) do
-            optionMap[alias] = detail
-        end
-    else
-        optionMap[key] = detail
-    end
-end
+-- local optionMap = {}
+-- for key, detail in pairs(optionDetails) do
+--     if not detail.key then
+--         detail.key = key
+--     end
+--     if detail.commandKeys then
+--         for _, alias in ipairs(detail.commandKeys) do
+--             optionMap[alias] = detail
+--         end
+--     else
+--         optionMap[key] = detail
+--     end
+-- end
 
 local optionCommandNames = {}
 for _, key in ipairs(optionOrder) do

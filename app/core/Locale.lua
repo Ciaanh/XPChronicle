@@ -32,26 +32,6 @@ function Locale:Get(key, ...)
     return text
 end
 
--- Shorthand alias
-function Locale:T(key, ...)
-    return self:Get(key, ...)
-end
-
--- Get all locale strings (for debugging)
-function Locale:GetAll()
-    return L
-end
-
--- Check if locale key exists
-function Locale:Exists(key)
-    return L and L[key] ~= nil
-end
-
--- Get current locale
-function Locale:GetCurrentLocale()
-    return GetLocale()
-end
-
 -- ============================================================================
 -- Export
 -- ============================================================================

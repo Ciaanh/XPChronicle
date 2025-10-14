@@ -35,14 +35,6 @@ function Utils.Clone(value)
     return cloneTable(value)
 end
 
-function Utils.CloneTable(value)
-    return cloneTable(value)
-end
-
-function Utils.Merge(target, source)
-    mergeDefaults(target, source)
-end
-
 function Utils.MergeDefaults(target, source)
     mergeDefaults(target, source)
 end
