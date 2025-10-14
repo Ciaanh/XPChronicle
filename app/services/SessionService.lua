@@ -4,6 +4,8 @@ Addon.App.Services = Addon.App.Services or {}
 
 local SavedVariables = Addon.App.Core and Addon.App.Core.SavedVariables
 local Utils = Addon.Utils or {}
+local EventBus = XPC_EventBus
+local EventTypes = XPC_EventTypes
 
 local SessionService = {}
 
@@ -43,6 +45,13 @@ function SessionService:OnEnteringWorld(isInitialLogin, isReload)
     if isInitialLogin then
         session.sessionStart = time()
         session.gainedXP = 0
+        
+        -- Publish SESSION_STARTED event
+        if EventBus and EventTypes then
+            EventBus:Publish(EventTypes.SESSION_STARTED, {
+                startTime = session.sessionStart,
+            })
+        end
     end
 
     if isInitialLogin or isReload then
@@ -82,6 +91,9 @@ function SessionService:OnXPUpdate()
     session.lastXP = currentXP
     session.maxXP = maxXP
     session.lastUpdate = time()
+    
+    -- Publish SESSION_UPDATED event
+    self:PublishSessionUpdate()
 end
 
 function SessionService:OnLevelUp(newLevel)
@@ -114,6 +126,34 @@ function SessionService:RefreshSessionTimes()
     if not session then return end
 
     session.lastUpdate = time()
+end
+
+function SessionService:PublishSessionUpdate()
+    if not EventBus or not EventTypes then
+        return
+    end
+    
+    local session = self:GetSession()
+    if not session then
+        return
+    end
+    
+    -- Calculate session duration
+    local duration = time() - (session.sessionStart or time())
+    
+    -- Calculate XP per hour
+    local xpPerHour = 0
+    if duration > 0 then
+        xpPerHour = (session.gainedXP or 0) / (duration / 3600)
+    end
+    
+    EventBus:Publish(EventTypes.SESSION_UPDATED, {
+        duration = duration,
+        xpGained = session.gainedXP or 0,
+        levelsGained = 0,  -- TODO: Track levels gained in session
+        xpPerHour = xpPerHour,
+        startTime = session.sessionStart or time(),
+    })
 end
 
 Addon.App.Services.SessionService = SessionService

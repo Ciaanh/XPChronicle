@@ -87,34 +87,35 @@ Herbalism: Peacebloom
 
 **Customizable Properties**:
 
-- **Font Face**: Dropdown of WoW fonts
-  - Friz Quadrata (Default)
-  - Arial Narrow
-  - Morpheus
-  - Skurri
-  - Adventure
-- **Font Size**: Slider (8-24)
-- **Font Outline**: None, Normal, Thick
-- **Font Shadow**: Toggle
-- **Text Color**: Color picker for each text element
-- **Apply to**: All text, or per-element (level, XP, percent, rested)
+-   **Font Face**: Dropdown of WoW fonts
+    -   Friz Quadrata (Default)
+    -   Arial Narrow
+    -   Morpheus
+    -   Skurri
+    -   Adventure
+-   **Font Size**: Slider (8-24)
+-   **Font Outline**: None, Normal, Thick
+-   **Font Shadow**: Toggle
+-   **Text Color**: Color picker for each text element
+-   **Apply to**: All text, or per-element (level, XP, percent, rested)
 
 **Configuration**:
-- Font customization section in options
-- Live preview of changes
-- Reset to defaults button
 
+-   Font customization section in options
+-   Live preview of changes
+-   Reset to defaults button
 
 # Auto-Hide at Max Level
 
 **Behavior Options**:
 
-- **Always Show**: Bar visible even at max level (default for backward compatibility)
-- **Auto-Hide**: Hide bar completely when reaching max level
-- **Show on Hover**: Bar hidden but appears on mouseover
-- **Minimal Mode**: Show simplified version (no XP, just level)
+-   **Always Show**: Bar visible even at max level (default for backward compatibility)
+-   **Auto-Hide**: Hide bar completely when reaching max level
+-   **Show on Hover**: Bar hidden but appears on mouseover
+-   **Minimal Mode**: Show simplified version (no XP, just level)
 
 **Configuration**:
-- Dropdown selector in options
-- Takes effect immediately on level check
-- Can be toggled at any time
+
+-   Dropdown selector in options
+-   Takes effect immediately on level check
+-   Can be toggled at any time

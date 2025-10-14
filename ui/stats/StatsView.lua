@@ -65,34 +65,27 @@ function StatsFrameMixin:OnLoad()
         end)
     end
 
-    -- Initialize auto-refresh timer
-    statsFrame.updateTimer = 0
-    statsFrame.updateInterval = 2.5  -- Auto-refresh every 2.5 seconds
-
     -- Initial update
     View:Update()
 end
 
 function StatsFrameMixin:OnShow()
-    -- Reset timer when shown
-    self.updateTimer = 0
+    -- Subscribe to events (event-driven updates)
+    View:SubscribeToEvents()
+    
     -- Immediate update when shown
     View:Update()
 end
 
 function StatsFrameMixin:OnHide()
-    -- Reset timer when hidden (cleanup)
-    self.updateTimer = 0
+    -- Unsubscribe from events to prevent memory leaks
+    View:UnsubscribeFromEvents()
 end
 
 function StatsFrameMixin:OnUpdate(elapsed)
-    -- Auto-refresh logic
-    self.updateTimer = (self.updateTimer or 0) + elapsed
-    
-    if self.updateTimer >= self.updateInterval then
-        self.updateTimer = 0
-        View:Update()
-    end
+    -- NOTE: Auto-refresh timer removed in Phase 3!
+    -- Stats now update automatically via event subscriptions
+    -- This method kept for potential future use (animations, etc.)
 end
 
 function View:Initialize(controller)
@@ -137,6 +130,76 @@ function View:Toggle()
         statsFrame:Show()
     end
 end
+
+-----------------------------------
+-- Event Subscription (Phase 3: Event-Driven Architecture)
+-----------------------------------
+
+-- Subscribe to EventBus events
+function View:SubscribeToEvents()
+    local EventBus = XPC_EventBus
+    local EventTypes = XPC_EventTypes
+    
+    if not EventBus or not EventTypes then
+        return
+    end
+    
+    -- Store unsubscribe functions for cleanup
+    self.eventUnsubscribers = self.eventUnsubscribers or {}
+    
+    -- XP Changed - Update level stats
+    table.insert(self.eventUnsubscribers, EventBus:Subscribe(
+        EventTypes.XP_CHANGED,
+        "StatsView",
+        function(data)
+            self:UpdateLevelStats(frame)
+        end
+    ))
+    
+    -- Session Updated - Update session stats
+    table.insert(self.eventUnsubscribers, EventBus:Subscribe(
+        EventTypes.SESSION_UPDATED,
+        "StatsView",
+        function(data)
+            self:UpdateSessionStats(frame)
+        end
+    ))
+    
+    -- Quest XP Updated - Update quest XP in level stats
+    table.insert(self.eventUnsubscribers, EventBus:Subscribe(
+        EventTypes.QUEST_XP_UPDATED,
+        "StatsView",
+        function(data)
+            self:UpdateLevelStats(frame)
+        end
+    ))
+    
+    -- Level Up - Update both pages
+    table.insert(self.eventUnsubscribers, EventBus:Subscribe(
+        EventTypes.LEVEL_UP,
+        "StatsView",
+        function(data)
+            self:Update()
+        end
+    ))
+end
+
+-- Unsubscribe from all events
+function View:UnsubscribeFromEvents()
+    if not self.eventUnsubscribers then
+        return
+    end
+    
+    for _, unsubscribe in ipairs(self.eventUnsubscribers) do
+        unsubscribe()
+    end
+    
+    self.eventUnsubscribers = {}
+end
+
+-----------------------------------
+-- Update Methods
+-----------------------------------
 
 function View:Update()
     local statsFrame = self:GetFrame()

@@ -7,6 +7,8 @@ local Config = Addon.Config
 local Utils = Addon.Utils or {}
 local metadata = Addon.App.Config.OptionsMetadata or {}
 local TimePlayedService = Addon.App.Services and Addon.App.Services.TimePlayedService
+local EventBus = XPC_EventBus
+local EventTypes = XPC_EventTypes
 local L = function(key, ...) return Addon.L and Addon.L(key, ...) or key end
 
 local defaults = Addon.defaults or {}
@@ -87,9 +89,29 @@ function Config:SetOptionKey(key, value, silent)
         newValue = value and true or false  -- Boolean for checkboxes
     end
     
+    local oldValue = Addon.db[key]
     Addon.db[key] = newValue
 
     self:ApplyOptionSideEffects(key)
+    
+    -- Publish appropriate events based on what changed
+    if EventBus and EventTypes then
+        -- Publish specific UI events for common categories
+        if key:match("Text") or key:match("Font") or key:match("abbreviate") or key:match("Decimals") then
+            EventBus:Publish(EventTypes.TEXT_SETTINGS_CHANGED, {
+                settingKey = key,
+                newValue = newValue,
+                oldValue = oldValue,
+            })
+        end
+        
+        -- Always publish general CONFIG_CHANGED
+        EventBus:Publish(EventTypes.CONFIG_CHANGED, {
+            settingKey = key,
+            newValue = newValue,
+            oldValue = oldValue,
+        })
+    end
 
     if not silent then
         local label = detail and detail.label or key
@@ -215,6 +237,9 @@ function Config:SetColor(key, hex, silent)
         return false, L("ERR_INVALID_COLOR")
     end
 
+    -- Get old color for event
+    local oldColor = Addon.db.colors and Addon.db.colors[key]
+
     -- Update color in database
     Addon.db = Addon.db or {}
     Addon.db.colors = Addon.db.colors or {}
@@ -226,6 +251,15 @@ function Config:SetColor(key, hex, silent)
     Addon.db.colors[key] = colorTable
     if key == "xpBar" then
         Addon.db.xpBarColor = colorTable
+    end
+
+    -- Publish COLORS_CHANGED event
+    if EventBus and EventTypes then
+        EventBus:Publish(EventTypes.COLORS_CHANGED, {
+            colorKey = key,
+            newColor = colorTable,
+            oldColor = oldColor,
+        })
     end
 
     -- Update color on visible XP bars

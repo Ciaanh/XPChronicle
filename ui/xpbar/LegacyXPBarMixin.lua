@@ -69,19 +69,8 @@ function XPC_LegacyXPBarContainerMixin:OnLoad()
 			self.Bar.StatusBar:SetSize(BAR_WIDTH, BAR_HEIGHT - 1)
 		end
 		
-		-- Wire up on-bar text elements from StatusBar to main bar
-		if self.Bar.StatusBar then
-			self.Bar.LevelText = self.Bar.OverlayFrame.LevelText
-			self.Bar.XPText = self.Bar.OverlayFrame.XPText
-			self.Bar.PercentText = self.Bar.OverlayFrame.PercentText
-		end
-		
-		-- Wire up below-bar text elements to the bar for easy access
-		if self.BelowBarTextContainer then
-			self.Bar.RateText = self.BelowBarTextContainer.RateText
-			self.Bar.SessionText = self.BelowBarTextContainer.SessionText
-			self.Bar.QuestSummaryText = self.BelowBarTextContainer.QuestSummaryText
-		end
+		-- Wire up text elements
+		self:WireTextElements()
 	end
 	
 	-- Position this container to match Blizzard's XP bar
@@ -94,6 +83,31 @@ function XPC_LegacyXPBarContainerMixin:OnLoad()
 			self:PositionToMatchBlizzardBar()
 		end
 	end)
+end
+
+function XPC_LegacyXPBarContainerMixin:WireTextElements()
+	if not self.Bar then
+		return
+	end
+	
+	-- Wire up on-bar text elements from OverlayFrame to main bar
+	if self.Bar.OverlayFrame then
+		self.Bar.LevelText = self.Bar.OverlayFrame.LevelText
+		self.Bar.XPText = self.Bar.OverlayFrame.XPText
+		self.Bar.PercentText = self.Bar.OverlayFrame.PercentText
+	end
+	
+	-- Wire up below-bar text elements to the bar for easy access
+	if self.BelowBarTextContainer then
+		self.Bar.RateText = self.BelowBarTextContainer.RateText
+		self.Bar.SessionText = self.BelowBarTextContainer.SessionText
+		self.Bar.QuestSummaryText = self.BelowBarTextContainer.QuestSummaryText
+	end
+end
+
+function XPC_LegacyXPBarContainerMixin:OnShow()
+	-- Ensure text elements are wired up (in case OnLoad timing issues)
+	self:WireTextElements()
 end
 
 function XPC_LegacyXPBarContainerMixin:PositionToMatchBlizzardBar()
@@ -140,7 +154,10 @@ function XPC_LegacyXPBarMixin:OnShow()
 end
 
 function XPC_LegacyXPBarMixin:OnHide()
-	-- Cleanup if needed
+	-- Unsubscribe from events to prevent memory leaks
+	if self.UnsubscribeFromEvents then
+		self:UnsubscribeFromEvents()
+	end
 end
 
 -- Implementation-specific: Update StatusBar appearance based on rested state

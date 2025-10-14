@@ -49,6 +49,9 @@ function XPC_XPBarMixinBase:InitializeState()
 	
 	-- Initialize quest overlay system
 	self:InitializeQuestOverlays()
+	
+	-- Subscribe to events (Phase 3: Event-Driven Architecture)
+	self:SubscribeToEvents()
 end
 
 -- Initialize animation state
@@ -639,6 +642,12 @@ end
 -----------------------------------
 
 function XPC_XPBarMixinBase:UpdateTextVisibility()
+	-- Ensure text elements are wired (safety check for timing issues)
+	local parent = self:GetParent()
+	if parent and parent.WireTextElements then
+		parent:WireTextElements()
+	end
+	
 	-- Get configuration from SavedVariables (or defaults)
 	local db = Addon.db or {}
 
@@ -777,6 +786,7 @@ function XPC_XPBarMixinBase:UpdateRateText()
 	local xpPerHour = 0
 	local timeToLevel = 0
 	local hasSessionData = false
+	local hasLevelData = false
 
 	if Addon.App and Addon.App.Services then
 		local SessionService = Addon.App.Services.SessionService
@@ -786,7 +796,7 @@ function XPC_XPBarMixinBase:UpdateRateText()
 				local sessionTime = time() - (session.sessionStart or time())
 				local gainedXP = session.gainedXP or 0
 
-				-- Only calculate if we have meaningful session time (at least 10 seconds)
+				-- Priority 1: Use session data if we have meaningful time (at least 10 seconds)
 				if sessionTime >= 10 and gainedXP > 0 then
 					hasSessionData = true
 					xpPerHour = math.floor((gainedXP / sessionTime) * 3600)
@@ -796,32 +806,53 @@ function XPC_XPBarMixinBase:UpdateRateText()
 					if xpPerHour > 0 and remainingXP > 0 then
 						timeToLevel = math.floor((remainingXP / xpPerHour) * 3600)
 					end
+				-- Priority 2: Fallback to current level data if available
+				elseif session.realLevelTime and session.realLevelTime > 0 then
+					local levelTime = session.realLevelTime
+					-- Add elapsed time since last TIME_PLAYED_MSG for real-time updates
+					if session.lastTimePlayedRequest and session.lastTimePlayedRequest > 0 then
+						local elapsed = time() - session.lastTimePlayedRequest
+						levelTime = levelTime + elapsed
+					end
+					
+					-- Calculate XP/hour based on current level progress
+					local currentXP = self.state.currentXP
+					if levelTime > 0 and currentXP > 0 then
+						hasLevelData = true
+						xpPerHour = math.floor((currentXP / levelTime) * 3600)
+						
+						-- Calculate time to level based on current level rate
+						local remainingXP = self.state.maxXP - currentXP
+						if xpPerHour > 0 and remainingXP > 0 then
+							timeToLevel = math.floor((remainingXP / xpPerHour) * 3600)
+						end
+					end
 				end
 			end
 		end
-	end
-
-	-- If still no session data, clear text
-	if not hasSessionData then
-		self.RateText:SetText("")
-		return
 	end
 
 	-- Build text based on what's enabled
 	local parts = {}
 	
 	if showXPPerHour then
-		local ratePart = XPC_XPBarTextFormatter:GetXPRateText(xpPerHour, abbreviate)
-		if ratePart and ratePart ~= "" and ratePart ~= "Calculating..." then
-			table.insert(parts, ratePart)
+		if hasSessionData or hasLevelData then
+			local ratePart = XPC_XPBarTextFormatter:GetXPRateText(xpPerHour, abbreviate)
+			if ratePart and ratePart ~= "" and ratePart ~= "Calculating..." then
+				table.insert(parts, ratePart)
+			end
 		end
+		-- Don't show anything if we have no data yet
 	end
 	
-	if showTimeToLevel and timeToLevel > 0 then
-		local timePart = XPC_XPBarTextFormatter:GetTimeToLevelText(timeToLevel)
-		if timePart and timePart ~= "" and timePart ~= "N/A" then
-			table.insert(parts, "Leveling in: " .. timePart)
+	if showTimeToLevel then
+		if (hasSessionData or hasLevelData) and timeToLevel > 0 then
+			local timePart = XPC_XPBarTextFormatter:GetTimeToLevelText(timeToLevel)
+			if timePart and timePart ~= "" and timePart ~= "N/A" then
+				table.insert(parts, "Leveling in: " .. timePart)
+			end
 		end
+		-- Don't show anything if we have no data yet
 	end
 
 	local text = #parts > 0 and table.concat(parts, " - ") or ""
@@ -874,18 +905,24 @@ function XPC_XPBarMixinBase:UpdateSessionText()
 	-- Build text based on what's enabled
 	local parts = {}
 
-	if showSessionTime and sessionSeconds > 0 then
-		local sessionPart = XPC_XPBarTextFormatter:GetSessionTimeText(sessionSeconds, "Session")
-		if sessionPart ~= "" then
-			table.insert(parts, sessionPart)
+	if showSessionTime then
+		if sessionSeconds > 0 then
+			local sessionPart = XPC_XPBarTextFormatter:GetSessionTimeText(sessionSeconds, "Session")
+			if sessionPart ~= "" then
+				table.insert(parts, sessionPart)
+			end
 		end
+		-- Don't show anything if session is 0s (just started)
 	end
 
-	if showLevelTime and levelSeconds > 0 then
-		local levelPart = XPC_XPBarTextFormatter:GetLevelTimeText(levelSeconds, "This Level")
-		if levelPart ~= "" then
-			table.insert(parts, levelPart)
+	if showLevelTime then
+		if levelSeconds > 0 then
+			local levelPart = XPC_XPBarTextFormatter:GetLevelTimeText(levelSeconds, "This Level")
+			if levelPart ~= "" then
+				table.insert(parts, levelPart)
+			end
 		end
+		-- Don't show anything if we don't have level time data yet
 	end
 
 	local text = #parts > 0 and table.concat(parts, " - ") or ""
@@ -958,6 +995,173 @@ function XPC_XPBarMixinBase:InitializeQuestOverlays()
 		completeCount = 0,
 		incompleteCount = 0,
 	}
+end
+
+-----------------------------------
+-- Event Subscription (Phase 3: Event-Driven Architecture)
+-----------------------------------
+
+-- Subscribe to EventBus events
+function XPC_XPBarMixinBase:SubscribeToEvents()
+	local EventBus = XPC_EventBus
+	local EventTypes = XPC_EventTypes
+	
+	if not EventBus or not EventTypes then
+		return
+	end
+	
+	-- Store unsubscribe functions for cleanup
+	self.eventUnsubscribers = self.eventUnsubscribers or {}
+	
+	-- Get unique subscriber ID (based on parent frame name)
+	local parent = self:GetParent()
+	local subscriberId = "XPBarMixin_" .. (parent and parent:GetName() or "Unknown")
+	
+	-- XP Changed - Update bar, overlays, text
+	table.insert(self.eventUnsubscribers, EventBus:Subscribe(
+		EventTypes.XP_CHANGED,
+		subscriberId,
+		function(data)
+			self:OnXPChangedEvent(data)
+		end
+	))
+	
+	-- XP Gained - Trigger flash
+	table.insert(self.eventUnsubscribers, EventBus:Subscribe(
+		EventTypes.XP_GAINED,
+		subscriberId,
+		function(data)
+			self:OnXPGainedEvent(data)
+		end
+	))
+	
+	-- Level Up - Trigger celebration
+	table.insert(self.eventUnsubscribers, EventBus:Subscribe(
+		EventTypes.LEVEL_UP,
+		subscriberId,
+		function(data)
+			self:OnLevelUpEvent(data)
+		end
+	))
+	
+	-- Rested Changed - Update colors
+	table.insert(self.eventUnsubscribers, EventBus:Subscribe(
+		EventTypes.RESTED_CHANGED,
+		subscriberId,
+		function(data)
+			self:OnRestedChangedEvent(data)
+		end
+	))
+	
+	-- Quest XP Updated - Update overlays
+	table.insert(self.eventUnsubscribers, EventBus:Subscribe(
+		EventTypes.QUEST_XP_UPDATED,
+		subscriberId,
+		function(data)
+			self:OnQuestXPUpdatedEvent(data)
+		end
+	))
+	
+	-- Text Settings Changed - Update text visibility
+	table.insert(self.eventUnsubscribers, EventBus:Subscribe(
+		EventTypes.TEXT_SETTINGS_CHANGED,
+		subscriberId,
+		function(data)
+			self:OnTextSettingsChangedEvent(data)
+		end
+	))
+	
+	-- Colors Changed - Update all colors
+	table.insert(self.eventUnsubscribers, EventBus:Subscribe(
+		EventTypes.COLORS_CHANGED,
+		subscriberId,
+		function(data)
+			self:OnColorsChangedEvent(data)
+		end
+	))
+end
+
+-- Unsubscribe from all events
+function XPC_XPBarMixinBase:UnsubscribeFromEvents()
+	if not self.eventUnsubscribers then
+		return
+	end
+	
+	-- Call all unsubscribe functions
+	for _, unsubscribe in ipairs(self.eventUnsubscribers) do
+		unsubscribe()
+	end
+	
+	self.eventUnsubscribers = {}
+end
+
+-----------------------------------
+-- Event Handlers (Phase 3)
+-----------------------------------
+
+-- Handle XP_CHANGED event
+function XPC_XPBarMixinBase:OnXPChangedEvent(data)
+	-- Update state
+	self.state.currentXP = data.currentXP
+	self.state.maxXP = data.maxXP
+	self.state.level = data.level
+	
+	-- Update UI
+	self:UpdateXP()
+	self:UpdateRestedOverlay()
+	self:UpdateAllText()
+end
+
+-- Handle XP_GAINED event
+function XPC_XPBarMixinBase:OnXPGainedEvent(data)
+	-- Trigger XP gain flash if enabled
+	if not Addon.db or Addon.db.flashOnXPGain ~= false then
+		self:TriggerXPGainFlash(data.isRested)
+	end
+end
+
+-- Handle LEVEL_UP event
+function XPC_XPBarMixinBase:OnLevelUpEvent(data)
+	-- Update level
+	self.state.level = data.newLevel
+	
+	-- Trigger celebration if enabled
+	if Addon.db and Addon.db.levelUpCelebration ~= false then
+		self:TriggerLevelUpCelebration()
+	end
+	
+	-- Update UI
+	self:UpdateAllText()
+end
+
+-- Handle RESTED_CHANGED event
+function XPC_XPBarMixinBase:OnRestedChangedEvent(data)
+	-- Update rested XP
+	self.state.restedXP = data.restedXP or 0
+	
+	-- Update rested overlay
+	self:UpdateRestedOverlay()
+end
+
+-- Handle QUEST_XP_UPDATED event
+function XPC_XPBarMixinBase:OnQuestXPUpdatedEvent(data)
+	-- Update quest overlays
+	self:UpdateQuestOverlays()
+end
+
+-- Handle TEXT_SETTINGS_CHANGED event
+function XPC_XPBarMixinBase:OnTextSettingsChangedEvent(data)
+	-- Update text visibility and fonts
+	self:UpdateTextVisibility()
+	self:ApplyTextSettings()
+	self:UpdateAllText()
+end
+
+-- Handle COLORS_CHANGED event
+function XPC_XPBarMixinBase:OnColorsChangedEvent(data)
+	-- Update all bar colors
+	self:UpdateBarOverlayColors()
+	self:UpdateAllText()
 end
 
 -- Register quest events

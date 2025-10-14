@@ -274,6 +274,9 @@ function View:Update()
     local flatBar = _G.XPC_FlatXPBar
     if flatBar and flatBar:IsShown() and flatBar.Bar then
         -- Recalculate and reapply bar layout (includes overlays and text)
+        if flatBar.Bar.UpdateTextVisibility then
+            flatBar.Bar:UpdateTextVisibility()
+        end
         if flatBar.Bar.UpdateBarOverlayColors then
             flatBar.Bar:UpdateBarOverlayColors()
         end
@@ -285,6 +288,9 @@ function View:Update()
     local legacyBar = _G.XPC_LegacyXPBar
     if legacyBar and legacyBar:IsShown() and legacyBar.Bar then
         -- Recalculate and reapply bar layout (includes overlays and text)
+        if legacyBar.Bar.UpdateTextVisibility then
+            legacyBar.Bar:UpdateTextVisibility()
+        end
         if legacyBar.Bar.UpdateBarOverlayColors then
             legacyBar.Bar:UpdateBarOverlayColors()
         end

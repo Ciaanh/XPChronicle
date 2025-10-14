@@ -192,6 +192,20 @@ Addon:RegisterEvent("PLAYER_LEVEL_UP", function(level)
     end
 end)
 
+Addon:RegisterEvent("UPDATE_EXHAUSTION", function()
+    local xpbar = Addon:GetFeature("xpbar")
+    if xpbar and xpbar.OnRestedChanged then
+        xpbar:OnRestedChanged()
+    end
+end)
+
+Addon:RegisterEvent("PLAYER_UPDATE_RESTING", function()
+    local xpbar = Addon:GetFeature("xpbar")
+    if xpbar and xpbar.OnRestedChanged then
+        xpbar:OnRestedChanged()
+    end
+end)
+
 Addon:RegisterEvent("TIME_PLAYED_MSG", function(totalTime, levelTime)
     local SessionService = Addon.App.Services.SessionService
     if SessionService and SessionService.OnTimePlayed then

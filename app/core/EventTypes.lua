@@ -2,27 +2,27 @@
 ---Event Type Definitions - All event types used in XP Chronicle
 local XPC_EventTypes = {
     -- XP Events
-    XP_CHANGED = "XP_CHANGED",           -- XP amount changed (gain or loss)
-    XP_GAINED = "XP_GAINED",             -- XP was gained (subset of XP_CHANGED)
-    LEVEL_UP = "LEVEL_UP",               -- Player leveled up
-    RESTED_CHANGED = "RESTED_CHANGED",   -- Rested status changed
-    MAX_XP_CHANGED = "MAX_XP_CHANGED",   -- Max XP for level changed
+    XP_CHANGED = "XPC_XP_CHANGED",           -- XP amount changed (gain or loss)
+    XP_GAINED = "XPC_XP_GAINED",             -- XP was gained (subset of XP_CHANGED)
+    LEVEL_UP = "XPC_LEVEL_UP",               -- Player leveled up
+    RESTED_CHANGED = "XPC_RESTED_CHANGED",   -- Rested status changed
+    MAX_XP_CHANGED = "XPC_MAX_XP_CHANGED",   -- Max XP for level changed
     
     -- Session Events
-    SESSION_STARTED = "SESSION_STARTED", -- New session started
-    SESSION_UPDATED = "SESSION_UPDATED", -- Session stats updated
-    SESSION_ENDED = "SESSION_ENDED",     -- Session ended (logout)
+    SESSION_STARTED = "XPC_SESSION_STARTED", -- New session started
+    SESSION_UPDATED = "XPC_SESSION_UPDATED", -- Session stats updated
+    SESSION_ENDED = "XPC_SESSION_ENDED",     -- Session ended (logout)
     
     -- UI Events
-    BAR_STYLE_CHANGED = "BAR_STYLE_CHANGED", -- User changed bar style
-    COLORS_CHANGED = "COLORS_CHANGED",       -- User changed color settings
-    TEXT_SETTINGS_CHANGED = "TEXT_SETTINGS_CHANGED", -- Font/text changed
+    BAR_STYLE_CHANGED = "XPC_BAR_STYLE_CHANGED", -- User changed bar style
+    COLORS_CHANGED = "XPC_COLORS_CHANGED",       -- User changed color settings
+    TEXT_SETTINGS_CHANGED = "XPC_TEXT_SETTINGS_CHANGED", -- Font/text changed
     
     -- Config Events
-    CONFIG_CHANGED = "CONFIG_CHANGED",   -- Any config setting changed
+    CONFIG_CHANGED = "XPC_CONFIG_CHANGED",   -- Any config setting changed
     
     -- Quest Events
-    QUEST_XP_UPDATED = "QUEST_XP_UPDATED", -- Quest XP data updated
+    QUEST_XP_UPDATED = "XPC_QUEST_XP_UPDATED", -- Quest XP data updated
 }
 
 ---Event payload schemas (for documentation and validation)

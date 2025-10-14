@@ -27,19 +27,8 @@ function XPC_FlatXPBarContainerMixin:OnLoad()
 			self.Bar.StatusBar:SetSize(BAR_WIDTH, BAR_HEIGHT)
 		end
 		
-		-- Wire up on-bar text elements from StatusBar to main bar
-		if self.Bar.StatusBar then
-			self.Bar.LevelText = self.Bar.OverlayFrame.LevelText
-			self.Bar.XPText = self.Bar.OverlayFrame.XPText
-			self.Bar.PercentText = self.Bar.OverlayFrame.PercentText
-		end
-		
-		-- Wire up below-bar text elements to the bar for easy access
-		if self.BelowBarTextContainer then
-			self.Bar.RateText = self.BelowBarTextContainer.RateText
-			self.Bar.SessionText = self.BelowBarTextContainer.SessionText
-			self.Bar.QuestSummaryText = self.BelowBarTextContainer.QuestSummaryText
-		end
+		-- Wire up text elements
+		self:WireTextElements()
 	end
 	
 	-- Enable dragging for Flat bar (Shift+drag)
@@ -81,6 +70,31 @@ function XPC_FlatXPBarContainerMixin:OnLoad()
 			end
 		end)
 	end
+end
+
+function XPC_FlatXPBarContainerMixin:WireTextElements()
+	if not self.Bar then
+		return
+	end
+	
+	-- Wire up on-bar text elements from OverlayFrame to main bar
+	if self.Bar.OverlayFrame then
+		self.Bar.LevelText = self.Bar.OverlayFrame.LevelText
+		self.Bar.XPText = self.Bar.OverlayFrame.XPText
+		self.Bar.PercentText = self.Bar.OverlayFrame.PercentText
+	end
+	
+	-- Wire up below-bar text elements to the bar for easy access
+	if self.BelowBarTextContainer then
+		self.Bar.RateText = self.BelowBarTextContainer.RateText
+		self.Bar.SessionText = self.BelowBarTextContainer.SessionText
+		self.Bar.QuestSummaryText = self.BelowBarTextContainer.QuestSummaryText
+	end
+end
+
+function XPC_FlatXPBarContainerMixin:OnShow()
+	-- Ensure text elements are wired up (in case OnLoad timing issues)
+	self:WireTextElements()
 end
 
 -- Retry dragging setup if mixins weren't available at OnLoad
@@ -165,7 +179,10 @@ function XPC_FlatXPBarMixin:OnShow()
 end
 
 function XPC_FlatXPBarMixin:OnHide()
-	-- Cleanup if needed
+	-- Unsubscribe from events to prevent memory leaks
+	if self.UnsubscribeFromEvents then
+		self:UnsubscribeFromEvents()
+	end
 end
 
 -- Forward drag events to container for Shift+drag functionality
