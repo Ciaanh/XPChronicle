@@ -183,10 +183,50 @@ function SlashCommands:Handle(message)
             return
         end
         
+        if testCommand == "eventbus" or testCommand == "events" then
+            -- Test EventBus functionality
+            local EventBus = Addon.App.Core and Addon.App.Core.EventBus
+            if not EventBus then
+                print("|cFFFF0000XP Chronicle:|r EventBus not available")
+                return
+            end
+            
+            print("|cFF00FF00XP Chronicle:|r Testing EventBus...")
+            
+            -- Subscribe to a test event
+            local receivedEvent = false
+            local receivedData = nil
+            
+            EventBus:Subscribe("TEST_EVENT", "SlashCommand_Test", function(data)
+                receivedEvent = true
+                receivedData = data
+                print("|cFF00FF00EventBus Test:|r Event received! Data: " .. tostring(data.message))
+            end)
+            
+            -- Publish the test event
+            EventBus:PublishImmediate("TEST_EVENT", {
+                message = "Hello from EventBus!",
+                timestamp = GetTime()
+            })
+            
+            -- Check results
+            if receivedEvent then
+                print("|cFF00FF00EventBus Test:|r SUCCESS - Event was received")
+                print("|cFF00FF00EventBus Test:|r Active event types: " .. table.concat(EventBus:GetAllEventTypes(), ", "))
+            else
+                print("|cFFFF0000EventBus Test:|r FAILED - Event was not received")
+            end
+            
+            -- Cleanup
+            EventBus:Unsubscribe("TEST_EVENT", "SlashCommand_Test")
+            return
+        end
+        
         -- Show test help
         print("|cFF00FF00XP Chronicle:|r Test commands:")
         print("  /xpc test celebration - Test level-up celebration animation")
         print("  /xpc test flash - Test XP gain flash effect")
+        print("  /xpc test eventbus - Test EventBus functionality")
         return
     end
 

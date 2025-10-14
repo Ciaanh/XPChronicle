@@ -14,10 +14,13 @@ libs\AceLocale-3.0\AceLocale-3.0.lua
 # Localization (English only for 1.0)
 locales\enUS.lua
 
+# Core Systems
 app/core/AddOn.lua
 app/core/Locale.lua
 app/core/Utils.lua
 app/core/Logger.lua
+app/core/EventBus.lua
+app/core/EventTypes.lua
 app/core/Defaults.lua
 app/core/SavedVariables.lua
 
