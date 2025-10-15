@@ -4,13 +4,15 @@ Addon.App.Features = Addon.App.Features or {}
 
 local SessionService = Addon.App.Services.SessionService
 local QuestXPService = Addon.App.Services.QuestXPService
-local EventBus = XPC_EventBus
-local EventTypes = XPC_EventTypes
 
 local controller = {}
 
 function controller:GetView()
     return Addon.UI.Views.XPBar
+end
+
+function controller:GetStatsView()
+    return Addon.UI.Views and Addon.UI.Views.Stats
 end
 
 -- Load bar style from SavedVariables on initialization
@@ -160,9 +162,10 @@ function controller:SetBarStyle(style, skipSave)
         local previousStyle = Addon.db.barStyle
         Addon.db.barStyle = style
         
-        -- Publish BAR_STYLE_CHANGED event
-        if EventBus and EventTypes then
-            EventBus:Publish(EventTypes.BAR_STYLE_CHANGED, {
+        -- Notify view directly
+        local view = self:GetView()
+        if view and view.OnBarStyleChanged then
+            view:OnBarStyleChanged({
                 newStyle = style,
                 previousStyle = previousStyle,
             })
@@ -382,18 +385,35 @@ function controller:OnQuestDataChanged()
         QuestXPService:InvalidateCache()
     end
     
-    -- Publish QUEST_XP_UPDATED event
-    if EventBus and EventTypes and QuestXPService then
+    -- Notify view directly
+    local view = self:GetView()
+    if view and QuestXPService then
         local totalXP, completeXP, incompleteXP = QuestXPService:GetQuestXP()
-        EventBus:Publish(EventTypes.QUEST_XP_UPDATED, {
-            totalQuestXP = totalXP,
-            completeQuests = completeXP,
-            incompleteQuests = incompleteXP,
-            questCount = C_QuestLog.GetNumQuestLogEntries(),
-        })
+        
+        -- Call bars directly
+        if view.legacyContainer and view.legacyContainer.Bar and view.legacyContainer.Bar.OnQuestXPUpdatedEvent then
+            view.legacyContainer.Bar:OnQuestXPUpdatedEvent({
+                totalQuestXP = totalXP,
+                completeQuests = completeXP,
+                incompleteQuests = incompleteXP,
+                questCount = C_QuestLog.GetNumQuestLogEntries(),
+            })
+        end
+        if view.flatContainer and view.flatContainer.Bar and view.flatContainer.Bar.OnQuestXPUpdatedEvent then
+            view.flatContainer.Bar:OnQuestXPUpdatedEvent({
+                totalQuestXP = totalXP,
+                completeQuests = completeXP,
+                incompleteQuests = incompleteXP,
+                questCount = C_QuestLog.GetNumQuestLogEntries(),
+            })
+        end
     end
     
-    -- Update() removed: Subscribers handle updates via QUEST_XP_UPDATED event
+    -- Notify stats view
+    local statsView = self:GetStatsView()
+    if statsView and statsView.OnQuestXPUpdated then
+        statsView:OnQuestXPUpdated()
+    end
 end
 
 function controller:OnEnteringWorld(isInitialLogin, isReload)
@@ -411,94 +431,123 @@ function controller:OnXPUpdate()
         SessionService:RefreshSessionTimes()
     end
     
-    -- Publish XP_CHANGED event
-    if EventBus and EventTypes then
+    -- Notify bars directly
+    local view = self:GetView()
+    if view then
         local currentXP = UnitXP("player")
         local maxXP = UnitXPMax("player")
         local level = UnitLevel("player")
         local restedXP = GetXPExhaustion() or 0
         local isRested = restedXP > 0
         
-        -- Get previous XP (stored in view state)
-        local view = self:GetView()
-        local previousXP = 0
-        if view and view.legacyContainer and view.legacyContainer.Bar then
-            previousXP = view.legacyContainer.Bar.animationState and view.legacyContainer.Bar.animationState.previousXP or 0
-        elseif view and view.flatContainer and view.flatContainer.Bar then
-            previousXP = view.flatContainer.Bar.animationState and view.flatContainer.Bar.animationState.previousXP or 0
+        -- Get active bar
+        local activeBar = nil
+        if view.legacyContainer and view.legacyContainer:IsShown() and view.legacyContainer.Bar then
+            activeBar = view.legacyContainer.Bar
+        elseif view.flatContainer and view.flatContainer:IsShown() and view.flatContainer.Bar then
+            activeBar = view.flatContainer.Bar
         end
         
-        local delta = currentXP - previousXP
-        
-        EventBus:Publish(EventTypes.XP_CHANGED, {
-            currentXP = currentXP,
-            maxXP = maxXP,
-            previousXP = previousXP,
-            delta = delta,
-            isRested = isRested,
-            level = level,
-        })
-        
-        -- If XP was gained, also publish XP_GAINED event
-        if delta > 0 and previousXP > 0 then
-            -- Calculate rested bonus (if applicable)
-            local restedBonus = 0
-            if isRested then
-                -- Rested bonus is 200% XP, so the bonus is 100% of the base gain
-                restedBonus = delta / 2  -- Approximate
+        if activeBar then
+            -- Get previous XP
+            local previousXP = activeBar.animationState and activeBar.animationState.previousXP or 0
+            local delta = currentXP - previousXP
+            
+            -- Call XP changed handler
+            if activeBar.OnXPChangedEvent then
+                activeBar:OnXPChangedEvent({
+                    currentXP = currentXP,
+                    maxXP = maxXP,
+                    previousXP = previousXP,
+                    delta = delta,
+                    isRested = isRested,
+                    level = level,
+                })
             end
             
-            EventBus:Publish(EventTypes.XP_GAINED, {
-                amount = delta,
-                currentXP = currentXP,
-                maxXP = maxXP,
-                isRested = isRested,
-                restedBonus = restedBonus,
+            -- If XP was gained, also call XP gained handler
+            if delta > 0 and previousXP > 0 and activeBar.OnXPGainedEvent then
+                -- Calculate rested bonus (if applicable)
+                local restedBonus = 0
+                if isRested then
+                    restedBonus = delta / 2  -- Approximate
+                end
+                
+                activeBar:OnXPGainedEvent({
+                    amount = delta,
+                    currentXP = currentXP,
+                    maxXP = maxXP,
+                    isRested = isRested,
+                    restedBonus = restedBonus,
+                })
+            end
+        end
+    end
+    
+    -- Notify stats view
+    local statsView = self:GetStatsView()
+    if statsView and statsView.OnXPChanged then
+        statsView:OnXPChanged()
+    end
+end
+
+function controller:OnLevelUp()
+    -- Notify active bar directly
+    local view = self:GetView()
+    if view then
+        local newLevel = UnitLevel("player")
+        
+        -- Get active bar
+        local activeBar = nil
+        if view.legacyContainer and view.legacyContainer:IsShown() and view.legacyContainer.Bar then
+            activeBar = view.legacyContainer.Bar
+        elseif view.flatContainer and view.flatContainer:IsShown() and view.flatContainer.Bar then
+            activeBar = view.flatContainer.Bar
+        end
+        
+        if activeBar and activeBar.OnLevelUpEvent then
+            activeBar:OnLevelUpEvent({
+                newLevel = newLevel,
+                previousLevel = newLevel - 1,
+                timestamp = time(),
             })
         end
     end
     
-    -- Update() removed: Subscribers handle updates via XP_CHANGED/XP_GAINED events
-end
-
-function controller:OnLevelUp()
-    -- Publish LEVEL_UP event
-    if EventBus and EventTypes then
-        local newLevel = UnitLevel("player")
-        
-        EventBus:Publish(EventTypes.LEVEL_UP, {
-            newLevel = newLevel,
-            previousLevel = newLevel - 1,
-            timestamp = time(),
-        })
+    -- Notify stats view
+    local statsView = self:GetStatsView()
+    if statsView and statsView.OnLevelUp then
+        statsView:OnLevelUp()
     end
-    
-    -- Update() removed: Subscribers handle updates via LEVEL_UP event
 end
 
 function controller:OnRestedChanged()
-    -- Publish RESTED_CHANGED event
-    if EventBus and EventTypes then
+    -- Notify active bar directly
+    local view = self:GetView()
+    if view then
         local restedXP = GetXPExhaustion() or 0
         local isRested = restedXP > 0
         
-        -- Get previous rested state (stored in view state if available)
-        local view = self:GetView()
+        -- Get active bar
+        local activeBar = nil
         local wasRested = false
-        if view and view.legacyContainer and view.legacyContainer.Bar then
-            wasRested = view.legacyContainer.Bar.state and view.legacyContainer.Bar.state.isRested or false
-        elseif view and view.flatContainer and view.flatContainer.Bar then
-            wasRested = view.flatContainer.Bar.state and view.flatContainer.Bar.state.isRested or false
+        
+        if view.legacyContainer and view.legacyContainer:IsShown() and view.legacyContainer.Bar then
+            activeBar = view.legacyContainer.Bar
+            wasRested = activeBar.state and activeBar.state.isRested or false
+        elseif view.flatContainer and view.flatContainer:IsShown() and view.flatContainer.Bar then
+            activeBar = view.flatContainer.Bar
+            wasRested = activeBar.state and activeBar.state.isRested or false
         end
         
-        EventBus:Publish(EventTypes.RESTED_CHANGED, {
-            isRested = isRested,
-            restedXP = restedXP,
-            wasRested = wasRested,
-        })
+        if activeBar and activeBar.OnRestedChangedEvent then
+            activeBar:OnRestedChangedEvent({
+                isRested = isRested,
+                restedXP = restedXP,
+                wasRested = wasRested,
+            })
+        end
     end
-    
-    -- Update() removed: Subscribers handle updates via RESTED_CHANGED event
 end
 
 function controller:OnTimePlayed(totalTime, levelTime)

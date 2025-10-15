@@ -49,9 +49,6 @@ function XPC_XPBarMixinBase:InitializeState()
 	
 	-- Initialize quest overlay system
 	self:InitializeQuestOverlays()
-	
-	-- Subscribe to events (Phase 3: Event-Driven Architecture)
-	self:SubscribeToEvents()
 end
 
 -- Initialize animation state
@@ -791,7 +788,7 @@ function XPC_XPBarMixinBase:UpdateRateText()
 	if Addon.App and Addon.App.Services then
 		local SessionService = Addon.App.Services.SessionService
 		if SessionService then
-			local session = SessionService:GetSession()
+			local session = SessionService:GetCurrent()
 			if session then
 				local sessionTime = time() - (session.sessionStart or time())
 				local gainedXP = session.gainedXP or 0
@@ -879,7 +876,7 @@ function XPC_XPBarMixinBase:UpdateSessionText()
 		local SessionService = Addon.App.Services.SessionService
 
 		if SessionService then
-			local session = SessionService:GetSession()
+			local session = SessionService:GetCurrent()
 			if session then
 				-- Use session time if enabled
 				if showSessionTime and session.sessionStart then
@@ -998,105 +995,7 @@ function XPC_XPBarMixinBase:InitializeQuestOverlays()
 end
 
 -----------------------------------
--- Event Subscription (Phase 3: Event-Driven Architecture)
------------------------------------
-
--- Subscribe to EventBus events
-function XPC_XPBarMixinBase:SubscribeToEvents()
-	local EventBus = XPC_EventBus
-	local EventTypes = XPC_EventTypes
-	
-	if not EventBus or not EventTypes then
-		return
-	end
-	
-	-- Store unsubscribe functions for cleanup
-	self.eventUnsubscribers = self.eventUnsubscribers or {}
-	
-	-- Get unique subscriber ID (based on parent frame name)
-	local parent = self:GetParent()
-	local subscriberId = "XPBarMixin_" .. (parent and parent:GetName() or "Unknown")
-	
-	-- XP Changed - Update bar, overlays, text
-	table.insert(self.eventUnsubscribers, EventBus:Subscribe(
-		EventTypes.XP_CHANGED,
-		subscriberId,
-		function(data)
-			self:OnXPChangedEvent(data)
-		end
-	))
-	
-	-- XP Gained - Trigger flash
-	table.insert(self.eventUnsubscribers, EventBus:Subscribe(
-		EventTypes.XP_GAINED,
-		subscriberId,
-		function(data)
-			self:OnXPGainedEvent(data)
-		end
-	))
-	
-	-- Level Up - Trigger celebration
-	table.insert(self.eventUnsubscribers, EventBus:Subscribe(
-		EventTypes.LEVEL_UP,
-		subscriberId,
-		function(data)
-			self:OnLevelUpEvent(data)
-		end
-	))
-	
-	-- Rested Changed - Update colors
-	table.insert(self.eventUnsubscribers, EventBus:Subscribe(
-		EventTypes.RESTED_CHANGED,
-		subscriberId,
-		function(data)
-			self:OnRestedChangedEvent(data)
-		end
-	))
-	
-	-- Quest XP Updated - Update overlays
-	table.insert(self.eventUnsubscribers, EventBus:Subscribe(
-		EventTypes.QUEST_XP_UPDATED,
-		subscriberId,
-		function(data)
-			self:OnQuestXPUpdatedEvent(data)
-		end
-	))
-	
-	-- Text Settings Changed - Update text visibility
-	table.insert(self.eventUnsubscribers, EventBus:Subscribe(
-		EventTypes.TEXT_SETTINGS_CHANGED,
-		subscriberId,
-		function(data)
-			self:OnTextSettingsChangedEvent(data)
-		end
-	))
-	
-	-- Colors Changed - Update all colors
-	table.insert(self.eventUnsubscribers, EventBus:Subscribe(
-		EventTypes.COLORS_CHANGED,
-		subscriberId,
-		function(data)
-			self:OnColorsChangedEvent(data)
-		end
-	))
-end
-
--- Unsubscribe from all events
-function XPC_XPBarMixinBase:UnsubscribeFromEvents()
-	if not self.eventUnsubscribers then
-		return
-	end
-	
-	-- Call all unsubscribe functions
-	for _, unsubscribe in ipairs(self.eventUnsubscribers) do
-		unsubscribe()
-	end
-	
-	self.eventUnsubscribers = {}
-end
-
------------------------------------
--- Event Handlers (Phase 3)
+-- Event Handlers (Called directly by controller)
 -----------------------------------
 
 -- Handle XP_CHANGED event

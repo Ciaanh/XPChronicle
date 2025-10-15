@@ -186,7 +186,7 @@ function XPC_XPBarTooltip:AddSessionSection(tooltip)
 		return
 	end
 	
-	local session = SessionService:GetSession()
+	local session = SessionService:GetCurrent()
 	if not session then
 		return
 	end

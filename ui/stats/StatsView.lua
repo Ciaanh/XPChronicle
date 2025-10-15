@@ -70,9 +70,6 @@ function StatsFrameMixin:OnLoad()
 end
 
 function StatsFrameMixin:OnShow()
-    -- Subscribe to events (event-driven updates)
-    View:SubscribeToEvents()
-    
     -- Immediate update when shown
     View:Update()
 end
@@ -132,69 +129,23 @@ function View:Toggle()
 end
 
 -----------------------------------
--- Event Subscription (Phase 3: Event-Driven Architecture)
+-- Event Handlers (Called directly by controller or session service)
 -----------------------------------
 
--- Subscribe to EventBus events
-function View:SubscribeToEvents()
-    local EventBus = XPC_EventBus
-    local EventTypes = XPC_EventTypes
-    
-    if not EventBus or not EventTypes then
-        return
-    end
-    
-    -- Store unsubscribe functions for cleanup
-    self.eventUnsubscribers = self.eventUnsubscribers or {}
-    
-    -- XP Changed - Update level stats
-    table.insert(self.eventUnsubscribers, EventBus:Subscribe(
-        EventTypes.XP_CHANGED,
-        "StatsView",
-        function(data)
-            self:UpdateLevelStats(frame)
-        end
-    ))
-    
-    -- Session Updated - Update session stats
-    table.insert(self.eventUnsubscribers, EventBus:Subscribe(
-        EventTypes.SESSION_UPDATED,
-        "StatsView",
-        function(data)
-            self:UpdateSessionStats(frame)
-        end
-    ))
-    
-    -- Quest XP Updated - Update quest XP in level stats
-    table.insert(self.eventUnsubscribers, EventBus:Subscribe(
-        EventTypes.QUEST_XP_UPDATED,
-        "StatsView",
-        function(data)
-            self:UpdateLevelStats(frame)
-        end
-    ))
-    
-    -- Level Up - Update both pages
-    table.insert(self.eventUnsubscribers, EventBus:Subscribe(
-        EventTypes.LEVEL_UP,
-        "StatsView",
-        function(data)
-            self:Update()
-        end
-    ))
+function View:OnXPChanged()
+    self:UpdateLevelStats(self.frame)
 end
 
--- Unsubscribe from all events
-function View:UnsubscribeFromEvents()
-    if not self.eventUnsubscribers then
-        return
-    end
-    
-    for _, unsubscribe in ipairs(self.eventUnsubscribers) do
-        unsubscribe()
-    end
-    
-    self.eventUnsubscribers = {}
+function View:OnSessionUpdated()
+    self:UpdateSessionStats(self.frame)
+end
+
+function View:OnQuestXPUpdated()
+    self:UpdateLevelStats(self.frame)
+end
+
+function View:OnLevelUp()
+    self:Update()
 end
 
 -----------------------------------
@@ -231,7 +182,7 @@ function View:UpdateLevelStats(statsFrame)
     local percent = (currentXP / math.max(maxXP, 1)) * 100
     
     -- Get session data for level time tracking
-    local session = SessionService and SessionService:GetSession()
+    local session = SessionService and SessionService:GetCurrent()
     
     -- Get time on this level (from session service)
     local levelTime = 0
@@ -327,7 +278,7 @@ function View:UpdateSessionStats(statsFrame)
     if not content then return end
     
     -- Get session data
-    local session = SessionService and SessionService:GetSession()
+    local session = SessionService and SessionService:GetCurrent()
     if not session then
         session = {
             sessionStart = time(),

@@ -14,23 +14,17 @@ libs\AceLocale-3.0\AceLocale-3.0.lua
 # Localization (English only for 1.0)
 locales\enUS.lua
 
-# Core Systems
-app/core/AddOn.lua
-app/core/Locale.lua
-app/core/Utils.lua
-app/core/Logger.lua
-app/core/EventBus.lua
-app/core/EventTypes.lua
-app/core/Defaults.lua
-app/core/SavedVariables.lua
+# Core Systems (Phase 2 - Simplified)
+core\Core.lua
+app\core\Locale.lua
+app\core\Utils.lua
+app\core\Logger.lua
+core\Config.lua
+core\Database.lua
+core\Session.lua
 
-app/services/SessionService.lua
-app/services/TimePlayedService.lua
-app/services/QuestXPService.lua
-
-app/config/OptionsMetadata.lua
-app/config/Config.lua
-app/config/SlashCommands.lua
+# Legacy service references (for backward compatibility)
+app\services\QuestXPService.lua
 
 # XP Bar - Blizzard bar control (loaded before controller)
 ui/xpbar/BlizzardBarControl.lua
