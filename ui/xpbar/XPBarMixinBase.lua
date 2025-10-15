@@ -1427,6 +1427,7 @@ function XPC_XPBarMixinBase:UpdateBarDisplay()
 	self.state.maxXP = state.maxXP
 	self.state.restedXP = state.restedXP
 	self.state.level = state.level
+	self.state.isRested = (state.restedXP and state.restedXP > 0) or false
 	
 	-- Calculate how to layout (percentages and pixels)
 	local layout = self:CalculateBarLayout(state)

@@ -40,9 +40,6 @@ local defaults = {
     celebrationSound = true,
     celebrationSpeed = "normal",  -- "fast", "normal", "slow"
     
-    -- Bar Style Variations
-    barStyleVariation = "default",  -- "default", "gradient", "animated", "minimalist", "glowing", "segmented"
-    
     -- Auto-Hide at Max Level
     maxLevelBehavior = "always_show",  -- "always_show", "auto_hide", "show_on_hover", "minimal_mode"
     
