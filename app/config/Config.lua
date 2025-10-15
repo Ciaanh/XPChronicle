@@ -1,4 +1,4 @@
-local Addon = XPChronicle
+local Addon = XPBarEnhanced
 Addon.Config = Addon.Config or {}
 Addon.App = Addon.App or {}
 Addon.App.Config = Addon.App.Config or {}
@@ -424,15 +424,15 @@ end
 
 function Config:ShowHelp()
     print("|cFF00FF00" .. L("ADDON_NAME") .. " Commands:|r")
-    print("  |cFFFFD700/xpc|r or |cFFFFD700/xpc help|r - Show this help")
-    print("  |cFFFFD700/xpc stats|r - Toggle stats window")
+    print("  |cFFFFD700/xpbe|r or |cFFFFD700/xpbe help|r - Show this help")
+    print("  |cFFFFD700/xpbe stats|r - Toggle stats window")
     print("    (Ctrl + Click the XP bar for quick access)")
     print("    (Alt + Click the XP bar to open options)")
-    print("  |cFFFFD700/xpc options|r - Open the in-game options panel")
+    print("  |cFFFFD700/xpbe options|r - Open the in-game options panel")
     print("     Customize colors and features from the options panel.")
-    print("  |cFFFFD700/xpc reset|r - Reset all settings to defaults")
-    print("  |cFFFFD700/xpc resetstats|r - Clear all tracked statistics")
-    print("  |cFFFFD700/xpc style <none|legacy|flat>|r - Change bar style")
+    print("  |cFFFFD700/xpbe reset|r - Reset all settings to defaults")
+    print("  |cFFFFD700/xpbe resetstats|r - Clear all tracked statistics")
+    print("  |cFFFFD700/xpbe style <none|legacy|flat>|r - Change bar style")
 end
 
 function Config:OpenOptions()

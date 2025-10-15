@@ -1,4 +1,4 @@
-local Addon = XPChronicle
+local Addon = XPBarEnhanced
 Addon.App.Core = Addon.App.Core or {}
 
 local defaults = {

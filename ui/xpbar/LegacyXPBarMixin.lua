@@ -1,8 +1,8 @@
--- XP Chronicle - Legacy XP Bar Mixin (Blizzard-style with atlases)
+-- XP Bar Enhanced - Legacy XP Bar Mixin (Blizzard-style with atlases)
 -- Uses XPC_XPBarMixinBase for shared functionality
 
 -- Addon namespace
-local Addon = XPChronicle
+local Addon = XPBarEnhanced
 
 -- Get shared dimensions
 local BAR_WIDTH, BAR_HEIGHT = XPC_XPBarMixinBase.GetBarDimensions()

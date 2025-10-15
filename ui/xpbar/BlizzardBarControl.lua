@@ -13,7 +13,7 @@
         - Used by XPBarController to implement bar style modes
 ]]
 
-local Addon = XPChronicle
+local Addon = XPBarEnhanced
 
 -- Initialize UI namespace
 Addon.UI = Addon.UI or {}

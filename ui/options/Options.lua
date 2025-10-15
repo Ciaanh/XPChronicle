@@ -1,6 +1,6 @@
 ---@diagnostic disable: undefined-global
--- XP Chronicle Options Panel
-local XPC = XPChronicle
+-- XP Bar Enhanced Options Panel
+local XPC = XPBarEnhanced
 XPC.Options = {}
 local Options = XPC.Options
 local Config = XPC.Config
@@ -23,9 +23,9 @@ local SOUNDKIT = rawget(_G, "SOUNDKIT")
 local ColorPickerFrame = rawget(_G, "ColorPickerFrame")
 local OpacitySliderFrame = rawget(_G, "OpacitySliderFrame")
 
-local PANEL_NAME = "XP Chronicle"
+local PANEL_NAME = "XP Bar Enhanced"
 
-XPChronicleOptionsMixin = {}
+XPBarEnhancedOptionsMixin = {}
 
 local function clamp01(value)
     if not value then
@@ -472,7 +472,7 @@ local function SetupRadioGroup(self, radioGroup, key, detail)
     local yOffset = -38 -- Start below description
 
     for i, option in ipairs(detail.options) do
-        local button = CreateFrame("CheckButton", nil, radioGroup, "XPChronicleRadioButtonTemplate")
+        local button = CreateFrame("CheckButton", nil, radioGroup, "XPBarEnhancedRadioButtonTemplate")
         button:SetPoint("TOPLEFT", radioGroup, "TOPLEFT", 4, yOffset)
         button.Text:SetText(option.label)
         button.value = option.value
@@ -680,7 +680,7 @@ local function SetupColorRow(self, row, info)
     return controls
 end
 
-function XPChronicleOptionsMixin:OnLoad()
+function XPBarEnhancedOptionsMixin:OnLoad()
     Options.frame = self
     self.controls = {}
     self.colorControls = {}
@@ -842,11 +842,11 @@ function XPChronicleOptionsMixin:OnLoad()
     self:RegisterCategory()
 end
 
-function XPChronicleOptionsMixin:OnPanelShow()
+function XPBarEnhancedOptionsMixin:OnPanelShow()
     self:Refresh()
 end
 
-function XPChronicleOptionsMixin:BuildOptionCheckboxes()
+function XPBarEnhancedOptionsMixin:BuildOptionCheckboxes()
     if not self.ContentFrame or not self.ContentFrame.OptionsContainer then
         return
     end
@@ -891,7 +891,7 @@ function XPChronicleOptionsMixin:BuildOptionCheckboxes()
     end
 end
 
-function XPChronicleOptionsMixin:BuildColorControls()
+function XPBarEnhancedOptionsMixin:BuildColorControls()
     if not self.ContentFrame or not self.ContentFrame.OptionsContainer then
         return
     end
@@ -923,7 +923,7 @@ function XPChronicleOptionsMixin:BuildColorControls()
     self:UpdateColorControls()
 end
 
-function XPChronicleOptionsMixin:UpdateContentHeight(bottomAnchor)
+function XPBarEnhancedOptionsMixin:UpdateContentHeight(bottomAnchor)
     local contentFrame = self.ContentFrame
     if not contentFrame then
         return
@@ -944,7 +944,7 @@ function XPChronicleOptionsMixin:UpdateContentHeight(bottomAnchor)
     end
 end
 
-function XPChronicleOptionsMixin:RegisterCategory()
+function XPBarEnhancedOptionsMixin:RegisterCategory()
     if self._registeredCategory then
         return
     end
@@ -964,18 +964,18 @@ function XPChronicleOptionsMixin:RegisterCategory()
     end
 end
 
-function XPChronicleOptionsMixin:OnResetSettingsClicked()
+function XPBarEnhancedOptionsMixin:OnResetSettingsClicked()
     Config:Reset()
     self:Refresh()
 end
 
-function XPChronicleOptionsMixin:OnResetStatsClicked()
+function XPBarEnhancedOptionsMixin:OnResetStatsClicked()
     Config:ResetStats()
     self:Refresh()
 end
 
-function XPChronicleOptionsMixin:OnResetBarPositionClicked()
-    local Addon = XPChronicle
+function XPBarEnhancedOptionsMixin:OnResetBarPositionClicked()
+    local Addon = XPBarEnhanced
     local xpBarController = Addon.App and Addon.App.Features and Addon.App.Features.xpbar
     if xpBarController and xpBarController.ResetFlatBarPosition then
         xpBarController:ResetFlatBarPosition()
@@ -987,7 +987,7 @@ function XPChronicleOptionsMixin:OnResetBarPositionClicked()
     end
 end
 
-function XPChronicleOptionsMixin:UpdateColorControls()
+function XPBarEnhancedOptionsMixin:UpdateColorControls()
     if not Config or not Config.colorOptionsList then
         return
     end
@@ -1035,12 +1035,12 @@ function XPChronicleOptionsMixin:UpdateColorControls()
     end
 end
 
-function XPChronicleOptionsMixin:OpenColorPicker(colorKey)
+function XPBarEnhancedOptionsMixin:OpenColorPicker(colorKey)
     -- Check for modern ColorPicker API first
     local hasColorPicker = ColorPickerFrame or rawget(_G, "OpenColorPicker")
 
     if not hasColorPicker then
-        print("|cFFFF5555XP Chronicle:|r Color picker is not available.")
+        print("|cFFFF5555XP Bar Enhanced:|r Color picker is not available.")
         return
     end
 
@@ -1170,7 +1170,7 @@ function XPChronicleOptionsMixin:OpenColorPicker(colorKey)
     end
 end
 
-function XPChronicleOptionsMixin:Refresh()
+function XPBarEnhancedOptionsMixin:Refresh()
     if not self.controls then
         return
     end
@@ -1305,7 +1305,7 @@ function Options:Initialize(controller)
     end
 
     if not self.frame then
-        local panel = rawget(_G, "XPChronicleOptionsPanel")
+        local panel = rawget(_G, "XPBarEnhancedOptionsPanel")
         if panel then
             self.frame = panel
         end

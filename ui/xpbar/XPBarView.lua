@@ -1,5 +1,5 @@
--- XP Chronicle XP Bar View
-local Addon = XPChronicle
+-- XP Bar Enhanced XP Bar View
+local Addon = XPBarEnhanced
 Addon.UI = Addon.UI or {}
 Addon.UI.Views = Addon.UI.Views or {}
 
@@ -78,10 +78,10 @@ local function ensureTooltipFonts()
         fontFlags = ""
     end
 
-    local normal = CreateFont("XPChronicleTooltipFontNormal")
+    local normal = CreateFont("XPBarEnhancedTooltipFontNormal")
     normal:SetFont(fontFile, fontSize or 12, fontFlags or "")
 
-    local bold = CreateFont("XPChronicleTooltipFontBold")
+    local bold = CreateFont("XPBarEnhancedTooltipFontBold")
     bold:SetFont(fontFile, fontSize or 12, appendFontFlag(fontFlags or "", "OUTLINE"))
 
     tooltipFonts = {
@@ -207,7 +207,7 @@ function View:Initialize(controller)
         return
     end
 
-    -- Old XPChronicleBar frame removed - now using XPC_FlatXPBar and XPC_LegacyXPBar
+    -- Old XPBarEnhancedBar frame removed - now using XPC_FlatXPBar and XPC_LegacyXPBar
     
     -- Store container references for controller
     self.legacyContainer = _G.XPC_LegacyXPBar

@@ -1,6 +1,8 @@
-# XP Chronicle
+# XP Bar Enhanced
 
 An enhanced XP bar addon for World of Warcraft that tracks quest XP, leveling statistics, and provides detailed progress information.
+
+> **Note:** Inspired by Luxthos - Experience Bar which I used a lot but I decided to make it a standalone addon when it was announced that WeakAura will not have a version for Midnight.
 
 ## Features
 
@@ -15,18 +17,18 @@ An enhanced XP bar addon for World of Warcraft that tracks quest XP, leveling st
 
 1. Extract to `World of Warcraft/_retail_/Interface/AddOns/`
 2. Restart WoW or `/reload`
-3. Configure via `/xpc options`
+3. Configure via `/xpbe options`
 
 ## Slash Commands
 
-- `/xpc options` - Open options panel
-- `/xpc stats` - Toggle statistics window
-- `/xpc reset` - Reset all settings
-- `/xpc help` - Show command list
+- `/xpbe options` - Open options panel
+- `/xpbe stats` - Toggle statistics window
+- `/xpbe reset` - Reset all settings
+- `/xpbe help` - Show command list
 
 ## Configuration
 
-Access the options panel via **Game Menu → AddOns → XP Chronicle** or type `/xpc options`.
+Access the options panel via **Game Menu → AddOns → XP Bar Enhanced** or type `/xpbe options`.
 
 **Available Options:**
 - Bar style (Legacy or Flat)
@@ -34,10 +36,6 @@ Access the options panel via **Game Menu → AddOns → XP Chronicle** or type `
 - Text display elements (level, XP, percentage, rate, session time)
 - Custom colors for all bar elements
 - Position locking and Blizzard bar visibility
-
-## Documentation
-
-- **`ARCHITECTURE.md`** - Technical overview and system architecture
 
 ## License
 

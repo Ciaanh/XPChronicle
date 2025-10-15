@@ -1,8 +1,8 @@
--- XP Chronicle - Flat XP Bar Mixin (Solid colors, modern style)
+-- XP Bar Enhanced - Flat XP Bar Mixin (Solid colors, modern style)
 -- Uses XPC_XPBarMixinBase for shared logic
 
 -- Addon namespace
-local Addon = XPChronicle
+local Addon = XPBarEnhanced
 
 -- Get shared dimensions
 local BAR_WIDTH, BAR_HEIGHT = XPC_XPBarMixinBase.GetBarDimensions()
@@ -14,7 +14,7 @@ BAR_HEIGHT = 30  -- Override for Flat bar height
 XPC_FlatXPBarContainerMixin = {}
 
 function XPC_FlatXPBarContainerMixin:OnLoad()
-	local Addon = XPChronicle
+	local Addon = XPBarEnhanced
 	
 	-- IMPORTANT: Stay hidden until controller shows us based on barStyle setting
 	self:Hide()
@@ -99,7 +99,7 @@ end
 
 -- Retry dragging setup if mixins weren't available at OnLoad
 function XPC_FlatXPBarContainerMixin:RetryDraggingSetup()
-	local Addon = XPChronicle
+	local Addon = XPBarEnhanced
 	local PositionStoreMixin = Addon.UI and Addon.UI.Mixins and Addon.UI.Mixins.PositionStoreMixin
 	local DraggableFrameMixin = Addon.UI and Addon.UI.Mixins and Addon.UI.Mixins.DraggableFrameMixin
 	

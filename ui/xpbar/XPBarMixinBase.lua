@@ -1,7 +1,7 @@
--- XP Chronicle - XP Bar Mixin Base (Shared Logic)
+-- XP Bar Enhanced - XP Bar Mixin Base (Shared Logic)
 -- Contains common functionality used by both Legacy and Flat XP bar implementations
 
-local Addon = XPChronicle
+local Addon = XPBarEnhanced
 
 -----------------------------------
 -- Shared Constants

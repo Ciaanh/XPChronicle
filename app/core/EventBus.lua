@@ -86,7 +86,7 @@ function XPC_EventBus:DispatchEvent(eventType, eventData)
     for subscriberId, callback in pairs(subscribers) do
         local success, err = pcall(callback, eventData)
         if not success then
-            print("XPChronicle Event Error [" .. eventType .. " -> " .. subscriberId .. "]: " .. tostring(err))
+            print("XPBarEnhanced Event Error [" .. eventType .. " -> " .. subscriberId .. "]: " .. tostring(err))
         end
     end
 end
@@ -122,7 +122,7 @@ function XPC_EventBus:GetAllEventTypes()
 end
 
 -- Register with addon namespace
-XPChronicle = XPChronicle or {}
-XPChronicle.App = XPChronicle.App or {}
-XPChronicle.App.Core = XPChronicle.App.Core or {}
-XPChronicle.App.Core.EventBus = XPC_EventBus
+XPBarEnhanced = XPBarEnhanced or {}
+XPBarEnhanced.App = XPBarEnhanced.App or {}
+XPBarEnhanced.App.Core = XPBarEnhanced.App.Core or {}
+XPBarEnhanced.App.Core.EventBus = XPC_EventBus

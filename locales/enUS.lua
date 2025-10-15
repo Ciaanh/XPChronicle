@@ -1,4 +1,4 @@
-local ADDON_NAME = "XPChronicle"
+local ADDON_NAME = "XPBarEnhanced"
 local L = LibStub("AceLocale-3.0"):NewLocale(ADDON_NAME, "enUS", true)
 
 if not L then
@@ -8,7 +8,7 @@ end
 -- ============================================================================
 -- ADDON GENERAL
 -- ============================================================================
-L["ADDON_NAME"] = "XP Chronicle"
+L["ADDON_NAME"] = "XP Bar Enhanced"
 L["ADDON_LOADED"] = "Loaded!"
 
 -- ============================================================================

@@ -1,7 +1,7 @@
--- XP Chronicle - XP Bar Tooltip Module
+-- XP Bar Enhanced - XP Bar Tooltip Module
 -- Shared tooltip logic for both Legacy and Flat XP bars
 
-local Addon = XPChronicle
+local Addon = XPBarEnhanced
 local L = function(key, ...) return Addon.L and Addon.L(key, ...) or key end
 
 XPC_XPBarTooltip = {}

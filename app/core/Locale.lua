@@ -1,5 +1,5 @@
-local ADDON_NAME = "XPChronicle"
-local XPC = XPChronicle
+local ADDON_NAME = "XPBarEnhanced"
+local XPC = XPBarEnhanced
 
 -- Get AceLocale instance
 local L = LibStub("AceLocale-3.0"):GetLocale(ADDON_NAME, true)

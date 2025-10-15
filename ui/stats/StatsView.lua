@@ -1,7 +1,7 @@
--- XP Chronicle Stats View - Book-Style Two-Page Layout
+-- XP Bar Enhanced Stats View - Book-Style Two-Page Layout
 -- Left Page: Current Level Stats
 -- Right Page: Current Session Stats
-local Addon = XPChronicle
+local Addon = XPBarEnhanced
 Addon.UI = Addon.UI or {}
 Addon.UI.Views = Addon.UI.Views or {}
 
@@ -18,7 +18,7 @@ local SessionService = Addon.App and Addon.App.Services and Addon.App.Services.S
 local frame
 
 local StatsFrameMixin = {}
-XPChronicleStatsMixin = StatsFrameMixin
+XPBarEnhancedStatsMixin = StatsFrameMixin
 
 function View:SetFrame(newFrame)
     frame = newFrame
@@ -97,7 +97,7 @@ function View:Initialize(controller)
         return
     end
 
-    local existing = _G["XPChronicleStatsFrame"]
+    local existing = _G["XPBarEnhancedStatsFrame"]
     if existing and existing.OnLoad then
         existing:OnLoad()
         self:SetFrame(existing)
@@ -112,7 +112,7 @@ function View:GetFrame()
         return frame
     end
 
-    local existing = _G["XPChronicleStatsFrame"]
+    local existing = _G["XPBarEnhancedStatsFrame"]
     if existing then
         self:SetFrame(existing)
         return existing

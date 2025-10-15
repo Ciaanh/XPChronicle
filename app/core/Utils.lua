@@ -1,4 +1,4 @@
-local Addon = XPChronicle
+local Addon = XPBarEnhanced
 Addon.Utils = Addon.Utils or {}
 Addon.App.Core = Addon.App.Core or {}
 
@@ -112,7 +112,7 @@ function Utils.Print(message, ...)
         message = string.format(message, ...)
     end
 
-    print("|cFF00FF00XP Chronicle:|r " .. message)
+    print("|cFF00FF00XP Bar Enhanced:|r " .. message)
 end
 
 Addon.App.Core.Utils = {

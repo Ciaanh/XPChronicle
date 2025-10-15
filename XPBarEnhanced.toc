@@ -1,9 +1,9 @@
 ## Interface: 110205
-## Title: XP Chronicle
-## Notes: Enhanced experience bar with quest XP tracking and leveling statistics
+## Title: XP Bar Enhanced
+## Notes: Enhanced XP bar with quest XP tracking and comprehensive statistics
 ## Author: Ciaanh
-## Version: 1.0.1
-## SavedVariables: XPChronicleDB
+## Version: 2.0.0
+## SavedVariables: XPBarEnhancedDB
 ## Category: Quests & Leveling
 ## IconTexture: 4675649
 

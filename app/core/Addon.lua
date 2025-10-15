@@ -1,6 +1,6 @@
--- XP Chronicle Addon bootstrap
-XPChronicle = XPChronicle or {}
-local Addon = XPChronicle
+-- XP Bar Enhanced Addon bootstrap
+XPBarEnhanced = XPBarEnhanced or {}
+local Addon = XPBarEnhanced
 
 Addon.App = Addon.App or {}
 Addon.App.Core = Addon.App.Core or {}
@@ -96,7 +96,7 @@ function Addon:Initialize()
 
     SavedVariables:EnsureDefaults(Defaults.defaults)
 
-    self.db = XPChronicleDB
+    self.db = XPBarEnhancedDB
     self.state.xpGainDisabled = SavedVariables:IsXPGainDisabled()
 
     local SessionService = self.App.Services.SessionService
@@ -117,7 +117,7 @@ function Addon:Initialize()
 end
 
 Addon:RegisterEvent("ADDON_LOADED", function(name)
-    if name ~= "XPChronicle" then
+    if name ~= "XPBarEnhanced" then
         return
     end
 

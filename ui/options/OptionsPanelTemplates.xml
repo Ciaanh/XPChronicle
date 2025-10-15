@@ -1,5 +1,5 @@
 <!--
-    XP Chronicle - Options Panel Templates
+    XP Bar Enhanced - Options Panel Templates
     Two-column layout templates inspired by TotalRP3
 -->
 <Ui xmlns="http://www.blizzard.com/wow/ui/"
@@ -14,7 +14,7 @@
     <!-- Custom CheckButton Template for Options
          Standard checkbox with text label to the right
     -->
-    <CheckButton name="XPChronicleCheckButtonTemplate" virtual="true">
+    <CheckButton name="XPBarEnhancedCheckButtonTemplate" virtual="true">
         <Size x="32" y="32"/>
         <HitRectInsets left="0" right="-200" top="0" bottom="0"/>
         <NormalTexture file="Interface\Buttons\UI-CheckBox-Up"/>
@@ -36,7 +36,7 @@
     <!-- Custom Radio Button Template
          Radio button with text label to the right
     -->
-    <CheckButton name="XPChronicleRadioButtonTemplate" virtual="true">
+    <CheckButton name="XPBarEnhancedRadioButtonTemplate" virtual="true">
         <Size x="24" y="24"/>
         <HitRectInsets left="0" right="-150" top="0" bottom="0"/>
         <NormalTexture parentKey="NormalTexture" file="Interface\Buttons\UI-RadioButton">
@@ -115,7 +115,7 @@
     -->
     <Frame name="XPC_ConfigCheckboxTemplate" inherits="XPC_ConfigRowBase" virtual="true">
         <Frames>
-            <CheckButton parentKey="Checkbox" inherits="XPChronicleCheckButtonTemplate">
+            <CheckButton parentKey="Checkbox" inherits="XPBarEnhancedCheckButtonTemplate">
                 <Anchors>
                     <Anchor point="RIGHT" x="-16"/>
                 </Anchors>

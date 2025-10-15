@@ -1,4 +1,4 @@
-local Addon = XPChronicle
+local Addon = XPBarEnhanced
 Addon.App = Addon.App or {}
 Addon.App.Config = Addon.App.Config or {}
 Addon.App.Config.SlashCommands = Addon.App.Config.SlashCommands or {}
@@ -103,9 +103,9 @@ function SlashCommands:Handle(message)
                 }
             end
             
-            print("|cFF00FF00XP Chronicle:|r Colors reset to defaults. Please /reload")
+            print("|cFF00FF00XP Bar Enhanced:|r Colors reset to defaults. Please /reload")
         else
-            print("|cFFFF0000XP Chronicle:|r Could not find default colors")
+            print("|cFFFF0000XP Bar Enhanced:|r Could not find default colors")
         end
         return
     end
@@ -116,8 +116,8 @@ function SlashCommands:Handle(message)
         if style == "" then
             -- Show current style
             local currentStyle = Addon.db.barStyle or "legacy"
-            print("|cFF00FF00XP Chronicle:|r Current bar style: " .. currentStyle)
-            print("Usage: /xpc style <none|legacy|flat>")
+            print("|cFF00FF00XP Bar Enhanced:|r Current bar style: " .. currentStyle)
+            print("Usage: /xpbe style <none|legacy|flat>")
             return
         end
         
@@ -125,12 +125,12 @@ function SlashCommands:Handle(message)
             local controller = Addon.App.Features.xpbar
             if controller and controller.SetBarStyle then
                 controller:SetBarStyle(style)
-                print("|cFF00FF00XP Chronicle:|r Bar style set to: " .. style)
+                print("|cFF00FF00XP Bar Enhanced:|r Bar style set to: " .. style)
             else
-                print("|cFFFF0000XP Chronicle:|r XP Bar controller not available")
+                print("|cFFFF0000XP Bar Enhanced:|r XP Bar controller not available")
             end
         else
-            print("|cFFFF0000XP Chronicle:|r Invalid style. Use: none, legacy, or flat")
+            print("|cFFFF0000XP Bar Enhanced:|r Invalid style. Use: none, legacy, or flat")
         end
         return
     end
@@ -153,11 +153,11 @@ function SlashCommands:Handle(message)
             
             if bar and bar.PlayLevelUpCelebration then
                 local currentLevel = UnitLevel("player")
-                print("|cFF00FF00XP Chronicle:|r Testing level-up celebration for level " .. currentLevel)
+                print("|cFF00FF00XP Bar Enhanced:|r Testing level-up celebration for level " .. currentLevel)
                 bar:PlayLevelUpCelebration(currentLevel)
             else
-                print("|cFFFF0000XP Chronicle:|r XP Bar not available (current style: " .. barType .. ")")
-                print("Try: /xpc style legacy or /xpc style flat")
+                print("|cFFFF0000XP Bar Enhanced:|r XP Bar not available (current style: " .. barType .. ")")
+                print("Try: /xpbe style legacy or /xpbe style flat")
             end
             return
         end
@@ -174,11 +174,11 @@ function SlashCommands:Handle(message)
             end
             
             if bar and bar.TriggerXPGainFlash then
-                print("|cFF00FF00XP Chronicle:|r Testing XP gain flash")
+                print("|cFF00FF00XP Bar Enhanced:|r Testing XP gain flash")
                 bar:TriggerXPGainFlash(false) -- false = not rested
             else
-                print("|cFFFF0000XP Chronicle:|r XP Bar not available (current style: " .. barType .. ")")
-                print("Try: /xpc style legacy or /xpc style flat")
+                print("|cFFFF0000XP Bar Enhanced:|r XP Bar not available (current style: " .. barType .. ")")
+                print("Try: /xpbe style legacy or /xpbe style flat")
             end
             return
         end
@@ -187,11 +187,11 @@ function SlashCommands:Handle(message)
             -- Test EventBus functionality
             local EventBus = Addon.App.Core and Addon.App.Core.EventBus
             if not EventBus then
-                print("|cFFFF0000XP Chronicle:|r EventBus not available")
+                print("|cFFFF0000XP Bar Enhanced:|r EventBus not available")
                 return
             end
             
-            print("|cFF00FF00XP Chronicle:|r Testing EventBus...")
+            print("|cFF00FF00XP Bar Enhanced:|r Testing EventBus...")
             
             -- Subscribe to a test event
             local receivedEvent = false
@@ -223,10 +223,10 @@ function SlashCommands:Handle(message)
         end
         
         -- Show test help
-        print("|cFF00FF00XP Chronicle:|r Test commands:")
-        print("  /xpc test celebration - Test level-up celebration animation")
-        print("  /xpc test flash - Test XP gain flash effect")
-        print("  /xpc test eventbus - Test EventBus functionality")
+        print("|cFF00FF00XP Bar Enhanced:|r Test commands:")
+        print("  /xpbe test celebration - Test level-up celebration animation")
+        print("  /xpbe test flash - Test XP gain flash effect")
+        print("  /xpbe test eventbus - Test EventBus functionality")
         return
     end
 
@@ -238,14 +238,14 @@ function SlashCommands:Register()
         return
     end
 
-    if not _G.SLASH_XPCHRONICLE1 then
-        _G.SLASH_XPCHRONICLE1 = "/xpc"
+    if not _G.SLASH_XPBarEnhanced1 then
+        _G.SLASH_XPBarEnhanced1 = "/xpbe"
     end
-    if not _G.SLASH_XPCHRONICLE2 then
-        _G.SLASH_XPCHRONICLE2 = "/xpchronicle"
+    if not _G.SLASH_XPBarEnhanced2 then
+        _G.SLASH_XPBarEnhanced2 = "/XPBarEnhanced"
     end
 
-    rawset(SlashCmdList, "XPCHRONICLE", function(msg)
+    rawset(SlashCmdList, "XPBarEnhanced", function(msg)
         self:Handle(msg)
     end)
 

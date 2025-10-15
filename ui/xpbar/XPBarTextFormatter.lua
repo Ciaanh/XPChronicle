@@ -1,7 +1,7 @@
--- XP Chronicle - XP Bar Text Formatter
+-- XP Bar Enhanced - XP Bar Text Formatter
 -- Formats text overlays for XP bars with number abbreviation, time formatting, etc.
 
-local Addon = XPChronicle
+local Addon = XPBarEnhanced
 local L = Addon.L
 
 XPC_XPBarTextFormatter = {}
@@ -195,7 +195,7 @@ function XPC_XPBarTextFormatter:GetQuestSummaryText(completeXP, incompleteXP, to
 	end
 	
 	-- Check configuration to see what should be shown
-	local Addon = XPChronicle
+	local Addon = XPBarEnhanced
 	local db = Addon.db or {}
 	local questOverlaysEnabled = db.showQuestXP ~= false  -- Default: true (master toggle)
 	local showComplete = db.showCompleteQuestOverlay ~= false  -- Default: true
@@ -342,7 +342,7 @@ function XPC_XPBarTextFormatter:GetQuestXPText(completeXP, incompleteXP, abbrevi
 end
 
 function XPC_XPBarTextFormatter:GetHintText(frame)
-	-- Match the hints from XPChronicleBar tooltip
+	-- Match the hints from XPBarEnhancedBar tooltip
 	local hints = {}
 	
 	-- Add drag hint if frame or its container supports dragging

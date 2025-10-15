@@ -1,7 +1,7 @@
--- XP Chronicle - XP Bar Color Service
+-- XP Bar Enhanced - XP Bar Color Service
 -- Centralized color management using user-configured colors
 
-local Addon = XPChronicle
+local Addon = XPBarEnhanced
 
 -----------------------------------
 -- Color Service

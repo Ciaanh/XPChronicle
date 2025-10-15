@@ -1,5 +1,5 @@
 ---@class EventTypes
----Event Type Definitions - All event types used in XP Chronicle
+---Event Type Definitions - All event types used in XP Bar Enhanced
 local XPC_EventTypes = {
     -- XP Events
     XP_CHANGED = "XPC_XP_CHANGED",           -- XP amount changed (gain or loss)
@@ -116,8 +116,8 @@ local EventSchemas = {
 }
 
 -- Register with addon namespace
-XPChronicle = XPChronicle or {}
-XPChronicle.App = XPChronicle.App or {}
-XPChronicle.App.Core = XPChronicle.App.Core or {}
-XPChronicle.App.Core.EventTypes = XPC_EventTypes
-XPChronicle.App.Core.EventSchemas = EventSchemas
+XPBarEnhanced = XPBarEnhanced or {}
+XPBarEnhanced.App = XPBarEnhanced.App or {}
+XPBarEnhanced.App.Core = XPBarEnhanced.App.Core or {}
+XPBarEnhanced.App.Core.EventTypes = XPC_EventTypes
+XPBarEnhanced.App.Core.EventSchemas = EventSchemas
