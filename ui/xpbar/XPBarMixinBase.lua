@@ -4,6 +4,30 @@
 local Addon = XPBarEnhanced
 
 -----------------------------------
+-- Color Constants (Compatibility Layer)
+-----------------------------------
+-- Color key constants for backward compatibility with old XPBarColors system
+Color = {
+	XpBar = "xpBar",
+	XpBarRested = "xpBarRested",
+	Rested = "rested",
+	QuestComplete = "questComplete",
+	QuestIncomplete = "questIncomplete",
+}
+
+-- Compatibility layer for old XPC_XPBarColors:GetUserColor() calls
+XPC_XPBarColors = {
+	GetUserColor = function(self, colorKey)
+		-- Delegate to new XPBar module
+		if Addon.XPBar and Addon.XPBar.GetColor then
+			return Addon.XPBar:GetColor(colorKey)
+		end
+		-- Fallback to white if XPBar not loaded yet
+		return {r = 1, g = 1, b = 1, a = 1}
+	end
+}
+
+-----------------------------------
 -- Shared Constants
 -----------------------------------
 local CONTAINER_WIDTH = 571

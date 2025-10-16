@@ -70,12 +70,12 @@ function eventHandlers:PLAYER_LOGIN()
         Addon.Session:Initialize()
     end
     
-    -- Initialize features
-    local xpbar = Addon.Features.xpbar
-    if xpbar and xpbar.Initialize then
-        xpbar:Initialize()
+    -- Initialize XP bar (simplified module)
+    if Addon.XPBar and Addon.XPBar.Initialize then
+        Addon.XPBar:Initialize()
     end
     
+    -- Initialize features
     local stats = Addon.Features.stats
     if stats and stats.Initialize then
         stats:Initialize()
@@ -93,10 +93,9 @@ function eventHandlers:PLAYER_ENTERING_WORLD(isInitialLogin, isReloadingUI)
         Addon.Session:OnEnteringWorld(isInitialLogin, isReloadingUI)
     end
     
-    -- XP Bar handling
-    local xpbar = Addon.Features.xpbar
-    if xpbar and xpbar.OnEnteringWorld then
-        xpbar:OnEnteringWorld(isInitialLogin, isReloadingUI)
+    -- XP Bar handling (simplified module)
+    if Addon.XPBar and Addon.XPBar.OnEnteringWorld then
+        Addon.XPBar:OnEnteringWorld(isInitialLogin, isReloadingUI)
     end
 end
 
@@ -106,10 +105,9 @@ function eventHandlers:PLAYER_XP_UPDATE()
         Addon.Session:OnXPUpdate()
     end
     
-    -- Update XP bar
-    local xpbar = Addon.Features.xpbar
-    if xpbar and xpbar.OnXPUpdate then
-        xpbar:OnXPUpdate()
+    -- Update XP bar (simplified module)
+    if Addon.XPBar and Addon.XPBar.OnXPUpdate then
+        Addon.XPBar:OnXPUpdate()
     end
     
     -- Update stats
@@ -125,10 +123,9 @@ function eventHandlers:PLAYER_LEVEL_UP(level)
         Addon.Session:OnLevelUp(level)
     end
     
-    -- XP bar animation
-    local xpbar = Addon.Features.xpbar
-    if xpbar and xpbar.OnLevelUp then
-        xpbar:OnLevelUp(level)
+    -- XP bar animation (simplified module)
+    if Addon.XPBar and Addon.XPBar.OnLevelUp then
+        Addon.XPBar:OnLevelUp(level)
     end
     
     -- Stats update
@@ -139,16 +136,14 @@ function eventHandlers:PLAYER_LEVEL_UP(level)
 end
 
 function eventHandlers:UPDATE_EXHAUSTION()
-    local xpbar = Addon.Features.xpbar
-    if xpbar and xpbar.OnRestedChanged then
-        xpbar:OnRestedChanged()
+    if Addon.XPBar and Addon.XPBar.OnRestedChanged then
+        Addon.XPBar:OnRestedChanged()
     end
 end
 
 function eventHandlers:PLAYER_UPDATE_RESTING()
-    local xpbar = Addon.Features.xpbar
-    if xpbar and xpbar.OnRestedChanged then
-        xpbar:OnRestedChanged()
+    if Addon.XPBar and Addon.XPBar.OnRestedChanged then
+        Addon.XPBar:OnRestedChanged()
     end
 end
 
@@ -280,12 +275,12 @@ local function handleStyle(style)
     end
     
     if style == "none" or style == "legacy" or style == "flat" then
-        local controller = Addon.Features.xpbar
-        if controller and controller.SetBarStyle then
-            controller:SetBarStyle(style)
+        -- Use simplified XPBar module
+        if Addon.XPBar and Addon.XPBar.SetBarStyle then
+            Addon.XPBar:SetBarStyle(style)
             print("|cFF00FF00XP Bar Enhanced:|r Bar style set to: " .. style)
         else
-            print("|cFFFF0000XP Bar Enhanced:|r XP Bar controller not available")
+            print("|cFFFF0000XP Bar Enhanced:|r XP Bar module not available")
         end
     else
         print("|cFFFF0000XP Bar Enhanced:|r Invalid style. Use: none, legacy, or flat")

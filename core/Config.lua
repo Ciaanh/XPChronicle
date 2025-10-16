@@ -574,12 +574,10 @@ function Config:ApplyOptionSideEffects(key)
     end
     
     if needsBarRefresh then
-        -- Update XP bar controller
-        local xpbar = Addon.Features and Addon.Features.xpbar
+        -- Update XP bar controller (use new path)
+        local xpbar = Addon.XPBar
         if xpbar and xpbar.Update then
             xpbar:Update()
-        elseif Addon.UI.Views and Addon.UI.Views.XPBar and Addon.UI.Views.XPBar.Update then
-            Addon.UI.Views.XPBar:Update()
         end
         
         -- Force visual refresh of flat bar
@@ -592,7 +590,7 @@ function Config:ApplyOptionSideEffects(key)
                 flatBar.Bar:UpdateTextVisibility()
             end
             if flatBar.Bar.UpdateAllText then
-                flatBar.Bar.UpdateAllText()
+                flatBar.Bar:UpdateAllText()
             end
         end
         
@@ -600,13 +598,13 @@ function Config:ApplyOptionSideEffects(key)
         local legacyBar = _G.XPC_LegacyXPBar
         if legacyBar and legacyBar:IsShown() and legacyBar.Bar then
             if legacyBar.Bar.UpdateBarOverlayColors then
-                legacyBar.Bar.UpdateBarOverlayColors()
+                legacyBar.Bar:UpdateBarOverlayColors()
             end
             if legacyBar.Bar.UpdateTextVisibility then
-                legacyBar.Bar.UpdateTextVisibility()
+                legacyBar.Bar:UpdateTextVisibility()
             end
             if legacyBar.Bar.UpdateAllText then
-                legacyBar.Bar.UpdateAllText()
+                legacyBar.Bar:UpdateAllText()
             end
         end
     end
@@ -641,6 +639,15 @@ function Config:ApplyOptionSideEffects(key)
             stats:Update()
         elseif Addon.UI.Views and Addon.UI.Views.Stats and Addon.UI.Views.Stats.Update then
             Addon.UI.Views.Stats:Update()
+        end
+    end
+    
+    -- Bar style changed
+    if key == "barStyle" then
+        local xpbar = Addon.XPBar
+        if xpbar and xpbar.SetBarStyle then
+            local newStyle = Addon.db.barStyle
+            xpbar:SetBarStyle(newStyle, true)  -- skipSave=true to avoid circular save
         end
     end
     

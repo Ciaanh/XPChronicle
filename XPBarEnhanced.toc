@@ -14,7 +14,7 @@ libs\AceLocale-3.0\AceLocale-3.0.lua
 # Localization (English only for 1.0)
 locales\enUS.lua
 
-# Core Systems (Phase 2 - Simplified)
+# Core Systems
 core\Core.lua
 app\core\Locale.lua
 app\core\Utils.lua
@@ -23,30 +23,25 @@ core\Config.lua
 core\Database.lua
 core\Session.lua
 
-# Legacy service references (for backward compatibility)
-app\services\QuestXPService.lua
-
-# XP Bar - Blizzard bar control (loaded before controller)
-ui/xpbar/BlizzardBarControl.lua
-
-app/features/xpbar/XPBarController.lua
+# Controllers (to be simplified)
 app/features/stats/StatsController.lua
 app/features/options/OptionsController.lua
 
+# UI Components
 ui/components/FrameUtils.lua
 ui/options/Options.lua
 ui/mixins/PositionStoreMixin.lua
 ui/mixins/DraggableFrameMixin.lua
 
-# XP Bar components
-ui/xpbar/XPBarColors.lua
+# XP Bar Module (Consolidated)
+ui/xpbar/XPBar.lua
+
+# XP Bar Views (Separate implementations)
 ui/xpbar/XPBarMixinBase.lua
-ui/xpbar/XPBarTextFormatter.lua
-ui/xpbar/XPBarTooltip.lua
 ui/xpbar/LegacyXPBarMixin.lua
 ui/xpbar/FlatXPBarMixin.lua
-ui/xpbar/XPBarView.lua
 
+# Stats
 ui/stats/StatsView.lua
 
 Frames.xml
