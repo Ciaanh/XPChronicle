@@ -1,23 +1,28 @@
 ---@diagnostic disable: undefined-global
 -- XP Bar Enhanced Options Panel
-local XPC = XPBarEnhanced
-XPC.Options = {}
-local Options = XPC.Options
-local Config = XPC.Config
+local Addon = XPBarEnhanced
+
+Addon.Options = {}
+local Options = Addon.Options
+local Config = Addon.Config
+
+-- Helper function to resolve locale keys from Config
+local function ResolveLocale(key)
+    return Addon.L and Addon.L[key] or key
+end
 
 -- Expose via multiple namespaces for compatibility
-XPC.UI = XPC.UI or {}
-XPC.UI.Views = XPC.UI.Views or {}
-XPC.UI.Views.Options = Options
-XPC.App = XPC.App or {}
-XPC.App.Features = XPC.App.Features or {}
-XPC.App.Features.options = Options
+Addon.UI = Addon.UI or {}
+Addon.UI.Views = Addon.UI.Views or {}
+Addon.UI.Views.Options = Options
+Addon.App = Addon.App or {}
+Addon.App.Features = Addon.App.Features or {}
+Addon.App.Features.options = Options
 
 local _G = _G
 local Settings = rawget(_G, "Settings")
 local InterfaceOptions_AddCategory = rawget(_G, "InterfaceOptions_AddCategory")
 local InterfaceOptionsFrame_OpenToCategory = rawget(_G, "InterfaceOptionsFrame_OpenToCategory")
-local InterfaceOptionsFramePanelTemplate = rawget(_G, "InterfaceOptionsFramePanelTemplate")
 local PlaySound = rawget(_G, "PlaySound")
 local SOUNDKIT = rawget(_G, "SOUNDKIT")
 local ColorPickerFrame = rawget(_G, "ColorPickerFrame")
@@ -759,28 +764,28 @@ function XPBarEnhancedOptionsMixin:OnLoad()
     local container = scrollChild.OptionsContainer
     if container then
         if container.TextOnBarHeader and container.TextOnBarHeader.Title then
-            container.TextOnBarHeader.Title:SetText(L and L("OPT_TEXT_ON_BAR") or "Text ON the Bar")
+            container.TextOnBarHeader.Title:SetText(Addon.L and Addon.L["OPT_TEXT_ON_BAR"] or "Text ON the Bar")
         end
 
         if container.TextBelowBarHeader and container.TextBelowBarHeader.Title then
-            container.TextBelowBarHeader.Title:SetText(L and L("OPT_TEXT_BELOW_BAR") or "Text BELOW the Bar")
+            container.TextBelowBarHeader.Title:SetText(Addon.L and Addon.L["OPT_TEXT_BELOW_BAR"] or "Text BELOW the Bar")
         end
         if container.TextLeftLabelHeader and container.TextLeftLabelHeader.Text then
-            container.TextLeftLabelHeader.Text:SetText(L and L("OPT_TEXT_LEFT") or "Left")
+            container.TextLeftLabelHeader.Text:SetText(Addon.L and Addon.L["OPT_TEXT_LEFT"] or "Left")
         end
         if container.TextMiddleLabelHeader and container.TextMiddleLabelHeader.Text then
-            container.TextMiddleLabelHeader.Text:SetText(L and L("OPT_TEXT_MIDDLE") or "Middle")
+            container.TextMiddleLabelHeader.Text:SetText(Addon.L and Addon.L["OPT_TEXT_MIDDLE"] or "Middle")
         end
         if container.TextRightLabelHeader and container.TextRightLabelHeader.Text then
-            container.TextRightLabelHeader.Text:SetText(L and L("OPT_TEXT_RIGHT") or "Right")
+            container.TextRightLabelHeader.Text:SetText(Addon.L and Addon.L["OPT_TEXT_RIGHT"] or "Right")
         end
     end
 
     if scrollChild.ResetSettingsButton and scrollChild.ResetSettingsButton.SetText then
-        scrollChild.ResetSettingsButton:SetText("Reset Settings")
+        scrollChild.ResetSettingsButton:SetText(Addon.L and Addon.L["OPT_RESET_SETTINGS"] or "Reset Settings")
     end
     if scrollChild.ResetStatsButton and scrollChild.ResetStatsButton.SetText then
-        scrollChild.ResetStatsButton:SetText("Reset Statistics")
+        scrollChild.ResetStatsButton:SetText(Addon.L and Addon.L["OPT_RESET_STATS"] or "Reset Statistics")
     end
 
     if scrollChild.ResetSettingsButton then
@@ -802,7 +807,7 @@ function XPBarEnhancedOptionsMixin:OnLoad()
     end
 
     if scrollChild.ResetBarPositionButton then
-        scrollChild.ResetBarPositionButton:SetText(L and L("OPT_RESET_BAR_POSITION") or "Reset Bar Position")
+        scrollChild.ResetBarPositionButton:SetText(Addon.L and Addon.L["OPT_RESET_BAR_POSITION"] or "Reset Bar Position")
         scrollChild.ResetBarPositionButton:SetScript(
             "OnClick",
             function()
@@ -975,15 +980,12 @@ function XPBarEnhancedOptionsMixin:OnResetStatsClicked()
 end
 
 function XPBarEnhancedOptionsMixin:OnResetBarPositionClicked()
-    local Addon = XPBarEnhanced
-    local xpBarController = Addon.App and Addon.App.Features and Addon.App.Features.xpbar
-    if xpBarController and xpBarController.ResetFlatBarPosition then
-        xpBarController:ResetFlatBarPosition()
+    if Addon.XPBar and Addon.XPBar.ResetFlatBarPosition then
+        Addon.XPBar:ResetFlatBarPosition()
         -- Show confirmation message
-        local L = function(key)
-            return Addon.L and Addon.L(key) or key
-        end
-        print("|cFF00FF00" .. L("ADDON_NAME") .. ":|r Bar position reset to default.")
+        local addonName = Addon.L and Addon.L["ADDON_NAME"] or "XP Bar Enhanced"
+        local message = Addon.L and Addon.L["OPT_BAR_POSITION_RESET"] or "Bar position reset to default."
+        print("|cFF00FF00" .. addonName .. ":|r " .. message)
     end
 end
 
@@ -1366,9 +1368,9 @@ function Options:OnOptionChanged(key)
     -- Handle specific option changes
     if key == "barStyle" then
         -- Update bar style via XPBar
-        if XPC.XPBar and XPC.XPBar.SetBarStyle then
-            local value = XPC.db and XPC.db.barStyle or "legacy"
-            XPC.XPBar:SetBarStyle(value, true) -- skipSave=true since it's already saved
+        if Addon.XPBar and Addon.XPBar.SetBarStyle then
+            local value = Addon.db and Addon.db.barStyle or "legacy"
+            Addon.XPBar:SetBarStyle(value, true) -- skipSave=true since it's already saved
         end
         
         -- Refresh UI to update dropdown text and visibility
@@ -1380,63 +1382,63 @@ function Options:OnOptionChanged(key)
         
     elseif key == "barLocked" then
         -- Update Flat bar lock state via XPBar
-        if XPC.XPBar and XPC.XPBar.UpdateLockedState then
-            XPC.XPBar:UpdateLockedState()
+        if Addon.XPBar and Addon.XPBar.UpdateLockedState then
+            Addon.XPBar:UpdateLockedState()
         end
         
     elseif key == "enableAnimations" or key == "animationSpeed" or key == "animationEasing" 
         or key == "flashOnGain" or key == "pauseOnHover" then
         -- Update animation settings via XPBar
-        if XPC.XPBar and XPC.XPBar.UpdateAnimationSettings then
-            XPC.XPBar:UpdateAnimationSettings()
+        if Addon.XPBar and Addon.XPBar.UpdateAnimationSettings then
+            Addon.XPBar:UpdateAnimationSettings()
         end
         
     elseif key == "showQuestXP" or key == "showQuestPercent" or key == "questOverlaysEnabled"
         or key == "showCompleteQuestOverlay" or key == "showIncompleteQuestOverlay" then
         -- Update quest-related display (overlays and text)
-        if XPC.XPBar then
-            if XPC.XPBar.UpdateQuestOverlays then
-                XPC.XPBar:UpdateQuestOverlays()
+        if Addon.XPBar then
+            if Addon.XPBar.UpdateQuestOverlays then
+                Addon.XPBar:UpdateQuestOverlays()
             end
-            if XPC.XPBar.UpdateTextDisplay then
-                XPC.XPBar:UpdateTextDisplay()
+            if Addon.XPBar.UpdateTextDisplay then
+                Addon.XPBar:UpdateTextDisplay()
             end
         end
     end
     
     -- General refresh
     self:Refresh()
-    if XPC.XPBar and XPC.XPBar.Update then
-        XPC.XPBar:Update()
+    if Addon.XPBar and Addon.XPBar.Update then
+        Addon.XPBar:Update()
     end
 end
 
 function Options:OnColorReset()
     self:UpdateColorControls()
     -- Refresh bars to apply new colors
-    if XPC.XPBar and XPC.XPBar.Update then
-        XPC.XPBar:Update()
+    if Addon.XPBar and Addon.XPBar.Update then
+        Addon.XPBar:Update()
     end
 end
 
 function Options:OnColorChanged()
     self:UpdateColorControls()
     -- Refresh bars to apply new colors
-    if XPC.XPBar and XPC.XPBar.Update then
-        XPC.XPBar:Update()
+    if Addon.XPBar and Addon.XPBar.Update then
+        Addon.XPBar:Update()
     end
 end
 
 function Options:OnColorCancel()
     self:UpdateColorControls()
     -- Refresh bars to apply new colors
-    if XPC.XPBar and XPC.XPBar.Update then
-        XPC.XPBar:Update()
+    if Addon.XPBar and Addon.XPBar.Update then
+        Addon.XPBar:Update()
     end
 end
 
 -- Register as a feature for compatibility
-XPC:RegisterFeature("options", Options)
+Addon:RegisterFeature("options", Options)
 
 return Options
 

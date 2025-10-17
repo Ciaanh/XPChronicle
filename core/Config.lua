@@ -6,8 +6,6 @@ local Addon = XPBarEnhanced
 Addon.Config = Addon.Config or {}
 
 local Config = Addon.Config
-local L = function(key, ...) return Addon.L and Addon.L(key, ...) or key end
-
 -------------------------------------------------------------------
 -- DEFAULTS
 -------------------------------------------------------------------
@@ -98,140 +96,140 @@ local optionDetails = {
     barStyle = {
         key = "barStyle",
         type = "dropdown",
-        label = L("OPT_BAR_STYLE"),
-        description = L("OPT_BAR_STYLE_DESC"),
+        label = Addon.L["OPT_BAR_STYLE"],
+        description = Addon.L["OPT_BAR_STYLE_DESC"],
         options = {
-            { value = "none", label = L("OPT_BAR_STYLE_NONE") },
-            { value = "legacy", label = L("OPT_BAR_STYLE_LEGACY") },
-            { value = "flat", label = L("OPT_BAR_STYLE_FLAT") },
+            { value = "none", label = Addon.L["OPT_BAR_STYLE_NONE"] },
+            { value = "legacy", label = Addon.L["OPT_BAR_STYLE_LEGACY"] },
+            { value = "flat", label = Addon.L["OPT_BAR_STYLE_FLAT"] },
         },
         commandKeys = { "style", "mode", "barstyle" },
     },
     hideBlizzardBar = {
         key = "hideBlizzardBar",
-        label = L("OPT_HIDE_BLIZZARD_BAR"),
-        description = L("OPT_HIDE_BLIZZARD_BAR_DESC"),
+        label = Addon.L["OPT_HIDE_BLIZZARD_BAR"],
+        description = Addon.L["OPT_HIDE_BLIZZARD_BAR_DESC"],
         commandKeys = { "hideblizzard", "blizzardbar" },
     },
     barLocked = {
         key = "barLocked",
-        label = L("OPT_BAR_LOCKED"),
-        description = L("OPT_BAR_LOCKED_DESC"),
+        label = Addon.L["OPT_BAR_LOCKED"],
+        description = Addon.L["OPT_BAR_LOCKED_DESC"],
         commandKeys = { "lock", "locked" },
     },
     showQuestXP = {
         key = "showQuestXP",
-        label = L("OPT_QUEST_XP"),
-        description = L("OPT_QUEST_XP_DESC"),
+        label = Addon.L["OPT_QUEST_XP"],
+        description = Addon.L["OPT_QUEST_XP_DESC"],
         commandKeys = { "questxp", "quest" },
     },
     showCompleteQuestOverlay = {
         key = "showCompleteQuestOverlay",
-        label = L("OPT_SHOW_COMPLETE_OVERLAY"),
-        description = L("OPT_SHOW_COMPLETE_OVERLAY_DESC"),
+        label = Addon.L["OPT_SHOW_COMPLETE_OVERLAY"],
+        description = Addon.L["OPT_SHOW_COMPLETE_OVERLAY_DESC"],
         commandKeys = { "completeoverlay" },
     },
     showIncompleteQuestOverlay = {
         key = "showIncompleteQuestOverlay",
-        label = L("OPT_SHOW_INCOMPLETE_OVERLAY"),
-        description = L("OPT_SHOW_INCOMPLETE_OVERLAY_DESC"),
+        label = Addon.L["OPT_SHOW_INCOMPLETE_OVERLAY"],
+        description = Addon.L["OPT_SHOW_INCOMPLETE_OVERLAY_DESC"],
         commandKeys = { "incompleteoverlay" },
     },
     showPercentage = {
         key = "showPercentage",
-        label = L("OPT_PERCENTAGE"),
-        description = L("OPT_PERCENTAGE_DESC"),
+        label = Addon.L["OPT_PERCENTAGE"],
+        description = Addon.L["OPT_PERCENTAGE_DESC"],
         commandKeys = { "percentage" },
     },
     showQuestPercent = {
         key = "showQuestPercent",
-        label = L("OPT_QUEST_PERCENT"),
-        description = L("OPT_QUEST_PERCENT_DESC"),
+        label = Addon.L["OPT_QUEST_PERCENT"],
+        description = Addon.L["OPT_QUEST_PERCENT_DESC"],
         commandKeys = { "questpercent", "questpct" },
     },
     showLevelText = {
         key = "showLevelText",
-        label = L("OPT_LEVEL_TEXT"),
-        description = L("OPT_LEVEL_TEXT_DESC"),
+        label = Addon.L["OPT_LEVEL_TEXT"],
+        description = Addon.L["OPT_LEVEL_TEXT_DESC"],
         commandKeys = { "leveltext" },
     },
     showXPText = {
         key = "showXPText",
-        label = L("OPT_XP_TEXT"),
-        description = L("OPT_XP_TEXT_DESC"),
+        label = Addon.L["OPT_XP_TEXT"],
+        description = Addon.L["OPT_XP_TEXT_DESC"],
         commandKeys = { "xptext" },
     },
     showRemainingXP = {
         key = "showRemainingXP",
-        label = L("OPT_REMAINING_XP"),
-        description = L("OPT_REMAINING_XP_DESC"),
+        label = Addon.L["OPT_REMAINING_XP"],
+        description = Addon.L["OPT_REMAINING_XP_DESC"],
         commandKeys = { "remaining" },
     },
     showXPPerHourText = {
         key = "showXPPerHourText",
-        label = L("OPT_XP_HOUR"),
-        description = L("OPT_XP_HOUR_DESC"),
+        label = Addon.L["OPT_XP_HOUR"],
+        description = Addon.L["OPT_XP_HOUR_DESC"],
         commandKeys = { "xphour" },
     },
     showLevelTimeText = {
         key = "showLevelTimeText",
-        label = L("OPT_LEVEL_TIME"),
-        description = L("OPT_LEVEL_TIME_DESC"),
+        label = Addon.L["OPT_LEVEL_TIME"],
+        description = Addon.L["OPT_LEVEL_TIME_DESC"],
         commandKeys = { "leveltime" },
     },
     showSessionTimeText = {
         key = "showSessionTimeText",
-        label = L("OPT_SESSION_TIME"),
-        description = L("OPT_SESSION_TIME_DESC"),
+        label = Addon.L["OPT_SESSION_TIME"],
+        description = Addon.L["OPT_SESSION_TIME_DESC"],
         commandKeys = { "sessiontime" },
     },
     showTimeToLevelText = {
         key = "showTimeToLevelText",
-        label = L("OPT_TIME_TO_LEVEL"),
-        description = L("OPT_TIME_TO_LEVEL_DESC"),
+        label = Addon.L["OPT_TIME_TO_LEVEL"],
+        description = Addon.L["OPT_TIME_TO_LEVEL_DESC"],
         commandKeys = { "timetolevel", "ttl" },
     },
     showBarAtMaxLevel = {
         key = "showBarAtMaxLevel",
-        label = L("OPT_SHOW_AT_MAX"),
-        description = L("OPT_SHOW_AT_MAX_DESC"),
+        label = Addon.L["OPT_SHOW_AT_MAX"],
+        description = Addon.L["OPT_SHOW_AT_MAX_DESC"],
         commandKeys = { "showmax" },
     },
     abbreviateNumbers = {
         key = "abbreviateNumbers",
-        label = L("OPT_ABBREVIATE_NUMBERS"),
-        description = L("OPT_ABBREVIATE_NUMBERS_DESC"),
+        label = Addon.L["OPT_ABBREVIATE_NUMBERS"],
+        description = Addon.L["OPT_ABBREVIATE_NUMBERS_DESC"],
         commandKeys = { "abbreviate" },
     },
     enableAnimations = {
         key = "enableAnimations",
-        label = L("OPT_ENABLE_ANIMATIONS"),
-        description = L("OPT_ENABLE_ANIMATIONS_DESC"),
+        label = Addon.L["OPT_ENABLE_ANIMATIONS"],
+        description = Addon.L["OPT_ENABLE_ANIMATIONS_DESC"],
         commandKeys = { "animations", "animate" },
     },
     animationEasing = {
         key = "animationEasing",
         type = "dropdown",
-        label = L("OPT_ANIMATION_EASING"),
-        description = L("OPT_ANIMATION_EASING_DESC"),
+        label = Addon.L["OPT_ANIMATION_EASING"],
+        description = Addon.L["OPT_ANIMATION_EASING_DESC"],
         options = {
-            { value = "linear", label = L("OPT_EASING_LINEAR") },
-            { value = "easeIn", label = L("OPT_EASING_EASE_IN") },
-            { value = "easeOut", label = L("OPT_EASING_EASE_OUT") },
-            { value = "easeInOut", label = L("OPT_EASING_EASE_IN_OUT") },
+            { value = "linear", label = Addon.L["OPT_EASING_LINEAR"] },
+            { value = "easeIn", label = Addon.L["OPT_EASING_EASE_IN"] },
+            { value = "easeOut", label = Addon.L["OPT_EASING_EASE_OUT"] },
+            { value = "easeInOut", label = Addon.L["OPT_EASING_EASE_IN_OUT"] },
         },
         commandKeys = { "easing" },
     },
     flashOnGain = {
         key = "flashOnGain",
-        label = L("OPT_FLASH_ON_GAIN"),
-        description = L("OPT_FLASH_ON_GAIN_DESC"),
+        label = Addon.L["OPT_FLASH_ON_GAIN"],
+        description = Addon.L["OPT_FLASH_ON_GAIN_DESC"],
         commandKeys = { "flash" },
     },
     pauseOnHover = {
         key = "pauseOnHover",
-        label = L("OPT_PAUSE_ON_HOVER"),
-        description = L("OPT_PAUSE_ON_HOVER_DESC"),
+        label = Addon.L["OPT_PAUSE_ON_HOVER"],
+        description = Addon.L["OPT_PAUSE_ON_HOVER_DESC"],
         commandKeys = { "pause", "pausehover" },
     },
 }
@@ -265,40 +263,40 @@ local colorOptionsList = {
         key = "xpBar",
         command = "xpbar",
         aliases = { "bar" },
-        label = L("COLOR_XP_BAR"),
-        description = L("COLOR_XP_BAR_DESC"),
+        label = Addon.L["COLOR_XP_BAR"],
+        description = Addon.L["COLOR_XP_BAR_DESC"],
         preview = "statusbar",
     },
     {
         key = "xpBarRested",
         command = "xpBarRested",
         aliases = { "barrested", "restedbar" },
-        label = L("COLOR_XP_BAR_RESTED"),
-        description = L("COLOR_XP_BAR_RESTED_DESC"),
+        label = Addon.L["COLOR_XP_BAR_RESTED"],
+        description = Addon.L["COLOR_XP_BAR_RESTED_DESC"],
         preview = "statusbar",
     },
     {
         key = "questComplete",
         command = "questcomplete",
         aliases = { "complete" },
-        label = L("COLOR_QUEST_COMPLETE"),
-        description = L("COLOR_QUEST_COMPLETE_DESC"),
+        label = Addon.L["COLOR_QUEST_COMPLETE"],
+        description = Addon.L["COLOR_QUEST_COMPLETE_DESC"],
         preview = "texture",
     },
     {
         key = "questIncomplete",
         command = "questincomplete",
         aliases = { "incomplete" },
-        label = L("COLOR_QUEST_INCOMPLETE"),
-        description = L("COLOR_QUEST_INCOMPLETE_DESC"),
+        label = Addon.L["COLOR_QUEST_INCOMPLETE"],
+        description = Addon.L["COLOR_QUEST_INCOMPLETE_DESC"],
         preview = "texture",
     },
     {
         key = "rested",
         command = "rested",
         aliases = { "rest" },
-        label = L("COLOR_RESTED"),
-        description = L("COLOR_RESTED_DESC"),
+        label = Addon.L["COLOR_RESTED"],
+        description = Addon.L["COLOR_RESTED_DESC"],
         preview = "texture",
     },
 }
@@ -370,9 +368,9 @@ function Config:SetOptionKey(key, value, silent)
         local Utils = Addon.Utils
         if Utils and Utils.Print then
             if newValue then
-                Utils.Print(L("MSG_OPTION_ENABLED", label))
+                Utils.Print(string.format(Addon.L and Addon.L[Addon.L["MSG_OPTION_ENABLED"]] or "%s enabled", label))
             else
-                Utils.Print(L("MSG_OPTION_DISABLED", label))
+                Utils.Print(string.format(Addon.L and Addon.L[Addon.L["MSG_OPTION_DISABLED"]] or "%s disabled", label))
             end
         end
         
@@ -453,12 +451,12 @@ end
 
 function Config:SetColor(key, hex, silent)
     if not key then
-        return false, L("ERR_UNKNOWN_COLOR_TARGET")
+        return false, Addon.L["ERR_UNKNOWN_COLOR_TARGET"]
     end
     
     local r, g, b, a, normalized = parseHexColor(hex)
     if not r then
-        return false, L("ERR_INVALID_COLOR")
+        return false, Addon.L["ERR_INVALID_COLOR"]
     end
     
     -- Update color in database
@@ -491,9 +489,9 @@ function Config:SetColor(key, hex, silent)
         local info = self:GetColorOptionByKey(key)
         if Utils and Utils.Print then
             if info then
-                Utils.Print(L("MSG_COLOR_SET", info.label, normalized))
+                Utils.Print(string.format(Addon.L and Addon.L[Addon.L["MSG_COLOR_SET"]] or "%s set to %s", info.label, normalized))
             else
-                Utils.Print(L("MSG_COLOR_SET", key, normalized))
+                Utils.Print(string.format(Addon.L and Addon.L[Addon.L["MSG_COLOR_SET"]] or "%s set to %s", key, normalized))
             end
         end
     end
@@ -509,7 +507,7 @@ end
 function Config:ResetColor(key, silent)
     local default = defaults.colors and defaults.colors[key]
     if not default then
-        return false, L("ERR_NO_DEFAULT_COLOR")
+        return false, Addon.L["ERR_NO_DEFAULT_COLOR"]
     end
     
     local hex = colorToHex(default)
@@ -523,9 +521,9 @@ function Config:ResetColor(key, silent)
         local info = self:GetColorOptionByKey(key)
         if Utils and Utils.Print then
             if info then
-                Utils.Print(L("MSG_COLOR_RESET", info.label))
+                Utils.Print(string.format(Addon.L and Addon.L[Addon.L["MSG_COLOR_RESET"]] or "%s reset to default", info.label))
             else
-                Utils.Print(L("MSG_COLOR_RESET", key))
+                Utils.Print(string.format(Addon.L and Addon.L[Addon.L["MSG_COLOR_RESET"]] or "%s reset to default", key))
             end
         end
     end
@@ -662,7 +660,7 @@ end
 -------------------------------------------------------------------
 
 function Config:ShowHelp()
-    print("|cFF00FF00" .. L("ADDON_NAME") .. " Commands:|r")
+    print("|cFF00FF00" .. Addon.L["ADDON_NAME"] .. " Commands:|r")
     print("  |cFFFFD700/xpbe|r or |cFFFFD700/xpbe help|r - Show this help")
     print("  |cFFFFD700/xpbe stats|r - Toggle stats window")
     print("    (Ctrl + Click the XP bar for quick access)")
@@ -731,7 +729,7 @@ function Config:Reset()
     end
     
     if Utils and Utils.Print then
-        Utils.Print(L("MSG_SETTINGS_RESET"))
+        Utils.Print(Addon.L["MSG_SETTINGS_RESET"])
     end
 end
 
@@ -746,7 +744,7 @@ function Config:ResetStats()
     end
     
     Addon.db.levelData = Addon.db.levelData or {}
-    local currentLevel = UnitLevel("player")
+    local currentLevel = UnitLeve"player"
     Addon.db.levelData[playerKey] = {
         [currentLevel] = {
             levelStart = time(),
@@ -789,7 +787,7 @@ function Config:ResetStats()
     end
     
     if Utils and Utils.Print then
-        Utils.Print(L("MSG_SETTINGS_RESET"))
+        Utils.Print(Addon.L["MSG_SETTINGS_RESET"])
     end
 end
 

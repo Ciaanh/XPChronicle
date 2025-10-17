@@ -3,7 +3,6 @@
 -- Manages the stats window displaying level and session statistics
 
 local Addon = XPBarEnhanced
-local L = function(key, ...) return Addon.L and Addon.L(key, ...) or key end
 
 local Stats = {}
 
@@ -11,11 +10,10 @@ local Stats = {}
 -- Dependencies
 --------------------------------------------------------------------------------
 
-local Utils = Addon.Utils or {}
 local FrameUtils = Addon.UI.Components and Addon.UI.Components.FrameUtils
 local PositionStoreMixin = Addon.UI.Mixins and Addon.UI.Mixins.PositionStoreMixin
 local DraggableFrameMixin = Addon.UI.Mixins and Addon.UI.Mixins.DraggableFrameMixin
-local SessionService = Addon.App and Addon.App.Services and Addon.App.Services.SessionService
+local SessionService = Addon.Session
 
 --------------------------------------------------------------------------------
 -- Local State
@@ -221,12 +219,12 @@ function Stats:UpdateLevelStats(statsFrame)
     
     -- Update current XP
     if content.CurrentXPValue then
-        content.CurrentXPValue:SetText(Utils.ShortNumber(currentXP))
+        content.CurrentXPValue:SetText(Addon.Utils.ShortNumber(currentXP))
     end
     
     -- Update max XP
     if content.MaxXPValue then
-        content.MaxXPValue:SetText(Utils.ShortNumber(maxXP))
+        content.MaxXPValue:SetText(Addon.Utils.ShortNumber(maxXP))
     end
     
     -- Update progress
@@ -236,13 +234,13 @@ function Stats:UpdateLevelStats(statsFrame)
     
     -- Update remaining XP
     if content.RemainingXPValue then
-        content.RemainingXPValue:SetText(Utils.ShortNumber(remainingXP))
+        content.RemainingXPValue:SetText(Addon.Utils.ShortNumber(remainingXP))
     end
     
     -- Update rested XP
     if content.RestedXPValue then
         if restedXP > 0 then
-            content.RestedXPValue:SetText(Utils.ShortNumber(restedXP))
+            content.RestedXPValue:SetText(Addon.Utils.ShortNumber(restedXP))
         else
             content.RestedXPValue:SetText("None")
         end
@@ -255,7 +253,7 @@ function Stats:UpdateLevelStats(statsFrame)
         if totalQuestXP > 0 then
             local questPercent = (totalQuestXP / math.max(maxXP, 1)) * 100
             content.QuestXPValue:SetText(string.format("%s (%.1f%%)", 
-                Utils.ShortNumber(totalQuestXP), questPercent))
+                Addon.Utils.ShortNumber(totalQuestXP), questPercent))
         else
             content.QuestXPValue:SetText("None")
         end
@@ -264,7 +262,7 @@ function Stats:UpdateLevelStats(statsFrame)
     -- Update time on this level
     if content.LevelTimeValue then
         if levelTime > 0 then
-            content.LevelTimeValue:SetText(Utils.FormatDuration(levelTime))
+            content.LevelTimeValue:SetText(Addon.Utils.FormatDuration(levelTime))
         else
             content.LevelTimeValue:SetText("N/A")
         end
@@ -273,7 +271,7 @@ function Stats:UpdateLevelStats(statsFrame)
     -- Update time to next level
     if content.TimeToLevelValue then
         if timeToLevel and timeToLevel > 0 then
-            content.TimeToLevelValue:SetText(Utils.FormatDuration(timeToLevel))
+            content.TimeToLevelValue:SetText(Addon.Utils.FormatDuration(timeToLevel))
         else
             content.TimeToLevelValue:SetText("N/A")
         end
@@ -317,7 +315,7 @@ function Stats:UpdateSessionStats(statsFrame)
     
     -- Update session duration
     if content.SessionDurationValue then
-        content.SessionDurationValue:SetText(Utils.FormatDuration(sessionElapsed))
+        content.SessionDurationValue:SetText(Addon.Utils.FormatDuration(sessionElapsed))
     end
     
     -- Update session start time
@@ -328,7 +326,7 @@ function Stats:UpdateSessionStats(statsFrame)
     
     -- Update XP gained
     if content.SessionXPValue then
-        content.SessionXPValue:SetText(Utils.ShortNumber(sessionXP))
+        content.SessionXPValue:SetText(Addon.Utils.ShortNumber(sessionXP))
     end
     
     -- Update levels gained
@@ -339,7 +337,7 @@ function Stats:UpdateSessionStats(statsFrame)
     -- Update XP per hour
     if content.XPPerHourValue then
         if xpPerHour > 0 then
-            content.XPPerHourValue:SetText(Utils.ShortNumber(xpPerHour))
+            content.XPPerHourValue:SetText(Addon.Utils.ShortNumber(xpPerHour))
         else
             content.XPPerHourValue:SetText("Calculating...")
         end
@@ -347,7 +345,7 @@ function Stats:UpdateSessionStats(statsFrame)
     
     -- Update total session XP (same as gained)
     if content.TotalSessionXPValue then
-        content.TotalSessionXPValue:SetText(Utils.ShortNumber(sessionXP))
+        content.TotalSessionXPValue:SetText(Addon.Utils.ShortNumber(sessionXP))
     end
 end
 
@@ -359,11 +357,6 @@ function Stats:GetQuestXP(forceRefresh)
     -- Try new consolidated path first
     if Addon.XPBar and Addon.XPBar.GetQuestXP then
         return Addon.XPBar:GetQuestXP(forceRefresh)
-    end
-    
-    -- Try old service path (compatibility)
-    if Addon.App and Addon.App.Services and Addon.App.Services.QuestXPService then
-        return Addon.App.Services.QuestXPService:GetQuestXP(forceRefresh)
     end
     
     return 0, 0, 0
@@ -381,13 +374,7 @@ Addon.UI.Views = Addon.UI.Views or {}
 Addon.UI.Views.Stats = Stats
 
 -- Compatibility: Old Features.stats path
-Addon.App = Addon.App or {}
-Addon.App.Features = Addon.App.Features or {}
-Addon.App.Features.stats = Stats
-
--- Legacy registration for compatibility
-if Addon.RegisterFeature then
-    Addon:RegisterFeature("stats", Stats)
-end
+-- Register Stats module
+Addon.Stats = Stats
 
 return Stats

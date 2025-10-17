@@ -1,6 +1,4 @@
 local Addon = XPBarEnhanced
-Addon.App = Addon.App or {}
-Addon.App.Core = Addon.App.Core or {}
 
 local Logger = {}
 
@@ -9,4 +7,4 @@ function Logger:Error(message, ...)
     error(errorMessage)
 end
 
-Addon.App.Core.Logger = Logger
+Addon.Logger = Logger

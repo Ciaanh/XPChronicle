@@ -1,6 +1,5 @@
 local Addon = XPBarEnhanced
 Addon.Utils = Addon.Utils or {}
-Addon.App.Core = Addon.App.Core or {}
 
 local Utils = Addon.Utils
 
@@ -114,8 +113,3 @@ function Utils.Print(message, ...)
 
     print("|cFF00FF00XP Bar Enhanced:|r " .. message)
 end
-
-Addon.App.Core.Utils = {
-    CloneTable = cloneTable,
-    MergeDefaults = mergeDefaults,
-}

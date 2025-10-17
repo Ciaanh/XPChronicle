@@ -214,10 +214,4 @@ end
 -- BACKWARD COMPATIBILITY
 -------------------------------------------------------------------
 
--- Maintain old namespace structure for backward compatibility
-Addon.App = Addon.App or {}
-Addon.App.Services = Addon.App.Services or {}
-Addon.App.Services.SessionService = Session
-Addon.App.Services.TimePlayedService = Session
-
 return Session

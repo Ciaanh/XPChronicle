@@ -1,9 +1,8 @@
 -- XP Bar Enhanced - XPBar Core Module
--- Consolidates: XPBarController, QuestXPService, TextFormatter, Tooltip, Colors, BlizzardBarControl
+-- Consolidates: XPBarController, QuestXPService, TextFormatter, Tooltip, BlizzardBarControl
 -- Coordinates XP bar display logic and delegates to view implementations (Legacy/Flat/Future)
 
 local Addon = XPBarEnhanced
-local L = function(key, ...) return Addon.L and Addon.L(key, ...) or key end
 
 local XPBar = {}
 
@@ -11,23 +10,11 @@ local XPBar = {}
 -- Constants & Configuration
 --------------------------------------------------------------------------------
 
--- Color definitions (from XPBarColors.lua)
-XPBar.COLORS = {
-    xpBar =            { r = 0.34, g = 0.39, b = 1.0, a = 1.0 },  -- Purple/Blue (unrested)
-    xpBarRested =      { r = 0.34, g = 0.39, b = 1.0, a = 1.0 },  -- Purple/Blue (unrested)
-    rested =           { r = 0.07, g = 0.58, b = 0.95, a = 0.5 }, -- Light Blue (rested overlay)
-    questComplete =    { r = 1.0,  g = 0.65, b = 0.0, a = 0.85 }, -- Bright Gold/Orange
-    questIncomplete =  { r = 0.5,  g = 1.0,  b = 0.2, a = 0.85 }, -- Bright Lime Green
-}
-
--- Color key constants for code reference
-XPBar.ColorKey = {
-    XpBar = "xpBar",
-    XpBarRested = "xpBarRested",
-    QuestComplete = "questComplete",
-    QuestIncomplete = "questIncomplete",
-    Rested = "rested",
-}
+-- Color access (now delegated to Colors module)
+-- Use: Addon.Colors:Get(Addon.Colors.Key.XpBar)
+-- Kept for backward compatibility
+XPBar.COLORS = nil  -- Deprecated, use Addon.Colors
+XPBar.ColorKey = nil  -- Deprecated, use Addon.Colors.Key
 
 --------------------------------------------------------------------------------
 -- Quest XP Tracking (from QuestXPService.lua)
@@ -277,24 +264,9 @@ function XPBar:RGBToHex(r, g, b, a)
     return string.format("|c%02X%02X%02X%02X", ra, rr, rg, rb)
 end
 
+-- Delegate to Colors module
 function XPBar:GetColor(colorKey)
-    -- Try saved settings
-    if Addon.db and Addon.db.colors and Addon.db.colors[colorKey] then
-        return Addon.db.colors[colorKey]
-    end
-
-    -- Try defaults
-    if Addon.defaults and Addon.defaults.colors and Addon.defaults.colors[colorKey] then
-        return Addon.defaults.colors[colorKey]
-    end
-
-    -- Fallback to static colors
-    if self.COLORS[colorKey] then
-        return self.COLORS[colorKey]
-    end
-
-    -- Final fallback: white
-    return {r = 1, g = 1, b = 1, a = 1}
+    return Addon.Colors:Get(colorKey)
 end
 
 function XPBar:GetTooltipColor(colorKey)
@@ -964,20 +936,5 @@ XPC_XPBarTextFormatter = {
 --------------------------------------------------------------------------------
 -- Compatibility: Expose Quest XP Service for view mixins
 --------------------------------------------------------------------------------
-
--- Create service namespace if needed
-if not Addon.App then
-    Addon.App = {}
-end
-if not Addon.App.Services then
-    Addon.App.Services = {}
-end
-
--- Expose XPBar's quest methods as QuestXPService
-Addon.App.Services.QuestXPService = {
-    GetQuestXP = function() return XPBar:GetQuestXP() end,
-    GetQuestCounts = function() return XPBar:GetQuestCounts() end,
-    InvalidateCache = function() return XPBar:InvalidateQuestCache() end,
-}
 
 return XPBar

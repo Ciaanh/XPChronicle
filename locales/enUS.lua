@@ -103,6 +103,15 @@ L["OPT_BAR_LOCKED"] = "Lock bar position"
 L["OPT_BAR_LOCKED_DESC"] = "Prevent the Flat bar from being moved with Shift+Drag. Applies only to Flat bar style."
 L["OPT_RESET_BAR_POSITION"] = "Reset Bar Position"
 L["OPT_RESET_BAR_POSITION_DESC"] = "Reset the Flat bar to its default position at the bottom center of the screen."
+L["OPT_RESET_SETTINGS"] = "Reset Settings"
+L["OPT_RESET_STATS"] = "Reset Statistics"
+
+-- Text Display Section Headers
+L["OPT_TEXT_ON_BAR"] = "Text ON the Bar"
+L["OPT_TEXT_BELOW_BAR"] = "Text BELOW the Bar"
+L["OPT_TEXT_LEFT"] = "Left"
+L["OPT_TEXT_MIDDLE"] = "Middle"
+L["OPT_TEXT_RIGHT"] = "Right"
 
 -- Animation options
 L["OPT_ENABLE_ANIMATIONS"] = "Enable animations"

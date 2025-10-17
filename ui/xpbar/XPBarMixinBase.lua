@@ -3,29 +3,8 @@
 
 local Addon = XPBarEnhanced
 
------------------------------------
--- Color Constants (Compatibility Layer)
------------------------------------
--- Color key constants for backward compatibility with old XPBarColors system
-Color = {
-	XpBar = "xpBar",
-	XpBarRested = "xpBarRested",
-	Rested = "rested",
-	QuestComplete = "questComplete",
-	QuestIncomplete = "questIncomplete",
-}
-
--- Compatibility layer for old XPC_XPBarColors:GetUserColor() calls
-XPC_XPBarColors = {
-	GetUserColor = function(self, colorKey)
-		-- Delegate to new XPBar module
-		if Addon.XPBar and Addon.XPBar.GetColor then
-			return Addon.XPBar:GetColor(colorKey)
-		end
-		-- Fallback to white if XPBar not loaded yet
-		return {r = 1, g = 1, b = 1, a = 1}
-	end
-}
+-- Note: Color constants and XPC_XPBarColors compatibility layer
+-- are now provided by core/Colors.lua
 
 -----------------------------------
 -- Shared Constants
@@ -113,11 +92,8 @@ function XPC_XPBarMixinBase:InitializeTextSystem()
 				-- Request time played data if time text is enabled
 				local db = Addon.db or {}
 				if db.showLevelTimeText or db.showSessionTimeText then
-					if Addon.App and Addon.App.Services then
-						local TimePlayedService = Addon.App.Services.TimePlayedService
-						if TimePlayedService and TimePlayedService.RequestTimePlayed then
-							TimePlayedService:RequestTimePlayed()
-						end
+					if Addon.Session and Addon.Session.RequestTimePlayed then
+						Addon.Session:RequestTimePlayed()
 					end
 				end
 				
@@ -328,11 +304,8 @@ function XPC_XPBarMixinBase:OnLevelUp(newLevel)
 	end
 	
 	-- Invalidate quest XP cache - quest rewards change with level
-	if Addon.App and Addon.App.Services then
-		local QuestService = Addon.App.Services.QuestXPService
-		if QuestService and QuestService.InvalidateCache then
-			QuestService:InvalidateCache()
-		end
+	if Addon.XPBar and Addon.XPBar.InvalidateQuestCache then
+		Addon.XPBar:InvalidateQuestCache()
 	end
 
 	-- Play level-up celebration if enabled
@@ -762,23 +735,20 @@ function XPC_XPBarMixinBase:UpdatePercentText()
 
 	-- Get quest XP from service based on overlay settings
 	local questXP = 0
-	if showQuestPercent and Addon.App and Addon.App.Services then
-		local QuestService = Addon.App.Services.QuestXPService
-		if QuestService then
-			-- GetQuestXP() returns: totalQuestXP, completeQuestXP, incompleteQuestXP
-			local totalXP, completeXP, incompleteXP = QuestService:GetQuestXP()
-			
-			-- Respect overlay settings to determine which quest XP to include
-			local showComplete = db.showCompleteQuestOverlay ~= false -- Default true
-			local showIncomplete = db.showIncompleteQuestOverlay == true -- Default false
-			
-			questXP = 0
-			if showComplete then
-				questXP = questXP + (completeXP or 0)
-			end
-			if showIncomplete then
-				questXP = questXP + (incompleteXP or 0)
-			end
+	if showQuestPercent and Addon.XPBar then
+		-- GetQuestXP() returns: totalQuestXP, completeQuestXP, incompleteQuestXP
+		local totalXP, completeXP, incompleteXP = Addon.XPBar:GetQuestXP()
+		
+		-- Respect overlay settings to determine which quest XP to include
+		local showComplete = db.showCompleteQuestOverlay ~= false -- Default true
+		local showIncomplete = db.showIncompleteQuestOverlay == true -- Default false
+		
+		questXP = 0
+		if showComplete then
+			questXP = questXP + (completeXP or 0)
+		end
+		if showIncomplete then
+			questXP = questXP + (incompleteXP or 0)
 		end
 	end
 
@@ -809,44 +779,41 @@ function XPC_XPBarMixinBase:UpdateRateText()
 	local hasSessionData = false
 	local hasLevelData = false
 
-	if Addon.App and Addon.App.Services then
-		local SessionService = Addon.App.Services.SessionService
-		if SessionService then
-			local session = SessionService:GetCurrent()
-			if session then
-				local sessionTime = time() - (session.sessionStart or time())
-				local gainedXP = session.gainedXP or 0
+	if Addon.Session then
+		local session = Addon.Session:GetCurrent()
+		if session then
+			local sessionTime = time() - (session.sessionStart or time())
+			local gainedXP = session.gainedXP or 0
 
-				-- Priority 1: Use session data if we have meaningful time (at least 10 seconds)
-				if sessionTime >= 10 and gainedXP > 0 then
-					hasSessionData = true
-					xpPerHour = math.floor((gainedXP / sessionTime) * 3600)
+			-- Priority 1: Use session data if we have meaningful time (at least 10 seconds)
+			if sessionTime >= 10 and gainedXP > 0 then
+				hasSessionData = true
+				xpPerHour = math.floor((gainedXP / sessionTime) * 3600)
 
-					-- Calculate time to level
-					local remainingXP = self.state.maxXP - self.state.currentXP
+				-- Calculate time to level
+				local remainingXP = self.state.maxXP - self.state.currentXP
+				if xpPerHour > 0 and remainingXP > 0 then
+					timeToLevel = math.floor((remainingXP / xpPerHour) * 3600)
+				end
+			-- Priority 2: Fallback to current level data if available
+			elseif session.realLevelTime and session.realLevelTime > 0 then
+				local levelTime = session.realLevelTime
+				-- Add elapsed time since last TIME_PLAYED_MSG for real-time updates
+				if session.lastTimePlayedRequest and session.lastTimePlayedRequest > 0 then
+					local elapsed = time() - session.lastTimePlayedRequest
+					levelTime = levelTime + elapsed
+				end
+				
+				-- Calculate XP/hour based on current level progress
+				local currentXP = self.state.currentXP
+				if levelTime > 0 and currentXP > 0 then
+					hasLevelData = true
+					xpPerHour = math.floor((currentXP / levelTime) * 3600)
+					
+					-- Calculate time to level based on current level rate
+					local remainingXP = self.state.maxXP - currentXP
 					if xpPerHour > 0 and remainingXP > 0 then
 						timeToLevel = math.floor((remainingXP / xpPerHour) * 3600)
-					end
-				-- Priority 2: Fallback to current level data if available
-				elseif session.realLevelTime and session.realLevelTime > 0 then
-					local levelTime = session.realLevelTime
-					-- Add elapsed time since last TIME_PLAYED_MSG for real-time updates
-					if session.lastTimePlayedRequest and session.lastTimePlayedRequest > 0 then
-						local elapsed = time() - session.lastTimePlayedRequest
-						levelTime = levelTime + elapsed
-					end
-					
-					-- Calculate XP/hour based on current level progress
-					local currentXP = self.state.currentXP
-					if levelTime > 0 and currentXP > 0 then
-						hasLevelData = true
-						xpPerHour = math.floor((currentXP / levelTime) * 3600)
-						
-						-- Calculate time to level based on current level rate
-						local remainingXP = self.state.maxXP - currentXP
-						if xpPerHour > 0 and remainingXP > 0 then
-							timeToLevel = math.floor((remainingXP / xpPerHour) * 3600)
-						end
 					end
 				end
 			end
@@ -896,27 +863,23 @@ function XPC_XPBarMixinBase:UpdateSessionText()
 	local showSessionTime = db.showSessionTimeText == true
 	local showLevelTime = db.showLevelTimeText == true
 
-	if Addon.App and Addon.App.Services then
-		local SessionService = Addon.App.Services.SessionService
+	if Addon.Session then
+		local session = Addon.Session:GetCurrent()
+		if session then
+			-- Use session time if enabled
+			if showSessionTime and session.sessionStart then
+				sessionSeconds = time() - session.sessionStart
+			end
 
-		if SessionService then
-			local session = SessionService:GetCurrent()
-			if session then
-				-- Use session time if enabled
-				if showSessionTime and session.sessionStart then
-					sessionSeconds = time() - session.sessionStart
-				end
-
-				-- Use realLevelTime from TIME_PLAYED_MSG if available (accurate server-side time)
-				-- Fall back to showing 0 if not available
-				if showLevelTime then
-					if session.realLevelTime and session.realLevelTime > 0 then
-						-- Add elapsed time since last TIME_PLAYED_MSG for real-time updates
-						levelSeconds = session.realLevelTime
-						if session.lastTimePlayedRequest and session.lastTimePlayedRequest > 0 then
-							local elapsed = time() - session.lastTimePlayedRequest
-							levelSeconds = levelSeconds + elapsed
-						end
+			-- Use realLevelTime from TIME_PLAYED_MSG if available (accurate server-side time)
+			-- Fall back to showing 0 if not available
+			if showLevelTime then
+				if session.realLevelTime and session.realLevelTime > 0 then
+					-- Add elapsed time since last TIME_PLAYED_MSG for real-time updates
+					levelSeconds = session.realLevelTime
+					if session.lastTimePlayedRequest and session.lastTimePlayedRequest > 0 then
+						local elapsed = time() - session.lastTimePlayedRequest
+						levelSeconds = levelSeconds + elapsed
 					end
 				end
 			end
@@ -962,11 +925,8 @@ function XPC_XPBarMixinBase:UpdateQuestSummaryText()
 	local completeQuestXP = 0
 	local incompleteQuestXP = 0
 
-	if Addon.App and Addon.App.Services then
-		local QuestService = Addon.App.Services.QuestXPService
-		if QuestService then
-			totalQuestXP, completeQuestXP, incompleteQuestXP = QuestService:GetQuestXP()
-		end
+	if Addon.XPBar then
+		totalQuestXP, completeQuestXP, incompleteQuestXP = Addon.XPBar:GetQuestXP()
 	end
 
 	local db = Addon.db or {}
@@ -1119,14 +1079,13 @@ function XPC_XPBarMixinBase:UpdateQuestOverlays()
 	end
 	
 	-- Get quest XP from service
-	local QuestService = Addon.App.Services and Addon.App.Services.QuestXPService
-	if not QuestService then
+	if not Addon.XPBar then
 		self:HideQuestOverlays()
 		return
 	end
 	
-	local totalQuestXP, completeQuestXP, incompleteQuestXP = QuestService:GetQuestXP()
-	local completeCount, incompleteCount = QuestService:GetQuestCounts()
+	local totalQuestXP, completeQuestXP, incompleteQuestXP = Addon.XPBar:GetQuestXP()
+	local completeCount, incompleteCount = Addon.XPBar:GetQuestCounts()
 	
 	-- Update state
 	self.questState.completeQuestXP = completeQuestXP
@@ -1236,13 +1195,10 @@ function XPC_XPBarMixinBase:CalculateBarState()
 	local completeQuestXP = 0
 	local incompleteQuestXP = 0
 	
-	if config.enabled then
-		local QuestService = Addon.App.Services and Addon.App.Services.QuestXPService
-		if QuestService then
-			local total, complete, incomplete = QuestService:GetQuestXP()
-			completeQuestXP = config.showComplete and complete or 0
-			incompleteQuestXP = config.showIncomplete and incomplete or 0
-		end
+	if config.enabled and Addon.XPBar then
+		local total, complete, incomplete = Addon.XPBar:GetQuestXP()
+		completeQuestXP = config.showComplete and complete or 0
+		incompleteQuestXP = config.showIncomplete and incomplete or 0
 	end
 	
 	-- Return pure state (no pixels, no percentages yet)

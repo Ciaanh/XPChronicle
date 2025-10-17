@@ -16,9 +16,9 @@ locales\enUS.lua
 
 # Core Systems
 core\Core.lua
-core\Locale.lua
 core\Utils.lua
 core\Logger.lua
+core\Colors.lua
 core\Config.lua
 core\Database.lua
 core\Session.lua

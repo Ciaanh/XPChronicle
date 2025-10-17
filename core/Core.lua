@@ -1,11 +1,11 @@
 -- XP Bar Enhanced - Core.lua
--- Simplified core system with direct event handlers (Phase 2)
 
 local ADDON_NAME = "XPBarEnhanced"
 
 -- Initialize addon namespace
 XPBarEnhanced = XPBarEnhanced or {}
 local Addon = XPBarEnhanced
+Addon.L = LibStub("AceLocale-3.0"):GetLocale(ADDON_NAME, true)
 
 -- Core modules
 Addon.Config = Addon.Config or {}
@@ -39,7 +39,7 @@ local eventFrame = CreateFrame("Frame")
 
 local eventHandlers = {}
 
-function eventHandlers:ADDON_LOADED(name)
+function eventHandlers:OnAddonLoaded(name)
     if name ~= ADDON_NAME then return end
     
     -- Initialize core systems
@@ -58,13 +58,12 @@ function eventHandlers:ADDON_LOADED(name)
     Addon.state.xpGainDisabled = Addon.Database:IsXPGainDisabled()
     
     -- Print loaded message
-    if Addon.Utils and Addon.Utils.Print then
-        local L = function(key, ...) return Addon.L and Addon.L(key, ...) or key end
-        Addon.Utils.Print(L("ADDON_LOADED"))
+    if Addon.Utils and Addon.Utils.Print and Addon.L then
+        Addon.Utils.Print(Addon.L["ADDON_LOADED"] or "Loaded!")
     end
 end
 
-function eventHandlers:PLAYER_LOGIN()
+function eventHandlers:OnPlayerLogin()
     -- Initialize session
     if Addon.Session and Addon.Session.Initialize then
         Addon.Session:Initialize()
@@ -87,7 +86,7 @@ function eventHandlers:PLAYER_LOGIN()
     end
 end
 
-function eventHandlers:PLAYER_ENTERING_WORLD(isInitialLogin, isReloadingUI)
+function eventHandlers:OnPlayerEnteringWorld(isInitialLogin, isReloadingUI)
     -- Session handling
     if Addon.Session and Addon.Session.OnEnteringWorld then
         Addon.Session:OnEnteringWorld(isInitialLogin, isReloadingUI)
@@ -99,7 +98,7 @@ function eventHandlers:PLAYER_ENTERING_WORLD(isInitialLogin, isReloadingUI)
     end
 end
 
-function eventHandlers:PLAYER_XP_UPDATE()
+function eventHandlers:OnPlayerXPUpdate()
     -- Session tracking
     if Addon.Session and Addon.Session.OnXPUpdate then
         Addon.Session:OnXPUpdate()
@@ -117,7 +116,7 @@ function eventHandlers:PLAYER_XP_UPDATE()
     end
 end
 
-function eventHandlers:PLAYER_LEVEL_UP(level)
+function eventHandlers:OnPlayerLevelUp(level)
     -- Session level tracking
     if Addon.Session and Addon.Session.OnLevelUp then
         Addon.Session:OnLevelUp(level)
@@ -135,19 +134,19 @@ function eventHandlers:PLAYER_LEVEL_UP(level)
     end
 end
 
-function eventHandlers:UPDATE_EXHAUSTION()
+function eventHandlers:OnUpdateExhaustion()
     if Addon.XPBar and Addon.XPBar.OnRestedChanged then
         Addon.XPBar:OnRestedChanged()
     end
 end
 
-function eventHandlers:PLAYER_UPDATE_RESTING()
+function eventHandlers:OnPlayerUpdateResting()
     if Addon.XPBar and Addon.XPBar.OnRestedChanged then
         Addon.XPBar:OnRestedChanged()
     end
 end
 
-function eventHandlers:TIME_PLAYED_MSG(totalTime, levelTime)
+function eventHandlers:OnTimePlayedMsg(totalTime, levelTime)
     -- Session time tracking
     if Addon.Session and Addon.Session.OnTimePlayed then
         Addon.Session:OnTimePlayed(totalTime, levelTime)
@@ -160,24 +159,39 @@ function eventHandlers:TIME_PLAYED_MSG(totalTime, levelTime)
     end
 end
 
-function eventHandlers:ENABLE_XP_GAIN()
+function eventHandlers:OnEnableXPGain()
     Addon.state.xpGainDisabled = false
     if Addon.Database and Addon.Database.SetXPGainDisabled then
         Addon.Database:SetXPGainDisabled(false)
     end
 end
 
-function eventHandlers:DISABLE_XP_GAIN()
+function eventHandlers:OnDisableXPGain()
     Addon.state.xpGainDisabled = true
     if Addon.Database and Addon.Database.SetXPGainDisabled then
         Addon.Database:SetXPGainDisabled(true)
     end
 end
 
+-- Event name to handler mapping
+local eventMap = {
+    ADDON_LOADED = "OnAddonLoaded",
+    PLAYER_LOGIN = "OnPlayerLogin",
+    PLAYER_ENTERING_WORLD = "OnPlayerEnteringWorld",
+    PLAYER_XP_UPDATE = "OnPlayerXPUpdate",
+    PLAYER_LEVEL_UP = "OnPlayerLevelUp",
+    UPDATE_EXHAUSTION = "OnUpdateExhaustion",
+    PLAYER_UPDATE_RESTING = "OnPlayerUpdateResting",
+    TIME_PLAYED_MSG = "OnTimePlayedMsg",
+    ENABLE_XP_GAIN = "OnEnableXPGain",
+    DISABLE_XP_GAIN = "OnDisableXPGain",
+}
+
 -- Event dispatcher
 eventFrame:SetScript("OnEvent", function(self, event, ...)
-    if eventHandlers[event] then
-        local success, err = pcall(eventHandlers[event], eventHandlers, ...)
+    local handlerName = eventMap[event]
+    if handlerName and eventHandlers[handlerName] then
+        local success, err = pcall(eventHandlers[handlerName], eventHandlers, ...)
         if not success and Addon.Logger and Addon.Logger.Error then
             Addon.Logger:Error("Event handler failed for " .. event .. ": " .. tostring(err))
         end
@@ -185,7 +199,7 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
 end)
 
 -- Register all events
-for event in pairs(eventHandlers) do
+for event in pairs(eventMap) do
     eventFrame:RegisterEvent(event)
 end
 
@@ -352,15 +366,3 @@ function Addon:ApplyDefaultXPBarVisibility()
         view:ApplyDefaultXPBarVisibility()
     end
 end
-
--- Backward compatibility for old namespace structure
-Addon.App = Addon.App or {}
-Addon.App.Features = Addon.Features
-Addon.App.Core = {
-    Defaults = Addon.Config,
-    SavedVariables = Addon.Database,
-}
-Addon.App.Services = {
-    SessionService = Addon.Session,
-    TimePlayedService = Addon.Session,
-}
