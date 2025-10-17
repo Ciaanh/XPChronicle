@@ -871,13 +871,13 @@ function XPBarEnhancedOptionsMixin:BuildOptionCheckboxes()
             -- Route based on template type (detect two-column templates)
             -- Check for Slider and Dropdown FIRST (before Checkbox) to avoid misdetection
             if frame.Slider then
-                -- Two-column slider template (XPC_ConfigSliderTemplate)
+                -- Two-column slider template (ConfigSliderTemplate)
                 SetupProperSlider(self, frame, key, detail)
             elseif frame.Dropdown then
-                -- Two-column dropdown template (XPC_ConfigDropdownTemplate)
+                -- Two-column dropdown template (ConfigDropdownTemplate)
                 SetupProperDropdown(self, frame, key, detail)
             elseif frame.Checkbox and frame.Label then
-                -- Two-column checkbox template (XPC_ConfigCheckboxTemplate)
+                -- Two-column checkbox template (ConfigCheckboxTemplate)
                 SetupTwoColumnCheckbox(self, frame, key, detail)
             elseif detail.type == "slider" then
                 -- Old-style slider (dynamically created)

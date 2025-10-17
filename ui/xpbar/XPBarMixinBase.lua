@@ -3,7 +3,7 @@
 
 local Addon = XPBarEnhanced
 
--- Note: Color constants and XPC_XPBarColors compatibility layer
+-- Note: Color constants and XPBarColors compatibility layer
 -- are now provided by core/Colors.lua
 
 -----------------------------------
@@ -29,10 +29,10 @@ local ANIMATION_CONSTANTS = {
 -----------------------------------
 -- Base Mixin (Shared Logic)
 -----------------------------------
-XPC_XPBarMixinBase = {}
+XPBarMixinBase = {}
 
 -- Initialize shared state
-function XPC_XPBarMixinBase:InitializeState()
+function XPBarMixinBase:InitializeState()
 	self.state = {
 		currentXP = 0,
 		maxXP = 1,
@@ -55,7 +55,7 @@ function XPC_XPBarMixinBase:InitializeState()
 end
 
 -- Initialize animation state
-function XPC_XPBarMixinBase:InitializeAnimationState()
+function XPBarMixinBase:InitializeAnimationState()
 	self.animationState = {
 		-- Bar fill animation
 		currentValue = 0,
@@ -77,7 +77,7 @@ function XPC_XPBarMixinBase:InitializeAnimationState()
 end
 
 -- Initialize text overlay system
-function XPC_XPBarMixinBase:InitializeTextSystem()
+function XPBarMixinBase:InitializeTextSystem()
 	-- Set text visibility based on SavedVariables
 	-- This will be called during OnLoad, so we need to defer slightly
 	-- to ensure Addon.db is loaded
@@ -105,7 +105,7 @@ function XPC_XPBarMixinBase:InitializeTextSystem()
 end
 
 -- Register common events
-function XPC_XPBarMixinBase:RegisterCommonEvents()
+function XPBarMixinBase:RegisterCommonEvents()
 	self:RegisterEvent("PLAYER_XP_UPDATE")
 	self:RegisterEvent("PLAYER_LEVEL_UP")
 	self:RegisterEvent("UPDATE_EXHAUSTION")
@@ -118,7 +118,13 @@ function XPC_XPBarMixinBase:RegisterCommonEvents()
 end
 
 -- Common event handler
-function XPC_XPBarMixinBase:HandleEvent(event, ...)
+function XPBarMixinBase:HandleEvent(event, ...)
+	-- Don't process events if we're not visible (except PLAYER_ENTERING_WORLD)
+	-- This prevents hidden bars from updating and potentially causing issues
+	if event ~= "PLAYER_ENTERING_WORLD" and not self:IsVisible() then
+		return
+	end
+	
 	if event == "PLAYER_XP_UPDATE" then
 		self:UpdateXP()
 		-- Update text that depends on XP
@@ -133,7 +139,10 @@ function XPC_XPBarMixinBase:HandleEvent(event, ...)
 		-- Update quest summary (includes rested info)
 		self:UpdateQuestSummaryText()
 	elseif event == "PLAYER_ENTERING_WORLD" then
-		self:FullUpdate()
+		-- Only update if visible
+		if self:IsVisible() then
+			self:FullUpdate()
+		end
 	elseif event == "TIME_PLAYED_MSG" then
 		-- Update session text when we receive time played data
 		self:UpdateSessionText()
@@ -148,7 +157,7 @@ function XPC_XPBarMixinBase:HandleEvent(event, ...)
 end
 
 -- Full update of all XP values
-function XPC_XPBarMixinBase:FullUpdate()
+function XPBarMixinBase:FullUpdate()
 	local level = UnitLevel("player")
 
 	-- Check if max level
@@ -180,7 +189,7 @@ function XPC_XPBarMixinBase:FullUpdate()
 end
 
 -- Update XP values
-function XPC_XPBarMixinBase:UpdateXP()
+function XPBarMixinBase:UpdateXP()
 	local currentXP = UnitXP("player")
 	local maxXP = UnitXPMax("player")
 	local previousXP = self.animationState.previousXP
@@ -202,13 +211,13 @@ function XPC_XPBarMixinBase:UpdateXP()
 end
 
 -- Check if player is rested
-function XPC_XPBarMixinBase:IsRested()
+function XPBarMixinBase:IsRested()
 	local restedXP = GetXPExhaustion() or 0
 	return restedXP > 0
 end
 
 -- Update status bar with current XP (now just sets min/max, animation handles value)
-function XPC_XPBarMixinBase:UpdateStatusBar()
+function XPBarMixinBase:UpdateStatusBar()
 	if not self.StatusBar then
 		return
 	end
@@ -220,7 +229,7 @@ function XPC_XPBarMixinBase:UpdateStatusBar()
 end
 
 -- Update status bar value directly (called by animation system)
-function XPC_XPBarMixinBase:UpdateStatusBarValue(ratio)
+function XPBarMixinBase:UpdateStatusBarValue(ratio)
 	if not self.StatusBar then
 		return
 	end
@@ -238,7 +247,7 @@ function XPC_XPBarMixinBase:UpdateStatusBarValue(ratio)
 end
 
 -- Calculate rested XP dimensions (with quest overlay offset support)
-function XPC_XPBarMixinBase:CalculateRestedDimensions()
+function XPBarMixinBase:CalculateRestedDimensions()
 	local currentXP = UnitXP("player")
 	local maxXP = UnitXPMax("player")
 	local restedXP = GetXPExhaustion() or 0
@@ -272,7 +281,7 @@ function XPC_XPBarMixinBase:CalculateRestedDimensions()
 end
 
 -- Get rested state
-function XPC_XPBarMixinBase:GetRestedState()
+function XPBarMixinBase:GetRestedState()
 	local exhaustionStateID = GetRestState()
 	-- exhaustionStateID == 1 is Rested, == 2 is Normal
 	local isRested = exhaustionStateID == 1
@@ -284,7 +293,7 @@ function XPC_XPBarMixinBase:GetRestedState()
 end
 
 -- Level up handler
-function XPC_XPBarMixinBase:OnLevelUp(newLevel)
+function XPBarMixinBase:OnLevelUp(newLevel)
 	self.state.level = newLevel
 
 	-- Cancel any ongoing animations
@@ -328,7 +337,7 @@ end
 -- Level-Up Celebration Animation
 -----------------------------------
 
-function XPC_XPBarMixinBase:PlayLevelUpCelebration(newLevel)
+function XPBarMixinBase:PlayLevelUpCelebration(newLevel)
 	local db = Addon.db or {}
 	
 	-- Celebration configuration
@@ -350,7 +359,7 @@ function XPC_XPBarMixinBase:PlayLevelUpCelebration(newLevel)
 	end)
 end
 
-function XPC_XPBarMixinBase:TriggerLevelUpFlash(speedMultiplier)
+function XPBarMixinBase:TriggerLevelUpFlash(speedMultiplier)
 	speedMultiplier = speedMultiplier or 1.0
 	
 	if not self.SetFlashAlpha then
@@ -374,7 +383,7 @@ end
 -----------------------------------
 
 -- Get animation configuration
-function XPC_XPBarMixinBase:GetAnimationConfig()
+function XPBarMixinBase:GetAnimationConfig()
 	local db = Addon.db or {}
 	
 	-- Validate animationSpeed is a number (fix for corrupted SavedVariables)
@@ -393,7 +402,7 @@ function XPC_XPBarMixinBase:GetAnimationConfig()
 end
 
 -- Main animation update (OnUpdate handler)
-function XPC_XPBarMixinBase:OnAnimationUpdate(elapsed)
+function XPBarMixinBase:OnAnimationUpdate(elapsed)
 	local now = GetTime()
 	
 	-- Check if paused
@@ -418,7 +427,7 @@ function XPC_XPBarMixinBase:OnAnimationUpdate(elapsed)
 end
 
 -- Start animation to target value
-function XPC_XPBarMixinBase:AnimateToValue(targetValue, immediate)
+function XPBarMixinBase:AnimateToValue(targetValue, immediate)
 	local config = self:GetAnimationConfig()
 	
 	if immediate or not config.enabled then
@@ -456,7 +465,7 @@ function XPC_XPBarMixinBase:AnimateToValue(targetValue, immediate)
 end
 
 -- Calculate animation duration based on change magnitude
-function XPC_XPBarMixinBase:CalculateAnimationDuration(delta)
+function XPBarMixinBase:CalculateAnimationDuration(delta)
 	local config = self:GetAnimationConfig()
 	local constants = ANIMATION_CONSTANTS
 	
@@ -480,7 +489,7 @@ function XPC_XPBarMixinBase:CalculateAnimationDuration(delta)
 end
 
 -- Update bar fill animation
-function XPC_XPBarMixinBase:UpdateBarAnimation(now, elapsed)
+function XPBarMixinBase:UpdateBarAnimation(now, elapsed)
 	local state = self.animationState
 	local elapsed_since_start = now - state.animationStartTime
 	
@@ -514,7 +523,7 @@ function XPC_XPBarMixinBase:UpdateBarAnimation(now, elapsed)
 end
 
 -- Apply easing function to animation progress
-function XPC_XPBarMixinBase:ApplyEasing(t)
+function XPBarMixinBase:ApplyEasing(t)
 	local config = self:GetAnimationConfig()
 	
 	if config.easing == "linear" then
@@ -535,7 +544,7 @@ function XPC_XPBarMixinBase:ApplyEasing(t)
 end
 
 -- Trigger flash effect on XP gain
-function XPC_XPBarMixinBase:TriggerXPGainFlash(isRested)
+function XPBarMixinBase:TriggerXPGainFlash(isRested)
 	local config = self:GetAnimationConfig()
 	
 	if not config.flashOnGain then
@@ -554,7 +563,7 @@ function XPC_XPBarMixinBase:TriggerXPGainFlash(isRested)
 end
 
 -- Update flash effect
-function XPC_XPBarMixinBase:UpdateFlashEffect(now, elapsed)
+function XPBarMixinBase:UpdateFlashEffect(now, elapsed)
 	local state = self.animationState
 	local constants = ANIMATION_CONSTANTS
 	local elapsed_since_start = now - state.flashStartTime
@@ -587,7 +596,7 @@ function XPC_XPBarMixinBase:UpdateFlashEffect(now, elapsed)
 end
 
 -- Pause animation on mouseover
-function XPC_XPBarMixinBase:PauseAnimation()
+function XPBarMixinBase:PauseAnimation()
 	local config = self:GetAnimationConfig()
 	if config.pauseOnHover then
 		local constants = ANIMATION_CONSTANTS
@@ -596,30 +605,30 @@ function XPC_XPBarMixinBase:PauseAnimation()
 end
 
 -- Resume animation (pause expires automatically)
-function XPC_XPBarMixinBase:ResumeAnimation()
+function XPBarMixinBase:ResumeAnimation()
 	-- Pause will expire naturally based on pauseUntil timestamp
 end
 
 -- Abstract method for bar-specific flash implementation
-function XPC_XPBarMixinBase:SetFlashAlpha(alpha)
+function XPBarMixinBase:SetFlashAlpha(alpha)
 	-- Override in bar-specific mixins
 end
 
 -- Public API for external control
-function XPC_XPBarMixinBase:Show()
+function XPBarMixinBase:Show()
 	if self:GetParent() then
 		self:GetParent():Show()
 	end
 	self:FullUpdate()
 end
 
-function XPC_XPBarMixinBase:Hide()
+function XPBarMixinBase:Hide()
 	if self:GetParent() then
 		self:GetParent():Hide()
 	end
 end
 
-function XPC_XPBarMixinBase:Toggle()
+function XPBarMixinBase:Toggle()
 	local container = self:GetParent()
 	if container then
 		if container:IsShown() then
@@ -635,7 +644,7 @@ end
 -- Text Overlay System
 -----------------------------------
 
-function XPC_XPBarMixinBase:UpdateTextVisibility()
+function XPBarMixinBase:UpdateTextVisibility()
 	-- Ensure text elements are wired (safety check for timing issues)
 	local parent = self:GetParent()
 	if parent and parent.WireTextElements then
@@ -676,8 +685,8 @@ function XPC_XPBarMixinBase:UpdateTextVisibility()
 	end
 end
 
-function XPC_XPBarMixinBase:UpdateAllText()
-	if not XPC_XPBarTextFormatter then
+function XPBarMixinBase:UpdateAllText()
+	if not XPBarTextFormatter then
 		return
 	end
 
@@ -689,24 +698,24 @@ function XPC_XPBarMixinBase:UpdateAllText()
 	self:UpdateQuestSummaryText()
 end
 
-function XPC_XPBarMixinBase:UpdateLevelText()
+function XPBarMixinBase:UpdateLevelText()
 	if not self.LevelText or not self.LevelText:IsShown() then
 		return
 	end
-	if not XPC_XPBarTextFormatter then
+	if not XPBarTextFormatter then
 		return
 	end
 
 	local level = self.state.level or UnitLevel("player")
-	local text = XPC_XPBarTextFormatter:GetLevelText(level)
+	local text = XPBarTextFormatter:GetLevelText(level)
 	self.LevelText:SetText(text)
 end
 
-function XPC_XPBarMixinBase:UpdateXPText()
+function XPBarMixinBase:UpdateXPText()
 	if not self.XPText or not self.XPText:IsShown() then
 		return
 	end
-	if not XPC_XPBarTextFormatter then
+	if not XPBarTextFormatter then
 		return
 	end
 
@@ -714,18 +723,18 @@ function XPC_XPBarMixinBase:UpdateXPText()
 	local abbreviate = db.abbreviateNumbers ~= false -- Default true
 	local showRemaining = db.showRemainingXP == true -- Default false
 
-	local text = XPC_XPBarTextFormatter:GetXPText(self.state.currentXP, self.state.maxXP, abbreviate, showRemaining)
+	local text = XPBarTextFormatter:GetXPText(self.state.currentXP, self.state.maxXP, abbreviate, showRemaining)
 	self.XPText:SetText(text)
 end
 
-function XPC_XPBarMixinBase:UpdatePercentText()
+function XPBarMixinBase:UpdatePercentText()
 	if not self.PercentText then
 		return
 	end
 	if not self.PercentText:IsShown() then
 		return
 	end
-	if not XPC_XPBarTextFormatter then
+	if not XPBarTextFormatter then
 		return
 	end
 
@@ -753,16 +762,16 @@ function XPC_XPBarMixinBase:UpdatePercentText()
 	end
 
 	local text =
-		XPC_XPBarTextFormatter:GetPercentText(self.state.currentXP, self.state.maxXP, decimals, showQuestPercent, questXP)
+		XPBarTextFormatter:GetPercentText(self.state.currentXP, self.state.maxXP, decimals, showQuestPercent, questXP)
 
 	self.PercentText:SetText(text)
 end
 
-function XPC_XPBarMixinBase:UpdateRateText()
+function XPBarMixinBase:UpdateRateText()
 	if not self.RateText or not self.RateText:IsShown() then
 		return
 	end
-	if not XPC_XPBarTextFormatter then
+	if not XPBarTextFormatter then
 		return
 	end
 
@@ -825,7 +834,7 @@ function XPC_XPBarMixinBase:UpdateRateText()
 	
 	if showXPPerHour then
 		if hasSessionData or hasLevelData then
-			local ratePart = XPC_XPBarTextFormatter:GetXPRateText(xpPerHour, abbreviate)
+			local ratePart = XPBarTextFormatter:GetXPRateText(xpPerHour, abbreviate)
 			if ratePart and ratePart ~= "" and ratePart ~= "Calculating..." then
 				table.insert(parts, ratePart)
 			end
@@ -835,7 +844,7 @@ function XPC_XPBarMixinBase:UpdateRateText()
 	
 	if showTimeToLevel then
 		if (hasSessionData or hasLevelData) and timeToLevel > 0 then
-			local timePart = XPC_XPBarTextFormatter:GetTimeToLevelText(timeToLevel)
+			local timePart = XPBarTextFormatter:GetTimeToLevelText(timeToLevel)
 			if timePart and timePart ~= "" and timePart ~= "N/A" then
 				table.insert(parts, "Leveling in: " .. timePart)
 			end
@@ -847,11 +856,11 @@ function XPC_XPBarMixinBase:UpdateRateText()
 	self.RateText:SetText(text)
 end
 
-function XPC_XPBarMixinBase:UpdateSessionText()
+function XPBarMixinBase:UpdateSessionText()
 	if not self.SessionText or not self.SessionText:IsShown() then
 		return
 	end
-	if not XPC_XPBarTextFormatter then
+	if not XPBarTextFormatter then
 		return
 	end
 
@@ -891,7 +900,7 @@ function XPC_XPBarMixinBase:UpdateSessionText()
 
 	if showSessionTime then
 		if sessionSeconds > 0 then
-			local sessionPart = XPC_XPBarTextFormatter:GetSessionTimeText(sessionSeconds, "Session")
+			local sessionPart = XPBarTextFormatter:GetSessionTimeText(sessionSeconds, "Session")
 			if sessionPart ~= "" then
 				table.insert(parts, sessionPart)
 			end
@@ -901,7 +910,7 @@ function XPC_XPBarMixinBase:UpdateSessionText()
 
 	if showLevelTime then
 		if levelSeconds > 0 then
-			local levelPart = XPC_XPBarTextFormatter:GetLevelTimeText(levelSeconds, "This Level")
+			local levelPart = XPBarTextFormatter:GetLevelTimeText(levelSeconds, "This Level")
 			if levelPart ~= "" then
 				table.insert(parts, levelPart)
 			end
@@ -913,11 +922,11 @@ function XPC_XPBarMixinBase:UpdateSessionText()
 	self.SessionText:SetText(text)
 end
 
-function XPC_XPBarMixinBase:UpdateQuestSummaryText()
+function XPBarMixinBase:UpdateQuestSummaryText()
 	if not self.QuestSummaryText or not self.QuestSummaryText:IsShown() then
 		return
 	end
-	if not XPC_XPBarTextFormatter then
+	if not XPBarTextFormatter then
 		return
 	end
 
@@ -933,7 +942,7 @@ function XPC_XPBarMixinBase:UpdateQuestSummaryText()
 	local decimals = db.percentDecimals or 1
 
 	local text =
-		XPC_XPBarTextFormatter:GetQuestSummaryText(
+		XPBarTextFormatter:GetQuestSummaryText(
 		completeQuestXP,
 		incompleteQuestXP,
 		totalQuestXP,
@@ -945,21 +954,21 @@ function XPC_XPBarMixinBase:UpdateQuestSummaryText()
 end
 
 -- Tooltip handlers
-function XPC_XPBarMixinBase:OnEnter()
+function XPBarMixinBase:OnEnter()
 	-- Pause animation on mouseover
 	self:PauseAnimation()
 	
-	if XPC_XPBarTooltip then
-		XPC_XPBarTooltip:Show(self, "ANCHOR_TOP")
+	if XPBarTooltip then
+		XPBarTooltip:Show(self, "ANCHOR_TOP")
 	end
 end
 
-function XPC_XPBarMixinBase:OnLeave()
+function XPBarMixinBase:OnLeave()
 	-- Resume animation (pause will expire automatically)
 	self:ResumeAnimation()
 	
-	if XPC_XPBarTooltip then
-		XPC_XPBarTooltip:Hide()
+	if XPBarTooltip then
+		XPBarTooltip:Hide()
 	end
 end
 
@@ -968,7 +977,7 @@ end
 -----------------------------------
 
 -- Initialize quest overlay state
-function XPC_XPBarMixinBase:InitializeQuestOverlays()
+function XPBarMixinBase:InitializeQuestOverlays()
 	self.questState = {
 		completeQuestXP = 0,
 		incompleteQuestXP = 0,
@@ -983,7 +992,7 @@ end
 -----------------------------------
 
 -- Handle XP_CHANGED event
-function XPC_XPBarMixinBase:OnXPChangedEvent(data)
+function XPBarMixinBase:OnXPChangedEvent(data)
 	-- Update state
 	self.state.currentXP = data.currentXP
 	self.state.maxXP = data.maxXP
@@ -996,7 +1005,7 @@ function XPC_XPBarMixinBase:OnXPChangedEvent(data)
 end
 
 -- Handle XP_GAINED event
-function XPC_XPBarMixinBase:OnXPGainedEvent(data)
+function XPBarMixinBase:OnXPGainedEvent(data)
 	-- Trigger XP gain flash if enabled
 	if not Addon.db or Addon.db.flashOnXPGain ~= false then
 		self:TriggerXPGainFlash(data.isRested)
@@ -1004,7 +1013,7 @@ function XPC_XPBarMixinBase:OnXPGainedEvent(data)
 end
 
 -- Handle LEVEL_UP event
-function XPC_XPBarMixinBase:OnLevelUpEvent(data)
+function XPBarMixinBase:OnLevelUpEvent(data)
 	-- Update level
 	self.state.level = data.newLevel
 	
@@ -1018,7 +1027,7 @@ function XPC_XPBarMixinBase:OnLevelUpEvent(data)
 end
 
 -- Handle RESTED_CHANGED event
-function XPC_XPBarMixinBase:OnRestedChangedEvent(data)
+function XPBarMixinBase:OnRestedChangedEvent(data)
 	-- Update rested XP
 	self.state.restedXP = data.restedXP or 0
 	
@@ -1027,13 +1036,13 @@ function XPC_XPBarMixinBase:OnRestedChangedEvent(data)
 end
 
 -- Handle QUEST_XP_UPDATED event
-function XPC_XPBarMixinBase:OnQuestXPUpdatedEvent(data)
+function XPBarMixinBase:OnQuestXPUpdatedEvent(data)
 	-- Update quest overlays
 	self:UpdateQuestOverlays()
 end
 
 -- Handle TEXT_SETTINGS_CHANGED event
-function XPC_XPBarMixinBase:OnTextSettingsChangedEvent(data)
+function XPBarMixinBase:OnTextSettingsChangedEvent(data)
 	-- Update text visibility and fonts
 	self:UpdateTextVisibility()
 	self:ApplyTextSettings()
@@ -1041,14 +1050,14 @@ function XPC_XPBarMixinBase:OnTextSettingsChangedEvent(data)
 end
 
 -- Handle COLORS_CHANGED event
-function XPC_XPBarMixinBase:OnColorsChangedEvent(data)
+function XPBarMixinBase:OnColorsChangedEvent(data)
 	-- Update all bar colors
 	self:UpdateBarOverlayColors()
 	self:UpdateAllText()
 end
 
 -- Register quest events
-function XPC_XPBarMixinBase:RegisterQuestEvents()
+function XPBarMixinBase:RegisterQuestEvents()
 	self:RegisterEvent("QUEST_ACCEPTED")
 	self:RegisterEvent("QUEST_REMOVED")
 	self:RegisterEvent("QUEST_TURNED_IN")
@@ -1057,7 +1066,7 @@ function XPC_XPBarMixinBase:RegisterQuestEvents()
 end
 
 -- Get quest overlay configuration
-function XPC_XPBarMixinBase:GetQuestOverlayConfig()
+function XPBarMixinBase:GetQuestOverlayConfig()
 	local db = Addon.db or {}
 	
 	-- Get configuration from SavedVariables
@@ -1070,7 +1079,7 @@ function XPC_XPBarMixinBase:GetQuestOverlayConfig()
 end
 
 -- Update quest overlays with improved positioning logic
-function XPC_XPBarMixinBase:UpdateQuestOverlays()
+function XPBarMixinBase:UpdateQuestOverlays()
 	local config = self:GetQuestOverlayConfig()
 	
 	if not config.enabled then
@@ -1132,21 +1141,21 @@ function XPC_XPBarMixinBase:UpdateQuestOverlays()
 end
 
 -- Abstract methods (implemented by Legacy/Flat mixins)
-function XPC_XPBarMixinBase:SetCompleteQuestOverlay(percent, offset, show)
+function XPBarMixinBase:SetCompleteQuestOverlay(percent, offset, show)
 	-- Override in Legacy/Flat mixins
 end
 
-function XPC_XPBarMixinBase:SetIncompleteQuestOverlay(percent, offset, show)
+function XPBarMixinBase:SetIncompleteQuestOverlay(percent, offset, show)
 	-- Override in Legacy/Flat mixins
 end
 
-function XPC_XPBarMixinBase:HideQuestOverlays()
+function XPBarMixinBase:HideQuestOverlays()
 	self:SetCompleteQuestOverlay(0, 0, false)
 	self:SetIncompleteQuestOverlay(0, 0, false)
 end
 
 -- Update rested overlay position to account for quest overlays
-function XPC_XPBarMixinBase:UpdateRestedWithQuestOffset()
+function XPBarMixinBase:UpdateRestedWithQuestOffset()
 	-- Get quest offset for rested positioning
 	-- IMPORTANT: Use the CLAMPED values, not the raw quest XP
 	local config = self:GetQuestOverlayConfig()
@@ -1184,7 +1193,7 @@ end
 -----------------------------------
 
 -- Layer 1: Calculate bar state (pure data, no UI)
-function XPC_XPBarMixinBase:CalculateBarState()
+function XPBarMixinBase:CalculateBarState()
 	local currentXP = UnitXP("player")
 	local maxXP = UnitXPMax("player")
 	local restedXP = GetXPExhaustion() or 0
@@ -1213,7 +1222,7 @@ function XPC_XPBarMixinBase:CalculateBarState()
 end
 
 -- Layer 2: Calculate layout (percentages and pixels, still generic)
-function XPC_XPBarMixinBase:CalculateBarLayout(state)
+function XPBarMixinBase:CalculateBarLayout(state)
 	local maxXP = state.maxXP
 	
 	if maxXP <= 0 then
@@ -1283,7 +1292,7 @@ function XPC_XPBarMixinBase:CalculateBarLayout(state)
 end
 
 -- Unified update method (replaces fragmented updates)
-function XPC_XPBarMixinBase:UpdateBarDisplay()
+function XPBarMixinBase:UpdateBarDisplay()
 	-- Check container visibility (max level setting)
 	local container = self:GetParent()
 	if container then
@@ -1318,15 +1327,15 @@ end
 -----------------------------------
 -- Utility Functions
 -----------------------------------
-XPC_XPBarMixinBase.GetBarDimensions = function()
+XPBarMixinBase.GetBarDimensions = function()
 	return BAR_WIDTH, BAR_HEIGHT
 end
 
-XPC_XPBarMixinBase.GetContainerDimensions = function()
+XPBarMixinBase.GetContainerDimensions = function()
 	return CONTAINER_WIDTH, CONTAINER_HEIGHT
 end
 
-function XPC_XPBarMixinBase:IsPlayerAtMaxLevel()
+function XPBarMixinBase:IsPlayerAtMaxLevel()
 	local maxLevel = GetMaxPlayerLevel and GetMaxPlayerLevel() or UnitLevel("player")
 	local expansionMax = GetMaxLevelForExpansionLevel and GetMaxLevelForExpansionLevel(GetExpansionLevel()) or maxLevel
 	return UnitLevel("player") >= math.min(maxLevel, expansionMax)

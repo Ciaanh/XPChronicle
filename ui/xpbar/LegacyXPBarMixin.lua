@@ -1,18 +1,18 @@
 -- XP Bar Enhanced - Legacy XP Bar Mixin (Blizzard-style with atlases)
--- Uses XPC_XPBarMixinBase for shared functionality
+-- Uses XPBarMixinBase for shared functionality
 
 -- Addon namespace
 local Addon = XPBarEnhanced
 
 -- Get shared dimensions
-local BAR_WIDTH, BAR_HEIGHT = XPC_XPBarMixinBase.GetBarDimensions()
+local BAR_WIDTH, BAR_HEIGHT = XPBarMixinBase.GetBarDimensions()
 
 -----------------------------------
 -- Exhaustion Tick Mixin
 -----------------------------------
-XPC_ExhaustionTickMixin = {}
+ExhaustionTickMixin = {}
 
-function XPC_ExhaustionTickMixin:OnEnter()
+function ExhaustionTickMixin:OnEnter()
 	local exhaustionStateID, exhaustionStateName, exhaustionStateMultiplier = GetRestState()
 	if not exhaustionStateID then
 		return
@@ -52,9 +52,9 @@ end
 -----------------------------------
 -- Container Mixin
 -----------------------------------
-XPC_LegacyXPBarContainerMixin = {}
+LegacyXPBarContainerMixin = {}
 
-function XPC_LegacyXPBarContainerMixin:OnLoad()
+function LegacyXPBarContainerMixin:OnLoad()
 	-- IMPORTANT: Stay hidden until controller shows us based on barStyle setting
 	self:Hide()
 	
@@ -85,7 +85,7 @@ function XPC_LegacyXPBarContainerMixin:OnLoad()
 	end)
 end
 
-function XPC_LegacyXPBarContainerMixin:WireTextElements()
+function LegacyXPBarContainerMixin:WireTextElements()
 	if not self.Bar then
 		return
 	end
@@ -105,12 +105,12 @@ function XPC_LegacyXPBarContainerMixin:WireTextElements()
 	end
 end
 
-function XPC_LegacyXPBarContainerMixin:OnShow()
+function LegacyXPBarContainerMixin:OnShow()
 	-- Ensure text elements are wired up (in case OnLoad timing issues)
 	self:WireTextElements()
 end
 
-function XPC_LegacyXPBarContainerMixin:PositionToMatchBlizzardBar()
+function LegacyXPBarContainerMixin:PositionToMatchBlizzardBar()
 	-- Simple and reliable: anchor to MainStatusTrackingBarContainer's top-left
 	local container = _G.MainStatusTrackingBarContainer
 	
@@ -125,9 +125,9 @@ end
 -----------------------------------
 -- Legacy XP Bar Mixin (Blizzard-style)
 -----------------------------------
-XPC_LegacyXPBarMixin = CreateFromMixins(XPC_XPBarMixinBase)
+LegacyXPBarMixin = CreateFromMixins(XPBarMixinBase)
 
-function XPC_LegacyXPBarMixin:OnLoad()
+function LegacyXPBarMixin:OnLoad()
 	-- Initialize shared state
 	self:InitializeState()
 	
@@ -144,16 +144,16 @@ function XPC_LegacyXPBarMixin:OnLoad()
 	self:RegisterCommonEvents()
 end
 
-function XPC_LegacyXPBarMixin:OnEvent(event, ...)
+function LegacyXPBarMixin:OnEvent(event, ...)
 	-- Use base handler
 	self:HandleEvent(event, ...)
 end
 
-function XPC_LegacyXPBarMixin:OnShow()
+function LegacyXPBarMixin:OnShow()
 	self:FullUpdate()
 end
 
-function XPC_LegacyXPBarMixin:OnHide()
+function LegacyXPBarMixin:OnHide()
 	-- Unsubscribe from events to prevent memory leaks
 	if self.UnsubscribeFromEvents then
 		self:UnsubscribeFromEvents()
@@ -161,12 +161,12 @@ function XPC_LegacyXPBarMixin:OnHide()
 end
 
 -- Implementation-specific: Update StatusBar appearance based on rested state
-function XPC_LegacyXPBarMixin:UpdateVisuals()
+function LegacyXPBarMixin:UpdateVisuals()
 	self:UpdateStatusBarColor()
 end
 
 -- Initialize overlay colors (called from View:Initialize after SavedVariables are loaded)
-function XPC_LegacyXPBarMixin:InitializeColors()
+function LegacyXPBarMixin:InitializeColors()
 	-- Apply user's custom colors
 	self:UpdateAllColors()
 	-- DO NOT call UpdateBarDisplay() here - it would show the container!
@@ -174,13 +174,13 @@ function XPC_LegacyXPBarMixin:InitializeColors()
 end
 
 -- Initialize overlay colors once at startup
-function XPC_LegacyXPBarMixin:InitializeOverlayColors()
+function LegacyXPBarMixin:InitializeOverlayColors()
 	-- Apply user's custom colors
 	self:UpdateAllColors()
 end
 
 -- Legacy bar now supports color customization (like Flat bar)
-function XPC_LegacyXPBarMixin:UpdateBarOverlayColors()
+function LegacyXPBarMixin:UpdateBarOverlayColors()
 	-- Update the main bar color immediately
 	self:UpdateStatusBarColor()
 	
@@ -190,12 +190,12 @@ function XPC_LegacyXPBarMixin:UpdateBarOverlayColors()
 	self:ApplyLayout(layout)
 end
 
-function XPC_LegacyXPBarMixin:UpdateStatusBarTexture()
+function LegacyXPBarMixin:UpdateStatusBarTexture()
 	-- No longer using atlas - colors are now customizable
 	-- StatusBar color is set by UpdateStatusBarColor()
 end
 
-function XPC_LegacyXPBarMixin:UpdateStatusBarColor()
+function LegacyXPBarMixin:UpdateStatusBarColor()
 	if not self.StatusBar then 
 		return 
 	end
@@ -204,22 +204,22 @@ function XPC_LegacyXPBarMixin:UpdateStatusBarColor()
 	
 	if restedState.isRested then
 		-- Use user's rested color for rested state
-		local color = XPC_XPBarColors:GetUserColor(Color.XpBarRested)
+		local color = XPBarColors:GetUserColor(Color.XpBarRested)
 		self.StatusBar:SetStatusBarColor(color.r, color.g, color.b, color.a)
 	else
 		-- Use user's normal XP bar color
-		local color = XPC_XPBarColors:GetUserColor(Color.XpBar)
+		local color = XPBarColors:GetUserColor(Color.XpBar)
 		self.StatusBar:SetStatusBarColor(color.r, color.g, color.b, color.a)
 	end
 end
 
-function XPC_LegacyXPBarMixin:UpdateGainFlashTexture()
+function LegacyXPBarMixin:UpdateGainFlashTexture()
 	-- No longer using atlas - flash is now solid color
 	-- Flash color is set by SetFlashAlpha()
 end
 
 -- Flash effect implementation (solid color for customization)
-function XPC_LegacyXPBarMixin:SetFlashAlpha(alpha)
+function LegacyXPBarMixin:SetFlashAlpha(alpha)
 	if not self.GainFlash then
 		return
 	end
@@ -234,11 +234,11 @@ function XPC_LegacyXPBarMixin:SetFlashAlpha(alpha)
 			local isRested = self.animationState and self.animationState.isRestedGain
 			if isRested then
 				-- Use user's rested overlay color for flash
-				local c = XPC_XPBarColors:GetUserColor(Color.Rested)
+				local c = XPBarColors:GetUserColor(Color.Rested)
 				self.GainFlash:SetColorTexture(c.r, c.g, c.b, alpha)
 			else
 				-- Use user's XP bar color for flash
-				local c = XPC_XPBarColors:GetUserColor(Color.XpBar)
+				local c = XPBarColors:GetUserColor(Color.XpBar)
 				self.GainFlash:SetColorTexture(c.r, c.g, c.b, alpha)
 			end
 		end
@@ -249,11 +249,11 @@ function XPC_LegacyXPBarMixin:SetFlashAlpha(alpha)
 end
 
 -- Implementation-specific: Update rested XP overlay (now with customizable colors)
-function XPC_LegacyXPBarMixin:UpdateRested()
+function LegacyXPBarMixin:UpdateRested()
 	if not self.ExhaustionLevelFillBar then return end
 	
 	-- Apply user's rested overlay color
-	local restedColor = XPC_XPBarColors:GetUserColor(Color.Rested)
+	local restedColor = XPBarColors:GetUserColor(Color.Rested)
 	self.ExhaustionLevelFillBar:SetVertexColor(restedColor.r, restedColor.g, restedColor.b, restedColor.a)
 	
 	local restedDims = self:CalculateRestedDimensions()
@@ -320,7 +320,7 @@ end
 -----------------------------------
 
 -- NEW ARCHITECTURE: Apply calculated layout to UI
-function XPC_LegacyXPBarMixin:ApplyLayout(layout)
+function LegacyXPBarMixin:ApplyLayout(layout)
 	if not layout.visible then
 		self:Hide()
 		return
@@ -332,7 +332,7 @@ function XPC_LegacyXPBarMixin:ApplyLayout(layout)
 	-- Apply quest complete overlay (now with user customizable color)
 	if layout.questComplete.visible and self.StatusBar and self.StatusBar.QuestOverlayComplete then
 		-- Use user's quest complete color
-		local color = XPC_XPBarColors:GetUserColor(Color.QuestComplete)
+		local color = XPBarColors:GetUserColor(Color.QuestComplete)
 		self.StatusBar.QuestOverlayComplete:SetVertexColor(color.r, color.g, color.b, color.a)
 		self.StatusBar.QuestOverlayComplete:ClearAllPoints()
 		self.StatusBar.QuestOverlayComplete:SetPoint("BOTTOMLEFT", self.StatusBar, "BOTTOMLEFT", layout.questComplete.offsetPixels, 0)
@@ -345,7 +345,7 @@ function XPC_LegacyXPBarMixin:ApplyLayout(layout)
 	-- Apply quest incomplete overlay (now with user customizable color)
 	if layout.questIncomplete.visible and self.StatusBar and self.StatusBar.QuestOverlayIncomplete then
 		-- Use user's quest incomplete color
-		local color = XPC_XPBarColors:GetUserColor(Color.QuestIncomplete)
+		local color = XPBarColors:GetUserColor(Color.QuestIncomplete)
 		self.StatusBar.QuestOverlayIncomplete:SetVertexColor(color.r, color.g, color.b, color.a)
 		self.StatusBar.QuestOverlayIncomplete:ClearAllPoints()
 		self.StatusBar.QuestOverlayIncomplete:SetPoint("BOTTOMLEFT", self.StatusBar, "BOTTOMLEFT", layout.questIncomplete.offsetPixels, 0)
@@ -358,7 +358,7 @@ function XPC_LegacyXPBarMixin:ApplyLayout(layout)
 	-- Apply rested overlay (now with user customizable color)
 	if layout.rested.visible and not layout.rested.isFullyRested and self.StatusBar and self.StatusBar.ExhaustionLevelFillBar then
 		-- Apply user's rested overlay color
-		local restedColor = XPC_XPBarColors:GetUserColor(Color.Rested)
+		local restedColor = XPBarColors:GetUserColor(Color.Rested)
 		self.StatusBar.ExhaustionLevelFillBar:SetVertexColor(restedColor.r, restedColor.g, restedColor.b, restedColor.a)
 		self.StatusBar.ExhaustionLevelFillBar:ClearAllPoints()
 		self.StatusBar.ExhaustionLevelFillBar:SetPoint("BOTTOMLEFT", self.StatusBar, "BOTTOMLEFT", layout.rested.offsetPixels, 0)
@@ -381,14 +381,14 @@ end
 
 -- OLD ARCHITECTURE: Keep for backward compatibility during migration
 -- Set the complete quest overlay width and visibility with offset support
-function XPC_LegacyXPBarMixin:SetCompleteQuestOverlay(percent, offset, show)
+function LegacyXPBarMixin:SetCompleteQuestOverlay(percent, offset, show)
 	if not self.QuestOverlayComplete then
 		return
 	end
 	
 	if show and percent > 0 then
 		-- Use user's quest complete color
-		local color = XPC_XPBarColors:GetUserColor(Color.QuestComplete)
+		local color = XPBarColors:GetUserColor(Color.QuestComplete)
 		self.QuestOverlayComplete:SetVertexColor(color.r, color.g, color.b, color.a)
 		
 		-- Calculate width and position (minimum 1 pixel)
@@ -407,14 +407,14 @@ function XPC_LegacyXPBarMixin:SetCompleteQuestOverlay(percent, offset, show)
 end
 
 -- Set incomplete quest overlay with offset support
-function XPC_LegacyXPBarMixin:SetIncompleteQuestOverlay(percent, offset, show)
+function LegacyXPBarMixin:SetIncompleteQuestOverlay(percent, offset, show)
 	if not self.QuestOverlayIncomplete then
 		return
 	end
 	
 	if show and percent > 0 then
 		-- Use user's quest incomplete color
-		local color = XPC_XPBarColors:GetUserColor(Color.QuestIncomplete)
+		local color = XPBarColors:GetUserColor(Color.QuestIncomplete)
 		self.QuestOverlayIncomplete:SetVertexColor(color.r, color.g, color.b, color.a)
 		
 		-- Calculate width and position (offset by complete quest XP)
@@ -444,7 +444,7 @@ end
 -----------------------------------
 
 -- Update all bar colors from user settings
-function XPC_LegacyXPBarMixin:UpdateAllColors()
+function LegacyXPBarMixin:UpdateAllColors()
 	-- Legacy bar now supports full color customization
 	-- Apply user colors to:
 	--   - Main bar: User's XP bar or rested bar color
@@ -457,7 +457,7 @@ function XPC_LegacyXPBarMixin:UpdateAllColors()
 	
 	-- Update overlays (will apply colors in ApplyLayout)
 	if self.StatusBar and self.StatusBar.ExhaustionLevelFillBar then
-		local restedColor = XPC_XPBarColors:GetUserColor(Color.Rested)
+		local restedColor = XPBarColors:GetUserColor(Color.Rested)
 		self.StatusBar.ExhaustionLevelFillBar:SetVertexColor(restedColor.r, restedColor.g, restedColor.b, restedColor.a)
 	end
 end
@@ -465,7 +465,7 @@ end
 -----------------------------------
 -- Mouse Click Handler
 -----------------------------------
-function XPC_LegacyXPBarMixin:OnMouseUp(button)
+function LegacyXPBarMixin:OnMouseUp(button)
 	-- Alt + Click: Open options panel
 	if IsAltKeyDown() then
 		Addon.Config:OpenOptions()

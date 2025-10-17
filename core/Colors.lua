@@ -89,7 +89,7 @@ end
 -------------------------------------------------------------------
 
 -- Global compatibility object for old XPBarMixinBase code
-_G.XPC_XPBarColors = {
+_G.XPBarColors = {
     GetUserColor = function(self, colorKey)
         return Addon.Colors:Get(colorKey)
     end

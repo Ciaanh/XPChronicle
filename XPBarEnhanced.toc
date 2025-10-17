@@ -36,8 +36,6 @@ ui/xpbar/XPBar.lua
 
 # XP Bar Views (Separate implementations)
 ui/xpbar/XPBarMixinBase.lua
-ui/xpbar/LegacyXPBarMixin.lua
-ui/xpbar/FlatXPBarMixin.lua
 
 # Stats Module (Consolidated)
 ui/stats/Stats.lua

@@ -731,11 +731,19 @@ function XPBar:GetActiveView()
 end
 
 function XPBar:GetLegacyContainer()
-    return _G.XPC_LegacyXPBar
+    return _G.LegacyXPBar
 end
 
 function XPBar:GetFlatContainer()
-    return _G.XPC_FlatXPBar
+    return _G.FlatXPBar
+end
+
+function XPBar:GetVerticalContainer()
+    return _G.VerticalXPBar
+end
+
+function XPBar:GetCircularContainer()
+    return _G.CircularXPBar
 end
 
 function XPBar:GetLegacyView()
@@ -748,23 +756,45 @@ function XPBar:GetFlatView()
     return container and container.Bar
 end
 
+function XPBar:GetVerticalView()
+    -- For new styles, the container IS the view
+    return self:GetVerticalContainer()
+end
+
+function XPBar:GetCircularView()
+    -- For new styles, the container IS the view
+    return self:GetCircularContainer()
+end
+
 function XPBar:SetBarStyle(style, skipSave)
     -- Validate style
-    if style ~= "none" and style ~= "legacy" and style ~= "flat" then
+    local validStyles = { "none", "legacy", "flat", "vertical", "circular" }
+    local isValid = false
+    for _, validStyle in ipairs(validStyles) do
+        if style == validStyle then
+            isValid = true
+            break
+        end
+    end
+    
+    if not isValid then
         print("XPBar: Invalid style: " .. tostring(style))
         return
     end
     
-    -- Get containers
-    local legacyContainer = self:GetLegacyContainer()
-    local flatContainer = self:GetFlatContainer()
+    -- Define all containers and their view getters
+    local containers = {
+        legacy = { container = self:GetLegacyContainer(), viewGetter = function() return self:GetLegacyView() end },
+        flat = { container = self:GetFlatContainer(), viewGetter = function() return self:GetFlatView() end },
+        vertical = { container = self:GetVerticalContainer(), viewGetter = function() return self:GetVerticalView() end },
+        circular = { container = self:GetCircularContainer(), viewGetter = function() return self:GetCircularView() end },
+    }
     
     -- Hide all our bars
-    if legacyContainer then
-        legacyContainer:Hide()
-    end
-    if flatContainer then
-        flatContainer:Hide()
+    for _, data in pairs(containers) do
+        if data.container then
+            data.container:Hide()
+        end
     end
     
     -- Apply style-specific behavior
@@ -772,29 +802,21 @@ function XPBar:SetBarStyle(style, skipSave)
         self.currentView = nil
         self.currentViewType = nil
         self:ShowBlizzardBar()
-        
-    elseif style == "legacy" then
+    else
+        -- Hide Blizzard bar for custom styles
         self:HideBlizzardBar()
-        if legacyContainer then
-            legacyContainer:Show()
-        end
-        self.currentView = self:GetLegacyView()
-        self.currentViewType = "legacy"
-        -- Manually trigger the bar's OnShow to ensure FullUpdate is called
-        if self.currentView and self.currentView.OnShow then
-            self.currentView:OnShow()
-        end
         
-    elseif style == "flat" then
-        self:HideBlizzardBar()
-        if flatContainer then
-            flatContainer:Show()
-        end
-        self.currentView = self:GetFlatView()
-        self.currentViewType = "flat"
-        -- Manually trigger the bar's OnShow to ensure FullUpdate is called
-        if self.currentView and self.currentView.OnShow then
-            self.currentView:OnShow()
+        -- Show and activate the selected bar
+        local barData = containers[style]
+        if barData and barData.container then
+            barData.container:Show()
+            self.currentView = barData.viewGetter()
+            self.currentViewType = style
+            
+            -- Manually trigger the bar's OnShow to ensure FullUpdate is called
+            if self.currentView and self.currentView.OnShow then
+                self.currentView:OnShow()
+            end
         end
     end
     
@@ -909,10 +931,10 @@ end
 XPBarEnhanced.XPBar = XPBar
 
 --------------------------------------------------------------------------------
--- Compatibility: Expose as global XPC_XPBarTextFormatter for view mixins
+-- Compatibility: Expose as global XPBarTextFormatter for view mixins
 --------------------------------------------------------------------------------
 
-XPC_XPBarTextFormatter = {
+XPBarTextFormatter = {
     AbbreviateNumber = function(_, ...) return XPBar:AbbreviateNumber(...) end,
     FormatNumber = function(_, ...) return XPBar:FormatNumber(...) end,
     FormatTime = function(_, ...) return XPBar:FormatTime(...) end,

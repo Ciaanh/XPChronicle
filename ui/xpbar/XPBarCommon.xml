@@ -2,7 +2,7 @@
 ..\..\..\Blizzard_SharedXML\UI.xsd">
 
 	<!-- Below-bar text container template (shared by both Legacy and Flat bars) -->
-	<Frame name="XPC_BelowBarTextContainerTemplate" virtual="true">
+	<Frame name="BelowBarTextContainerTemplate" virtual="true">
 		<Size x="565" y="40"/>
 		<Layers>
 			<Layer level="OVERLAY">

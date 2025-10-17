@@ -67,7 +67,7 @@
     <!-- Base two-column config row template
          Label on LEFT, control space on RIGHT
     -->
-    <Frame name="XPC_ConfigRowBase" virtual="true">
+    <Frame name="ConfigRowBase" virtual="true">
         <Size x="0" y="35"/>
         <Layers>
             <Layer level="OVERLAY">
@@ -85,7 +85,7 @@
     <!-- Dropdown config row (label + dropdown button)
          Uses WowStyle1DropdownTemplate (Dragonflight 10.0+)
     -->
-    <Frame name="XPC_ConfigDropdownTemplate" inherits="XPC_ConfigRowBase" virtual="true">
+    <Frame name="ConfigDropdownTemplate" inherits="ConfigRowBase" virtual="true">
         <Frames>
             <DropdownButton parentKey="Dropdown" inherits="WowStyle1DropdownTemplate">
                 <Size x="150" y="28"/>
@@ -99,7 +99,7 @@
     <!-- Slider config row (label + slider with steppers)
          Uses MinimalSliderWithSteppersTemplate (Blizzard built-in)
     -->
-    <Frame name="XPC_ConfigSliderTemplate" inherits="XPC_ConfigRowBase" virtual="true">
+    <Frame name="ConfigSliderTemplate" inherits="ConfigRowBase" virtual="true">
         <Frames>
             <Frame parentKey="Slider" inherits="MinimalSliderWithSteppersTemplate">
                 <Size x="140" y="20"/>
@@ -113,7 +113,7 @@
     <!-- Checkbox config row (label on left, checkbox on right)
          Two-column variant of standard checkbox
     -->
-    <Frame name="XPC_ConfigCheckboxTemplate" inherits="XPC_ConfigRowBase" virtual="true">
+    <Frame name="ConfigCheckboxTemplate" inherits="ConfigRowBase" virtual="true">
         <Frames>
             <CheckButton parentKey="Checkbox" inherits="XPBarEnhancedCheckButtonTemplate">
                 <Anchors>
@@ -126,7 +126,7 @@
     <!-- Color picker config row (label + description on left, swatch + preview on right)
          Two-column layout with compact design
     -->
-    <Frame name="XPC_ConfigColorPickerTemplate" virtual="true">
+    <Frame name="ConfigColorPickerTemplate" virtual="true">
         <Size x="0" y="70"/>
         <Layers>
             <Layer level="OVERLAY">
@@ -203,7 +203,7 @@
     <!-- Section header with divider line
          Gold header text with horizontal divider below
     -->
-    <Frame name="XPC_ConfigSectionHeader" virtual="true">
+    <Frame name="ConfigSectionHeader" virtual="true">
         <Size x="0" y="35"/>
         <Layers>
             <Layer level="OVERLAY">
@@ -233,7 +233,7 @@
     <!-- Sub-section header
          Gold header text
     -->
-    <Frame name="XPC_ConfigSubSectionHeader" virtual="true">
+    <Frame name="ConfigSubSectionHeader" virtual="true">
         <Size x="0" y="35"/>
         <Layers>
             <Layer level="OVERLAY">

@@ -1,8 +1,9 @@
 <Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/
 ..\..\..\Blizzard_SharedXML\UI.xsd">
+	<Script file="FlatXPBarMixin.lua"/>
 
 	<!-- Flat XP Bar Template (solid colors, modern style) -->
-	<Frame name="XPC_FlatXPBarTemplate" virtual="true" mixin="XPC_FlatXPBarMixin" frameStrata="LOW" enableMouse="true" fixedFrameStrata="true">
+	<Frame name="FlatXPBarTemplate" virtual="true" mixin="FlatXPBarMixin" frameStrata="LOW" enableMouse="true" fixedFrameStrata="true">
 		<Size x="565" y="30"/>
 		<Layers>
 			<!-- Background layer -->
@@ -123,17 +124,17 @@
 	</Frame>
 
 	<!-- Container Template (simple, no border) -->
-	<Frame name="XPC_FlatXPBarContainerTemplate" virtual="true" mixin="XPC_FlatXPBarContainerMixin">
+	<Frame name="FlatXPBarContainerTemplate" virtual="true" mixin="FlatXPBarContainerMixin">
 		<Size x="565" y="30"/>
 		<Frames>
 			<!-- XP Bar (no offset needed for left/right, but offset up for below-bar text) -->
-			<Frame parentKey="Bar" inherits="XPC_FlatXPBarTemplate">
+			<Frame parentKey="Bar" inherits="FlatXPBarTemplate">
 				<Anchors>
 					<Anchor point="TOP" x="0" y="0"/>
 				</Anchors>
 			</Frame>
 			<!-- Below-bar text container (uses common template) -->
-			<Frame parentKey="BelowBarTextContainer" inherits="XPC_BelowBarTextContainerTemplate">
+			<Frame parentKey="BelowBarTextContainer" inherits="BelowBarTextContainerTemplate">
 				<Anchors>
 					<Anchor point="TOP" relativePoint="BOTTOM" x="0" y="0"/>
 				</Anchors>
@@ -146,7 +147,7 @@
 	</Frame>
 
 	<!-- Main Flat XP Bar Instance (hidden by default - controller shows based on barStyle) -->
-	<Frame name="XPC_FlatXPBar" parent="UIParent" inherits="XPC_FlatXPBarContainerTemplate" hidden="true">
+	<Frame name="FlatXPBar" parent="UIParent" inherits="FlatXPBarContainerTemplate" hidden="true">
 		<Anchors>
 			<Anchor point="BOTTOM" relativePoint="BOTTOM" x="0" y="100"/>
 		</Anchors>

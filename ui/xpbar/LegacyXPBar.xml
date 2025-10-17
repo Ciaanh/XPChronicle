@@ -1,9 +1,10 @@
 <Ui xmlns="http://www.blizzard.com/wow/ui/"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/
 ..\..\..\Blizzard_SharedXML\UI.xsd">
+	<Script file="LegacyXPBarMixin.lua"/>
 
 	<!-- Legacy XP Bar Template (simplified from StatusTrackingBarTemplate) -->
-	<Frame name="XPC_LegacyXPBarTemplate" virtual="true" mixin="XPC_LegacyXPBarMixin" frameStrata="LOW" enableMouse="true" fixedFrameStrata="true">
+	<Frame name="LegacyXPBarTemplate" virtual="true" mixin="LegacyXPBarMixin" frameStrata="LOW" enableMouse="true" fixedFrameStrata="true">
 		<Size x="565" y="11"/>
 		<Layers>
 			<!-- Flash effect overlay (solid color for customization) -->
@@ -74,7 +75,7 @@
 				</Layers>
 				<Frames>
 					<!-- Exhaustion Tick (rested marker) -->
-					<Button parentKey="ExhaustionTick" hidden="true" frameStrata="MEDIUM" mixin="XPC_ExhaustionTickMixin">
+					<Button parentKey="ExhaustionTick" hidden="true" frameStrata="MEDIUM" mixin="ExhaustionTickMixin">
 						<Size x="10" y="14"/>
 						<Anchors>
 							<Anchor point="CENTER" relativeKey="$parent.ExhaustionLevelFillBar" relativePoint="RIGHT"/>
@@ -144,7 +145,7 @@
 	</Frame>
 
 	<!-- Container Template (holds border and bar) -->
-	<Frame name="XPC_LegacyXPBarContainerTemplate" virtual="true" mixin="XPC_LegacyXPBarContainerMixin">
+	<Frame name="LegacyXPBarContainerTemplate" virtual="true" mixin="LegacyXPBarContainerMixin">
 		<Size x="571" y="17"/>
 		<Layers>
 			<Layer level="OVERLAY">
@@ -152,13 +153,13 @@
 			</Layer>
 		</Layers>
 		<Frames>
-			<Frame parentKey="Bar" inherits="XPC_LegacyXPBarTemplate">
+			<Frame parentKey="Bar" inherits="LegacyXPBarTemplate">
 				<Anchors>
 					<Anchor point="BOTTOMLEFT" x="1" y="5"/>
 				</Anchors>
 			</Frame>
 			<!-- Below-bar text container -->
-			<Frame parentKey="BelowBarTextContainer" inherits="XPC_BelowBarTextContainerTemplate">
+			<Frame parentKey="BelowBarTextContainer" inherits="BelowBarTextContainerTemplate">
 				<Anchors>
 					<Anchor point="TOP" relativePoint="BOTTOM" x="0" y="0"/>
 				</Anchors>
@@ -172,7 +173,7 @@
 
 	<!-- Main Legacy XP Bar Instance (hidden by default - controller shows based on barStyle) -->
 	<!-- Position set in Lua to match Blizzard's XP bar exactly -->
-	<Frame name="XPC_LegacyXPBar" parent="UIParent" inherits="XPC_LegacyXPBarContainerTemplate" hidden="true">
+	<Frame name="LegacyXPBar" parent="UIParent" inherits="LegacyXPBarContainerTemplate" hidden="true">
 		<!-- Default position if Blizzard bar not found -->
 		<Anchors>
 			<Anchor point="BOTTOM" relativePoint="BOTTOM" x="0" y="12"/>

@@ -92,11 +92,12 @@ L["OPT_TEXT_BELOW_BAR"] = "Text BELOW the Bar"
 
 -- Options
 L["OPT_BAR_STYLE"] = "Bar Style"
-L["OPT_BAR_STYLE_DESC"] =
-    "Choose which XP bar to display: None (Blizzard only), Legacy (Blizzard-style replacement), or Flat (Draggable custom bar)."
+L["OPT_BAR_STYLE_DESC"] = "Choose which XP bar to display: None (Blizzard only), Legacy (Blizzard-style), Flat (Draggable), Vertical (Falling animation), or Circular (Progress ring)."
 L["OPT_BAR_STYLE_NONE"] = "None (Blizzard only)"
 L["OPT_BAR_STYLE_LEGACY"] = "Legacy (Blizzard-style)"
 L["OPT_BAR_STYLE_FLAT"] = "Flat (Custom draggable)"
+L["OPT_BAR_STYLE_VERTICAL"] = "Vertical (Falling XP)"
+L["OPT_BAR_STYLE_CIRCULAR"] = "Circular (Progress ring)"
 L["OPT_HIDE_BLIZZARD_BAR"] = "Hide Blizzard bar in Flat mode"
 L["OPT_HIDE_BLIZZARD_BAR_DESC"] = "When using Flat bar style, also hide the Blizzard XP bar. Uncheck to see both bars."
 L["OPT_BAR_LOCKED"] = "Lock bar position"

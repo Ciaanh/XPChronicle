@@ -1,19 +1,19 @@
 -- XP Bar Enhanced - Flat XP Bar Mixin (Solid colors, modern style)
--- Uses XPC_XPBarMixinBase for shared logic
+-- Uses XPBarMixinBase for shared logic
 
 -- Addon namespace
 local Addon = XPBarEnhanced
 
 -- Get shared dimensions
-local BAR_WIDTH, BAR_HEIGHT = XPC_XPBarMixinBase.GetBarDimensions()
+local BAR_WIDTH, BAR_HEIGHT = XPBarMixinBase.GetBarDimensions()
 BAR_HEIGHT = 30  -- Override for Flat bar height
 
 -----------------------------------
 -- Container Mixin
 -----------------------------------
-XPC_FlatXPBarContainerMixin = {}
+FlatXPBarContainerMixin = {}
 
-function XPC_FlatXPBarContainerMixin:OnLoad()
+function FlatXPBarContainerMixin:OnLoad()
 	local Addon = XPBarEnhanced
 	
 	-- IMPORTANT: Stay hidden until controller shows us based on barStyle setting
@@ -72,7 +72,7 @@ function XPC_FlatXPBarContainerMixin:OnLoad()
 	end
 end
 
-function XPC_FlatXPBarContainerMixin:WireTextElements()
+function FlatXPBarContainerMixin:WireTextElements()
 	if not self.Bar then
 		return
 	end
@@ -92,13 +92,13 @@ function XPC_FlatXPBarContainerMixin:WireTextElements()
 	end
 end
 
-function XPC_FlatXPBarContainerMixin:OnShow()
+function FlatXPBarContainerMixin:OnShow()
 	-- Ensure text elements are wired up (in case OnLoad timing issues)
 	self:WireTextElements()
 end
 
 -- Retry dragging setup if mixins weren't available at OnLoad
-function XPC_FlatXPBarContainerMixin:RetryDraggingSetup()
+function FlatXPBarContainerMixin:RetryDraggingSetup()
 	local Addon = XPBarEnhanced
 	local PositionStoreMixin = Addon.UI and Addon.UI.Mixins and Addon.UI.Mixins.PositionStoreMixin
 	local DraggableFrameMixin = Addon.UI and Addon.UI.Mixins and Addon.UI.Mixins.DraggableFrameMixin
@@ -127,7 +127,7 @@ function XPC_FlatXPBarContainerMixin:RetryDraggingSetup()
 end
 
 -- Lock/unlock bar position
-function XPC_FlatXPBarContainerMixin:SetLocked(locked)
+function FlatXPBarContainerMixin:SetLocked(locked)
 	if locked then
 		-- Disable dragging
 		self:SetMovable(false)
@@ -147,9 +147,9 @@ end
 -----------------------------------
 -- Flat XP Bar Mixin (Solid colors)
 -----------------------------------
-XPC_FlatXPBarMixin = CreateFromMixins(XPC_XPBarMixinBase)
+FlatXPBarMixin = CreateFromMixins(XPBarMixinBase)
 
-function XPC_FlatXPBarMixin:OnLoad()
+function FlatXPBarMixin:OnLoad()
 	-- Initialize shared state
 	self:InitializeState()
 	
@@ -169,16 +169,16 @@ function XPC_FlatXPBarMixin:OnLoad()
 	self:RegisterCommonEvents()
 end
 
-function XPC_FlatXPBarMixin:OnEvent(event, ...)
+function FlatXPBarMixin:OnEvent(event, ...)
 	-- Use base handler
 	self:HandleEvent(event, ...)
 end
 
-function XPC_FlatXPBarMixin:OnShow()
+function FlatXPBarMixin:OnShow()
 	self:FullUpdate()
 end
 
-function XPC_FlatXPBarMixin:OnHide()
+function FlatXPBarMixin:OnHide()
 	-- Unsubscribe from events to prevent memory leaks
 	if self.UnsubscribeFromEvents then
 		self:UnsubscribeFromEvents()
@@ -186,7 +186,7 @@ function XPC_FlatXPBarMixin:OnHide()
 end
 
 -- Forward drag events to container for Shift+drag functionality
-function XPC_FlatXPBarMixin:OnMouseDown(button)
+function FlatXPBarMixin:OnMouseDown(button)
 	local container = self:GetParent()
 	if container and IsShiftKeyDown() and button == "LeftButton" then
 		-- Forward drag to container
@@ -198,7 +198,7 @@ function XPC_FlatXPBarMixin:OnMouseDown(button)
 	end
 end
 
-function XPC_FlatXPBarMixin:OnMouseUp(button)
+function FlatXPBarMixin:OnMouseUp(button)
 	local container = self:GetParent()
 	
 	-- Stop drag if active
@@ -226,18 +226,18 @@ function XPC_FlatXPBarMixin:OnMouseUp(button)
 end
 
 -- Implementation-specific: Update StatusBar color based on rested state (solid colors)
-function XPC_FlatXPBarMixin:UpdateVisuals()
+function FlatXPBarMixin:UpdateVisuals()
 	self:UpdateStatusBarColor()
 end
 
 -- Initialize overlay colors once at startup
-function XPC_FlatXPBarMixin:InitializeOverlayColors()
+function FlatXPBarMixin:InitializeOverlayColors()
 	-- Overlays are now on StatusBar, not on self
 	if not self.StatusBar then return end
 	
 	-- Rested overlay - now uses SetVertexColor since we added file="WHITE8X8"
 	if self.StatusBar.RestedOverlay then
-		local c = XPC_XPBarColors:GetUserColor(Color.Rested)
+		local c = XPBarColors:GetUserColor(Color.Rested)
 		self.StatusBar.RestedOverlay:SetVertexColor(c.r, c.g, c.b, c.a)
 	end
 	
@@ -246,7 +246,7 @@ function XPC_FlatXPBarMixin:InitializeOverlayColors()
 end
 
 -- Called when user changes colors in color picker
-function XPC_FlatXPBarMixin:UpdateBarOverlayColors()
+function FlatXPBarMixin:UpdateBarOverlayColors()
 	-- Update the main bar color immediately
 	self:UpdateStatusBarColor()
 	
@@ -256,7 +256,7 @@ function XPC_FlatXPBarMixin:UpdateBarOverlayColors()
 	self:ApplyLayout(layout)
 end
 
-function XPC_FlatXPBarMixin:UpdateStatusBarColor()
+function FlatXPBarMixin:UpdateStatusBarColor()
 	if not self.StatusBar then 
 		return 
 	end
@@ -265,17 +265,17 @@ function XPC_FlatXPBarMixin:UpdateStatusBarColor()
 	
 	if(restedState.isRested) then
 		-- Use user's rested color for rested gain
-		local color = XPC_XPBarColors:GetUserColor(Color.XpBarRested)
+		local color = XPBarColors:GetUserColor(Color.XpBarRested)
 		self.StatusBar:SetStatusBarColor(color.r, color.g, color.b, color.a)
 		return
 	end
 
-	local color = XPC_XPBarColors:GetUserColor(Color.XpBar)
+	local color = XPBarColors:GetUserColor(Color.XpBar)
 	self.StatusBar:SetStatusBarColor(color.r, color.g, color.b, color.a)
 end
 
 -- Flash effect implementation (solid color)
-function XPC_FlatXPBarMixin:SetFlashAlpha(alpha)
+function FlatXPBarMixin:SetFlashAlpha(alpha)
 	if not self.GainFlash then
 		return
 	end
@@ -290,11 +290,11 @@ function XPC_FlatXPBarMixin:SetFlashAlpha(alpha)
 			local isRested = self.animationState.isRestedGain
 			if isRested then
 				-- Use user's rested color for flash
-				local c = XPC_XPBarColors:GetUserColor(Color.Rested)
+				local c = XPBarColors:GetUserColor(Color.Rested)
 				self.GainFlash:SetColorTexture(c.r, c.g, c.b, alpha)
 			else
 				-- Use user's XP bar color for flash
-				local c = XPC_XPBarColors:GetUserColor(Color.XpBar)
+				local c = XPBarColors:GetUserColor(Color.XpBar)
 				self.GainFlash:SetColorTexture(c.r, c.g, c.b, alpha)
 			end
 		end
@@ -305,7 +305,7 @@ function XPC_FlatXPBarMixin:SetFlashAlpha(alpha)
 end
 
 -- Implementation-specific: Update rested XP overlay (solid color texture)
-function XPC_FlatXPBarMixin:UpdateRested()
+function FlatXPBarMixin:UpdateRested()
 	if not self.StatusBar or not self.StatusBar.RestedOverlay then return end
 	
 	local restedDims = self:CalculateRestedDimensions()
@@ -353,7 +353,7 @@ end
 -----------------------------------
 
 -- NEW ARCHITECTURE: Apply calculated layout to UI
-function XPC_FlatXPBarMixin:ApplyLayout(layout)
+function FlatXPBarMixin:ApplyLayout(layout)
 	if not layout.visible then
 		self:Hide()
 		return
@@ -367,7 +367,7 @@ function XPC_FlatXPBarMixin:ApplyLayout(layout)
 	-- Apply quest complete overlay
 	if layout.questComplete.visible and self.StatusBar.QuestOverlayComplete then
 		-- Get color fresh from user settings
-		local c = XPC_XPBarColors:GetUserColor(Color.QuestComplete)
+		local c = XPBarColors:GetUserColor(Color.QuestComplete)
 		if c then
 			self.StatusBar.QuestOverlayComplete:SetVertexColor(c.r, c.g, c.b, c.a)
 		end
@@ -382,7 +382,7 @@ function XPC_FlatXPBarMixin:ApplyLayout(layout)
 	-- Apply quest incomplete overlay
 	if layout.questIncomplete.visible and self.StatusBar.QuestOverlayIncomplete then
 		-- Get color fresh from user settings
-		local c = XPC_XPBarColors:GetUserColor(Color.QuestIncomplete)
+		local c = XPBarColors:GetUserColor(Color.QuestIncomplete)
 		if c then
 			self.StatusBar.QuestOverlayIncomplete:SetVertexColor(c.r, c.g, c.b, c.a)
 		end
@@ -397,7 +397,7 @@ function XPC_FlatXPBarMixin:ApplyLayout(layout)
 	-- Apply rested overlay
 	if layout.rested.visible and not layout.rested.isFullyRested and self.StatusBar.RestedOverlay then
 		-- Apply user color (fresh from config)
-		local c = XPC_XPBarColors:GetUserColor(Color.Rested)
+		local c = XPBarColors:GetUserColor(Color.Rested)
 		self.StatusBar.RestedOverlay:SetVertexColor(c.r, c.g, c.b, c.a)
 		self.StatusBar.RestedOverlay:ClearAllPoints()
 		self.StatusBar.RestedOverlay:SetPoint("BOTTOMLEFT", self.StatusBar, "BOTTOMLEFT", layout.rested.offsetPixels, 0)
@@ -411,12 +411,12 @@ end
 -- OLD ARCHITECTURE: Keep for backward compatibility during migration
 
 -- Set complete quest overlay (orange) with offset support
-function XPC_FlatXPBarMixin:SetCompleteQuestOverlay(percent, offset, show)
+function FlatXPBarMixin:SetCompleteQuestOverlay(percent, offset, show)
 	if not self.StatusBar or not self.StatusBar.QuestOverlayComplete then return end
 	
 	if show and percent > 0 then
 		-- Set user's color before showing
-		local c = XPC_XPBarColors:GetUserColor(Color.QuestComplete)
+		local c = XPBarColors:GetUserColor(Color.QuestComplete)
 		self.StatusBar.QuestOverlayComplete:SetVertexColor(c.r, c.g, c.b, c.a)
 
 		-- Calculate width and position (minimum 1 pixel)
@@ -436,14 +436,14 @@ function XPC_FlatXPBarMixin:SetCompleteQuestOverlay(percent, offset, show)
 end
 
 -- Set incomplete quest overlay (yellow) with offset support
-function XPC_FlatXPBarMixin:SetIncompleteQuestOverlay(percent, offset, show)
+function FlatXPBarMixin:SetIncompleteQuestOverlay(percent, offset, show)
 	if not self.StatusBar or not self.StatusBar.QuestOverlayIncomplete then
 		return
 	end
 
 	if show and percent > 0 then
 		-- Set user's color before showing
-		local c = XPC_XPBarColors:GetUserColor(Color.QuestIncomplete)
+		local c = XPBarColors:GetUserColor(Color.QuestIncomplete)
 		self.StatusBar.QuestOverlayIncomplete:SetVertexColor(c.r, c.g, c.b, c.a)
 
 		-- Calculate width and position (offset by complete quest XP)
@@ -474,13 +474,13 @@ end
 -----------------------------------
 
 -- Update all bar colors from user settings
-function XPC_FlatXPBarMixin:UpdateAllColors()
+function FlatXPBarMixin:UpdateAllColors()
 	-- Update main bar color
 	self:UpdateStatusBarColor()
 	
 	-- Update rested overlay color
 	if self.RestedOverlay then
-		local c = XPC_XPBarColors:GetUserColor(Color.Rested)
+		local c = XPBarColors:GetUserColor(Color.Rested)
 		self.RestedOverlay:SetColorTexture(c.r, c.g, c.b, c.a)
 	end
 	

@@ -102,6 +102,8 @@ local optionDetails = {
             { value = "none", label = Addon.L["OPT_BAR_STYLE_NONE"] },
             { value = "legacy", label = Addon.L["OPT_BAR_STYLE_LEGACY"] },
             { value = "flat", label = Addon.L["OPT_BAR_STYLE_FLAT"] },
+            { value = "vertical", label = Addon.L["OPT_BAR_STYLE_VERTICAL"] },
+            { value = "circular", label = Addon.L["OPT_BAR_STYLE_CIRCULAR"] },
         },
         commandKeys = { "style", "mode", "barstyle" },
     },
@@ -473,15 +475,15 @@ function Config:SetColor(key, hex, silent)
         Addon.db.xpBarColor = colorTable
     end
     
-    -- Update color on visible XP bars (Legacy bar uses static colors)
-    local flatBar = _G.XPC_FlatXPBar and _G.XPC_FlatXPBar.Bar
-    if flatBar and flatBar.UpdateBarOverlayColors then
-        flatBar:UpdateBarOverlayColors()
-    end
+    -- -- Update color on visible XP bars (Legacy bar uses static colors)
+    -- local flatBar = _G.FlatXPBar and _G.FlatXPBar.Bar
+    -- if flatBar and flatBar.UpdateBarOverlayColors then
+    --     flatBar:UpdateBarOverlayColors()
+    -- end
     
     -- Refresh tooltip
-    if XPC_XPBarTooltip and XPC_XPBarTooltip.Refresh then
-        XPC_XPBarTooltip:Refresh()
+    if XPBarTooltip and XPBarTooltip.Refresh then
+        XPBarTooltip:Refresh()
     end
     
     if not silent then
@@ -579,7 +581,7 @@ function Config:ApplyOptionSideEffects(key)
         end
         
         -- Force visual refresh of flat bar
-        local flatBar = _G.XPC_FlatXPBar
+        local flatBar = _G.FlatXPBar
         if flatBar and flatBar:IsShown() and flatBar.Bar then
             if flatBar.Bar.UpdateBarOverlayColors then
                 flatBar.Bar:UpdateBarOverlayColors()
@@ -593,7 +595,7 @@ function Config:ApplyOptionSideEffects(key)
         end
         
         -- Force visual refresh of legacy bar
-        local legacyBar = _G.XPC_LegacyXPBar
+        local legacyBar = _G.LegacyXPBar
         if legacyBar and legacyBar:IsShown() and legacyBar.Bar then
             if legacyBar.Bar.UpdateBarOverlayColors then
                 legacyBar.Bar:UpdateBarOverlayColors()
