@@ -76,12 +76,12 @@ function eventHandlers:PLAYER_LOGIN()
     end
     
     -- Initialize features
-    local stats = Addon.Features.stats
+    local stats = Addon.Stats
     if stats and stats.Initialize then
         stats:Initialize()
     end
     
-    local options = Addon.Features.options
+    local options = Addon.Options
     if options and options.Initialize then
         options:Initialize()
     end
@@ -111,7 +111,7 @@ function eventHandlers:PLAYER_XP_UPDATE()
     end
     
     -- Update stats
-    local stats = Addon.Features.stats
+    local stats = Addon.Stats
     if stats and stats.OnXPUpdate then
         stats:OnXPUpdate()
     end
@@ -129,7 +129,7 @@ function eventHandlers:PLAYER_LEVEL_UP(level)
     end
     
     -- Stats update
-    local stats = Addon.Features.stats
+    local stats = Addon.Stats
     if stats and stats.OnLevelUp then
         stats:OnLevelUp(level)
     end
@@ -154,7 +154,7 @@ function eventHandlers:TIME_PLAYED_MSG(totalTime, levelTime)
     end
     
     -- Stats update
-    local stats = Addon.Features.stats
+    local stats = Addon.Stats
     if stats and stats.OnTimePlayed then
         stats:OnTimePlayed(totalTime, levelTime)
     end
@@ -210,7 +210,7 @@ local function showHelp()
 end
 
 local function handleStats()
-    local stats = Addon.Features.stats
+    local stats = Addon.Stats
     if stats and stats.Toggle then
         stats:Toggle()
     else

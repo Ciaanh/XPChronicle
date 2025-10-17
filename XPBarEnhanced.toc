@@ -16,22 +16,20 @@ locales\enUS.lua
 
 # Core Systems
 core\Core.lua
-app\core\Locale.lua
-app\core\Utils.lua
-app\core\Logger.lua
+core\Locale.lua
+core\Utils.lua
+core\Logger.lua
 core\Config.lua
 core\Database.lua
 core\Session.lua
 
-# Controllers (to be simplified)
-app/features/stats/StatsController.lua
-app/features/options/OptionsController.lua
+# UI Common Utilities
+ui/common/FrameUtils.lua
+ui/common/PositionStoreMixin.lua
+ui/common/DraggableFrameMixin.lua
 
-# UI Components
-ui/components/FrameUtils.lua
+# UI Features
 ui/options/Options.lua
-ui/mixins/PositionStoreMixin.lua
-ui/mixins/DraggableFrameMixin.lua
 
 # XP Bar Module (Consolidated)
 ui/xpbar/XPBar.lua
@@ -41,7 +39,7 @@ ui/xpbar/XPBarMixinBase.lua
 ui/xpbar/LegacyXPBarMixin.lua
 ui/xpbar/FlatXPBarMixin.lua
 
-# Stats
-ui/stats/StatsView.lua
+# Stats Module (Consolidated)
+ui/stats/Stats.lua
 
 Frames.xml

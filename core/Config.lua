@@ -634,11 +634,9 @@ function Config:ApplyOptionSideEffects(key)
     end
     
     if needsStatsRefresh then
-        local stats = Addon.Features and Addon.Features.stats
+        local stats = Addon.Stats
         if stats and stats.Update then
             stats:Update()
-        elseif Addon.UI.Views and Addon.UI.Views.Stats and Addon.UI.Views.Stats.Update then
-            Addon.UI.Views.Stats:Update()
         end
     end
     
@@ -677,17 +675,9 @@ function Config:ShowHelp()
 end
 
 function Config:OpenOptions()
-    local optionsFeature = Addon.Features and Addon.Features.options
-    if optionsFeature and optionsFeature.Open then
-        optionsFeature:Open()
-        return
-    end
-    
-    local optionsView = Addon.UI.Views and Addon.UI.Views.Options
-    if optionsView and optionsView.Open then
-        optionsView:Open()
-    else
-        Settings.OpenToCategory("XP Bar Enhanced")
+    local options = Addon.Options
+    if options and options.Open then
+        options:Open()
     end
 end
 
@@ -726,11 +716,9 @@ function Config:Reset()
         end
     end
     
-    local stats = Addon.Features and Addon.Features.stats
+    local stats = Addon.Stats
     if stats and stats.Update then
         stats:Update()
-    elseif Addon.UI.Views and Addon.UI.Views.Stats and Addon.UI.Views.Stats.Update then
-        Addon.UI.Views.Stats:Update()
     end
     
     if Addon.Session and Addon.Session.ClearTimePlayedRequest then
@@ -785,18 +773,14 @@ function Config:ResetStats()
     Addon.state.requestingTimePlayed = false
     Addon.state.snapshot = nil
     
-    local stats = Addon.Features and Addon.Features.stats
+    local stats = Addon.Stats
     if stats and stats.Update then
         stats:Update()
-    elseif Addon.UI.Views and Addon.UI.Views.Stats and Addon.UI.Views.Stats.Update then
-        Addon.UI.Views.Stats:Update()
     end
     
-    local xpbar = Addon.Features and Addon.Features.xpbar
+    local xpbar = Addon.XPBar
     if xpbar and xpbar.Update then
         xpbar:Update()
-    elseif Addon.UI.Views and Addon.UI.Views.XPBar and Addon.UI.Views.XPBar.Update then
-        Addon.UI.Views.XPBar:Update()
     end
     
     local optionsView = Addon.UI.Views and Addon.UI.Views.Options

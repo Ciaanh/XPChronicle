@@ -4,14 +4,14 @@ local XPC = XPBarEnhanced
 XPC.Options = {}
 local Options = XPC.Options
 local Config = XPC.Config
-local function GetOptionsController()
-    return XPC.App and XPC.App.Features and XPC.App.Features.options
-end
 
+-- Expose via multiple namespaces for compatibility
 XPC.UI = XPC.UI or {}
 XPC.UI.Views = XPC.UI.Views or {}
 XPC.UI.Views.Options = Options
-XPC.Options = Options
+XPC.App = XPC.App or {}
+XPC.App.Features = XPC.App.Features or {}
+XPC.App.Features.options = Options
 
 local _G = _G
 local Settings = rawget(_G, "Settings")
@@ -100,7 +100,7 @@ local function SetupCheckbox(self, checkbox, key, detail)
         function(btn)
             PlayCheckboxSound(btn:GetChecked())
             Config:SetOptionKey(key, btn:GetChecked(), true)
-            local controller = GetOptionsController()
+            local controller = Options
             if controller and controller.OnOptionChanged then
                 controller:OnOptionChanged(key)
             else
@@ -158,7 +158,7 @@ local function SetupProperDropdown(self, row, key, detail)
                             Config:SetOptionKey(key, option.value, true)
 
                             -- Trigger controller update
-                            local controller = GetOptionsController()
+                            local controller = Options
                             if controller and controller.OnOptionChanged then
                                 controller:OnOptionChanged(key)
                             end
@@ -232,7 +232,7 @@ local function SetupProperSlider(self, row, key, detail)
                 Config:SetOptionKey(key, value, true)
 
                 -- Trigger controller update
-                local controller = GetOptionsController()
+                local controller = Options
                 if controller and controller.OnOptionChanged then
                     controller:OnOptionChanged(key)
                 end
@@ -284,7 +284,7 @@ local function SetupTwoColumnCheckbox(self, row, key, detail)
         function(btn)
             PlayCheckboxSound(btn:GetChecked())
             Config:SetOptionKey(key, btn:GetChecked(), true)
-            local controller = GetOptionsController()
+            local controller = Options
             if controller and controller.OnOptionChanged then
                 controller:OnOptionChanged(key)
             else
@@ -364,7 +364,7 @@ local function SetupDropdown(self, dropdown, key, detail)
             btn:SetText(nextLabel)
 
             -- Trigger controller update
-            local controller = GetOptionsController()
+            local controller = Options
             if controller and controller.OnOptionChanged then
                 controller:OnOptionChanged(key)
             else
@@ -438,7 +438,7 @@ local function SetupSlider(self, sliderFrame, key, detail)
             Config:SetOptionKey(key, value, true)
 
             -- Trigger controller update
-            local controller = GetOptionsController()
+            local controller = Options
             if controller and controller.OnOptionChanged then
                 controller:OnOptionChanged(key)
             else
@@ -495,7 +495,7 @@ local function SetupRadioGroup(self, radioGroup, key, detail)
                 Config:SetOptionKey(key, btn.value, true)
 
                 -- Trigger controller update
-                local controller = GetOptionsController()
+                local controller = Options
                 if controller and controller.OnOptionChanged then
                     controller:OnOptionChanged(key)
                 else
@@ -633,7 +633,7 @@ local function SetupColorRow(self, row, info)
             function()
                 if IsShiftKeyDown and IsShiftKeyDown() then
                     Config:ResetColor(info.key, true)
-                    local controller = GetOptionsController()
+                    local controller = Options
                     if controller and controller.OnColorReset then
                         controller:OnColorReset(info.key)
                     else
@@ -1103,7 +1103,7 @@ function XPBarEnhancedOptionsMixin:OpenColorPicker(colorKey)
         Config:SetColor(colorKey, hex, true)
 
         -- Update UI
-        local controller = GetOptionsController()
+        local controller = Options
         if controller and controller.OnColorChanged then
             controller:OnColorChanged(colorKey, hex)
         else
@@ -1117,7 +1117,7 @@ function XPBarEnhancedOptionsMixin:OpenColorPicker(colorKey)
         Config:SetColor(colorKey, previousHex, true)
 
         -- Update UI
-        local controller = GetOptionsController()
+        local controller = Options
         if controller and controller.OnColorCancel then
             controller:OnColorCancel(colorKey, previousHex)
         else
@@ -1360,4 +1360,83 @@ function Options:Open()
     end
 end
 
+-- Controller Methods (consolidated from OptionsController)
+
+function Options:OnOptionChanged(key)
+    -- Handle specific option changes
+    if key == "barStyle" then
+        -- Update bar style via XPBar
+        if XPC.XPBar and XPC.XPBar.SetBarStyle then
+            local value = XPC.db and XPC.db.barStyle or "legacy"
+            XPC.XPBar:SetBarStyle(value, true) -- skipSave=true since it's already saved
+        end
+        
+        -- Refresh UI to update dropdown text and visibility
+        self:Refresh()
+        
+    elseif key == "hideBlizzardBar" then
+        -- Update Blizzard bar visibility (handled by Config side effects)
+        -- No additional action needed here
+        
+    elseif key == "barLocked" then
+        -- Update Flat bar lock state via XPBar
+        if XPC.XPBar and XPC.XPBar.UpdateLockedState then
+            XPC.XPBar:UpdateLockedState()
+        end
+        
+    elseif key == "enableAnimations" or key == "animationSpeed" or key == "animationEasing" 
+        or key == "flashOnGain" or key == "pauseOnHover" then
+        -- Update animation settings via XPBar
+        if XPC.XPBar and XPC.XPBar.UpdateAnimationSettings then
+            XPC.XPBar:UpdateAnimationSettings()
+        end
+        
+    elseif key == "showQuestXP" or key == "showQuestPercent" or key == "questOverlaysEnabled"
+        or key == "showCompleteQuestOverlay" or key == "showIncompleteQuestOverlay" then
+        -- Update quest-related display (overlays and text)
+        if XPC.XPBar then
+            if XPC.XPBar.UpdateQuestOverlays then
+                XPC.XPBar:UpdateQuestOverlays()
+            end
+            if XPC.XPBar.UpdateTextDisplay then
+                XPC.XPBar:UpdateTextDisplay()
+            end
+        end
+    end
+    
+    -- General refresh
+    self:Refresh()
+    if XPC.XPBar and XPC.XPBar.Update then
+        XPC.XPBar:Update()
+    end
+end
+
+function Options:OnColorReset()
+    self:UpdateColorControls()
+    -- Refresh bars to apply new colors
+    if XPC.XPBar and XPC.XPBar.Update then
+        XPC.XPBar:Update()
+    end
+end
+
+function Options:OnColorChanged()
+    self:UpdateColorControls()
+    -- Refresh bars to apply new colors
+    if XPC.XPBar and XPC.XPBar.Update then
+        XPC.XPBar:Update()
+    end
+end
+
+function Options:OnColorCancel()
+    self:UpdateColorControls()
+    -- Refresh bars to apply new colors
+    if XPC.XPBar and XPC.XPBar.Update then
+        XPC.XPBar:Update()
+    end
+end
+
+-- Register as a feature for compatibility
+XPC:RegisterFeature("options", Options)
+
 return Options
+
