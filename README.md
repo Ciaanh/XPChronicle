@@ -1,11 +1,15 @@
 # XP Bar Enhanced
 
-**Version:** 1.0.1  
+**Version:** 2.0.0  
 **Author:** Ciaanh
 
 An enhanced XP bar addon for World of Warcraft that tracks quest XP, leveling statistics, and provides detailed progress information.
 
 > **Note:** Inspired by Luxthos - Experience Bar which I used a lot but I decided to make it a standalone addon when it was announced that WeakAura will not have a version for Midnight.
+
+## Architecture
+
+For detailed information about the addon's architecture, event flow, and module interactions, see [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## Features
 
@@ -110,44 +114,6 @@ Feature Modules (XP Bar, Stats, Options)
 
 **See [ARCHITECTURE.md](ARCHITECTURE.md)** for complete technical documentation.
 
-## Project Structure
-
-**Quick Overview:**
-- **16 active Lua files** + 7 XML templates = 23 files total
-- **8 main directories** (core, ui with 4 subdirs, locales, docs)
-- **Feature-based modules** - XP Bar, Stats, Options
-- **Clean organization** - Related code co-located
-
-```
-XPBarEnhanced/
-├── core/              # Core systems (Config, Database, Session, etc.)
-├── ui/
-│   ├── common/       # Shared UI utilities and mixins
-│   ├── xpbar/        # XP bar module (core + view implementations)
-│   ├── stats/        # Statistics module
-│   └── options/      # Options panel module
-├── locales/          # Localization files
-├── libs/             # Third-party libraries (Ace, LibStub)
-├── docs/             # Documentation (architecture, refactoring)
-└── [Root files]      # TOC, Frames.xml, README, etc.
-```
-
-**See [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md)** for complete file tree and navigation guide.
-
-## Development
-
-### Recent Changes (v2.0.0)
-
-XPBarEnhanced underwent a comprehensive refactoring from an over-engineered MVC architecture (27 files) to a maintainable feature-based design (16 files):
-
-- ✅ **41% file reduction** - Simplified structure
-- ✅ **Feature-based modules** - Related code co-located
-- ✅ **Zero regressions** - All functionality preserved
-- ✅ **Better performance** - 7% improvement in load time and memory
-- ✅ **Comprehensive documentation** - Architecture and refactoring docs
-
-**See [REFACTORING_COMPLETE.md](REFACTORING_COMPLETE.md)** for complete refactoring details.
-
 ### Contributing
 
 Contributions are welcome! Please:
@@ -170,19 +136,6 @@ Contributions are welcome! Please:
 - **WoW Version:** Retail (The War Within and later)
 - **Dependencies:** None (includes required libraries)
 
-## Known Issues
-
-None currently. Report issues on GitHub.
-
-## Roadmap
-
-Potential future enhancements:
-- Additional bar styles (circular, vertical, etc.)
-- More statistics tracking options
-- Export/import settings
-- Advanced quest filtering
-- Performance profiling tools
-
 ## Credits
 
 **Inspired by:**
@@ -201,7 +154,6 @@ MIT License - See [LICENSE](LICENSE) file for details
 - **Issues:** GitHub Issues
 - **Documentation:** See `docs/` directory
 - **Architecture:** [ARCHITECTURE.md](ARCHITECTURE.md)
-- **Changelog:** [CHANGELOG.md](CHANGELOG.md)
 
 ## Author
 
@@ -209,6 +161,6 @@ MIT License - See [LICENSE](LICENSE) file for details
 
 ---
 
-**Version:** 2.0.0  
+**Version:** 1.0.0  
 **Status:** Stable  
 **Last Updated:** October 16, 2025

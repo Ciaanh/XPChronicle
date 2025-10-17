@@ -2,7 +2,7 @@
 ## Title: XP Bar Enhanced
 ## Notes: Enhanced XP bar with quest XP tracking and comprehensive statistics
 ## Author: Ciaanh
-## Version: 2.0.0
+## Version: 1.0.0
 ## SavedVariables: XPBarEnhancedDB
 ## Category: Quests & Leveling
 ## IconTexture: 4675649
@@ -11,7 +11,7 @@
 libs\LibStub\LibStub.lua
 libs\AceLocale-3.0\AceLocale-3.0.lua
 
-# Localization (English only for 1.0)
+# Localization
 locales\enUS.lua
 
 # Core Systems
