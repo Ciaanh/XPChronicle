@@ -29,7 +29,35 @@ local ANIMATION_CONSTANTS = {
 -----------------------------------
 -- Base Mixin (Shared Logic)
 -----------------------------------
+---@class XPBarMixinBase : Frame
+---@field state table
+---@field animationState table
+---@field _isUpdating boolean
+---@field _fullUpdateScheduled boolean
+---@field FullUpdate fun(self)
+---@field UpdateBarDisplay fun(self)
+---@field UpdateStatusBarValue fun(self, number)
+---@field StatusBar XPStatusBar
+---@field LevelText FontString
+---@field XPText FontString
+---@field PercentText FontString
+---@field RateText FontString
+---@field SessionText FontString
+---@field QuestSummaryText FontString
+---@field OverlayFrame Frame
+---@field WireTextElements fun(self)
+---@field InitializeQuestOverlays fun(self)
+---@field UpdateRestedOverlay fun(self)
+---@field UpdateBarOverlayColors fun(self)
+---@field ApplyTextSettings fun(self)
+---@field UpdateVisuals fun(self)
+---@field TriggerLevelUpCelebration fun(self)
+---@field ApplyLayout fun(self, layout:table)
+---@field OnAnimationUpdate fun(self, elapsed:number)|nil
 XPBarMixinBase = {}
+
+-- Local alias for optional tooltip module (may be defined elsewhere)
+local XPBarTooltip = _G and _G.XPBarTooltip
 
 -- Initialize shared state
 function XPBarMixinBase:InitializeState()
@@ -38,8 +66,15 @@ function XPBarMixinBase:InitializeState()
 		maxXP = 1,
 		restedXP = 0,
 		level = 1,
-		maxLevel = 80
+		maxLevel = 1,
 	}
+
+	-- Re-entrancy guard & scheduling state
+	self._isUpdating = false
+	self._fullUpdateScheduled = nil
+
+	-- Capture the current effective level cap for later comparisons
+	self.state.maxLevel = self:GetEffectiveMaxLevel()
 
 	-- Initialize quest offset for rested positioning
 	self.questOffsetForRested = 0
@@ -133,7 +168,12 @@ function XPBarMixinBase:HandleEvent(event, ...)
 		-- Update quest summary (includes rested info)
 		self:UpdateQuestSummaryText()
 	elseif event == "PLAYER_ENTERING_WORLD" then
-		self:FullUpdate()
+		-- Only update the currently active view on entering world; other views
+		-- should not perform full updates which may reveal their containers.
+		local activeView = Addon.XPBar and Addon.XPBar:GetActiveView()
+		if activeView == self then
+			self:FullUpdate()
+		end
 	elseif event == "TIME_PLAYED_MSG" then
 		-- Update session text when we receive time played data
 		self:UpdateSessionText()
@@ -148,13 +188,36 @@ function XPBarMixinBase:HandleEvent(event, ...)
 end
 
 -- Full update of all XP values
-function XPBarMixinBase:FullUpdate()
-	local level = UnitLevel("player")
 
-	-- Check if max level
-	if level >= self.state.maxLevel then
-		self:GetParent():Hide()
+function XPBarMixinBase:FullUpdate()
+	-- Prevent re-entrant FullUpdate calls
+	if self._isUpdating then
 		return
+	end
+	self._isUpdating = true
+
+	-- Refresh the cached level cap so toggling between expansions works
+	self.state.maxLevel = self:GetEffectiveMaxLevel()
+
+	-- Honor user preference for hiding the bar at max level
+	if self:IsPlayerAtMaxLevel() and (Addon.db and Addon.db.showBarAtMaxLevel == false) then
+		---@type LegacyXPBarContainerMixin|FlatXPBarContainerMixin|VerticalXPBarContainerMixin|CircularXPBarContainerMixin
+		local parent = self:GetParent()
+		if parent then
+			parent:Hide()
+		end
+		self._isUpdating = nil
+		return
+	end
+
+	-- Ensure the active container is visible when the bar should render
+	---@type LegacyXPBarContainerMixin|FlatXPBarContainerMixin|VerticalXPBarContainerMixin|CircularXPBarContainerMixin
+	local parent = self:GetParent()
+	if parent and parent ~= UIParent then
+		local activeView = Addon.XPBar and Addon.XPBar:GetActiveView()
+		if activeView == self and not parent:IsShown() then
+			parent:Show()
+		end
 	end
 
 	-- NEW ARCHITECTURE: Use unified update method
@@ -177,6 +240,9 @@ function XPBarMixinBase:FullUpdate()
 	-- Update text visibility and content
 	self:UpdateTextVisibility()
 	self:UpdateAllText()
+
+	-- Finished update
+	self._isUpdating = nil
 end
 
 -- Update XP values
@@ -286,6 +352,7 @@ end
 -- Level up handler
 function XPBarMixinBase:OnLevelUp(newLevel)
 	self.state.level = newLevel
+	self.state.maxLevel = self:GetEffectiveMaxLevel()
 
 	-- Cancel any ongoing animations
 	self.animationState.animating = false
@@ -298,8 +365,12 @@ function XPBarMixinBase:OnLevelUp(newLevel)
 	end
 
 	-- Check if max level
-	if newLevel >= self.state.maxLevel then
-		self:GetParent():Hide()
+	if self:IsPlayerAtMaxLevel() and (Addon.db and Addon.db.showBarAtMaxLevel == false) then
+		---@type LegacyXPBarContainerMixin|FlatXPBarContainerMixin|VerticalXPBarContainerMixin|CircularXPBarContainerMixin
+		local parent = self:GetParent()
+		if parent then
+			parent:Hide()
+		end
 		return
 	end
 	
@@ -607,10 +678,27 @@ end
 
 -- Public API for external control
 function XPBarMixinBase:Show()
-	if self:GetParent() then
-		self:GetParent():Show()
+	---@type LegacyXPBarContainerMixin|FlatXPBarContainerMixin|VerticalXPBarContainerMixin|CircularXPBarContainerMixin
+	local parent = self:GetParent()
+	if parent then
+		parent:Show()
 	end
-	self:FullUpdate()
+
+	-- If a FullUpdate is currently in progress, don't re-enter it.
+	if self._isUpdating then
+		return
+	end
+
+	-- Debounce scheduling to avoid queuing many updates in a single frame.
+	if not self._fullUpdateScheduled then
+		self._fullUpdateScheduled = true
+		C_Timer.After(0, function()
+			self._fullUpdateScheduled = nil
+			if self and self.FullUpdate then
+				self:FullUpdate()
+			end
+		end)
+	end
 end
 
 function XPBarMixinBase:Hide()
@@ -948,18 +1036,33 @@ end
 function XPBarMixinBase:OnEnter()
 	-- Pause animation on mouseover
 	self:PauseAnimation()
-	
+    
 	if XPBarTooltip then
 		XPBarTooltip:Show(self, "ANCHOR_TOP")
+	else
+		-- Fallback: simple GameTooltip showing XP values
+		if GameTooltip and GameTooltip.SetOwner then
+			local tooltip = GameTooltip
+			GameTooltip_SetDefaultAnchor(tooltip, UIParent)
+			local currentXP = UnitXP("player")
+			local maxXP = UnitXPMax("player")
+			local percent = (maxXP > 0) and math.floor((currentXP / maxXP) * 100) or 0
+			tooltip:SetText(string.format("XP: %s / %s (%d%%)", BreakUpLargeNumbers(currentXP), BreakUpLargeNumbers(maxXP), percent), 1, 1, 1)
+			tooltip:Show()
+		end
 	end
 end
 
 function XPBarMixinBase:OnLeave()
 	-- Resume animation (pause will expire automatically)
 	self:ResumeAnimation()
-	
+    
 	if XPBarTooltip then
 		XPBarTooltip:Hide()
+	else
+		if GameTooltip and GameTooltip_Hide then
+			GameTooltip_Hide()
+		end
 	end
 end
 
@@ -1284,8 +1387,12 @@ end
 
 -- Unified update method (replaces fragmented updates)
 function XPBarMixinBase:UpdateBarDisplay()
+	-- Keep the cached max level in sync with the current game state
+	self.state.maxLevel = self:GetEffectiveMaxLevel()
+
 	-- Check container visibility (max level setting)
 	local container = self:GetParent()
+	--print("XPBarMixinBase:UpdateBarDisplay - container:", container)
 	if container then
 		local atMaxLevel = self:IsPlayerAtMaxLevel()
 		local showAtMax = Addon.db.showBarAtMaxLevel ~= false
@@ -1326,8 +1433,23 @@ XPBarMixinBase.GetContainerDimensions = function()
 	return CONTAINER_WIDTH, CONTAINER_HEIGHT
 end
 
+function XPBarMixinBase:GetEffectiveMaxLevel()
+	local playerCap = GetMaxPlayerLevel and GetMaxPlayerLevel() or nil
+	local expansionLevel = GetExpansionLevel and GetExpansionLevel() or nil
+	local expansionCap
+	if GetMaxLevelForExpansionLevel and expansionLevel ~= nil then
+		expansionCap = GetMaxLevelForExpansionLevel(expansionLevel)
+	end
+
+	local fallback = playerCap or expansionCap or 80
+	if playerCap and expansionCap then
+		return math.min(playerCap, expansionCap)
+	end
+
+	return fallback
+end
+
 function XPBarMixinBase:IsPlayerAtMaxLevel()
-	local maxLevel = GetMaxPlayerLevel and GetMaxPlayerLevel() or UnitLevel("player")
-	local expansionMax = GetMaxLevelForExpansionLevel and GetMaxLevelForExpansionLevel(GetExpansionLevel()) or maxLevel
-	return UnitLevel("player") >= math.min(maxLevel, expansionMax)
+	local effectiveCap = self:GetEffectiveMaxLevel()
+	return UnitLevel("player") >= effectiveCap
 end

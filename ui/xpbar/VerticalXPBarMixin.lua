@@ -1,12 +1,152 @@
 -- VerticalXPBarMixin.lua
 -- Vertical XP bar where new XP "falls down" from the top with gravity animation
 
+---@diagnostic disable: undefined-global, undefined-field, assign-type-mismatch
+
 local ADDON_NAME = "XPBarEnhanced"
 local Addon = XPBarEnhanced
 
----@class VerticalXPBarMixin : XPBarMixinBase
 VerticalXPBarMixin = CreateFromMixins(XPBarMixinBase)
 
+---@class VerticalXPBarView : Frame
+---@field LevelText FontString
+---@field OverlayFrame Frame
+---@field XPText FontString
+---@field PercentText FontString
+---@field RateText FontString
+---@field SessionText FontString
+---@field QuestSummaryText FontString
+
+---@class VerticalXPBarContainerMixin : Frame
+---@field Bar VerticalXPBarView
+---@field InitPositionStorage fun(self, getter, setter, defaultsProvider)
+---@field EnableDrag fun(self, options)
+---@field EnableMouse fun(self, enable)
+---@field SetMovable fun(self, movable)
+VerticalXPBarContainerMixin = {}
+
+function VerticalXPBarContainerMixin:OnLoad()
+    -- Stay hidden until controller shows based on barStyle
+    self:Hide()
+
+    -- Ensure Bar child is sized to container
+    if self.Bar and self.Bar.SetSize then
+        self.Bar:SetSize(self:GetWidth(), self:GetHeight())
+    end
+
+    -- Wire text elements (if view provided overlay frames)
+    if self.WireTextElements then
+        self:WireTextElements()
+    end
+
+    -- Setup dragging & position storage (reuse flat bar mixins if available)
+    self:SetFrameStrata("LOW")
+    self:SetMovable(true)
+    self:SetUserPlaced(false)
+    self:SetClampedToScreen(true)
+    self:EnableMouse(true)
+
+    local PositionStoreMixin = Addon.UI and Addon.UI.Mixins and Addon.UI.Mixins.PositionStoreMixin
+    local DraggableFrameMixin = Addon.UI and Addon.UI.Mixins and Addon.UI.Mixins.DraggableFrameMixin
+    if PositionStoreMixin and DraggableFrameMixin then
+        Mixin(self, PositionStoreMixin, DraggableFrameMixin)
+        self:InitPositionStorage(
+            -- getter
+            function()
+                if not Addon.db then return nil end
+                if Addon.db.barPositions and Addon.db.barPositions.vertical then
+                    return Addon.db.barPositions.vertical
+                end
+                -- fallback for older single-position setting
+                return Addon.db.barPosition
+            end,
+            -- setter
+            function(pos)
+                if not Addon.db then return end
+                Addon.db.barPositions = Addon.db.barPositions or {}
+                Addon.db.barPositions.vertical = pos
+            end,
+            -- defaults provider
+            function()
+                if Addon.defaults and Addon.defaults.barPositions and Addon.defaults.barPositions.vertical then
+                    return Addon.defaults.barPositions.vertical
+                end
+                return Addon.defaults and Addon.defaults.barPosition
+            end
+        )
+        self:EnableDrag({ button = "LeftButton", requireModifier = "SHIFT" })
+    else
+        -- Retry after login if mixins aren't available yet
+        C_Timer.After(1, function()
+            if self.RetryDraggingSetup then
+                self:RetryDraggingSetup()
+            end
+        end)
+    end
+end
+
+function VerticalXPBarContainerMixin:WireTextElements()
+    if not self.Bar then return end
+    -- If the bar has an OverlayFrame (from XML) wire its fontstrings
+    if self.Bar.OverlayFrame then
+        self.Bar.LevelText = self.Bar.OverlayFrame.LevelText
+        self.Bar.XPText = self.Bar.OverlayFrame.XPText
+        self.Bar.PercentText = self.Bar.OverlayFrame.PercentText
+    end
+end
+
+function VerticalXPBarContainerMixin:OnShow()
+    -- Ensure child view gets its text wired (no FullUpdate here)
+    self:WireTextElements()
+end
+
+function VerticalXPBarContainerMixin:RetryDraggingSetup()
+    local PositionStoreMixin = Addon.UI and Addon.UI.Mixins and Addon.UI.Mixins.PositionStoreMixin
+    local DraggableFrameMixin = Addon.UI and Addon.UI.Mixins and Addon.UI.Mixins.DraggableFrameMixin
+    if PositionStoreMixin and DraggableFrameMixin and not self.InitPositionStorage then
+        Mixin(self, PositionStoreMixin, DraggableFrameMixin)
+        self:InitPositionStorage(
+            function()
+                if not Addon.db then return nil end
+                if Addon.db.barPositions and Addon.db.barPositions.vertical then
+                    return Addon.db.barPositions.vertical
+                end
+                return Addon.db.barPosition
+            end,
+            function(pos)
+                if not Addon.db then return end
+                Addon.db.barPositions = Addon.db.barPositions or {}
+                Addon.db.barPositions.vertical = pos
+            end,
+            function()
+                if Addon.defaults and Addon.defaults.barPositions and Addon.defaults.barPositions.vertical then
+                    return Addon.defaults.barPositions.vertical
+                end
+                return Addon.defaults and Addon.defaults.barPosition
+            end
+        )
+        self:EnableDrag({ button = "LeftButton", requireModifier = "SHIFT" })
+    end
+end
+
+function VerticalXPBarContainerMixin:SetLocked(locked)
+    if locked then
+        self:SetMovable(false)
+        self.isDraggable = false
+    else
+        self:SetMovable(true)
+        if self.EnableDrag then
+            self:EnableDrag({ button = "LeftButton", requireModifier = "SHIFT" })
+            self.isDraggable = true
+        end
+    end
+end
+
+---@class VerticalXPBarMixin : XPBarMixinBase
+---@field Bar Frame
+---@field FilledTexture Texture
+---@field RestedOverlay Texture
+VerticalXPBarMixin = CreateFromMixins(XPBarMixinBase)
 -- Constants
 local FALL_DURATION = 0.4  -- Duration of falling animation in seconds
 local BOUNCE_HEIGHT = 5    -- Pixels to bounce up on impact
@@ -67,15 +207,44 @@ function VerticalXPBarMixin:OnEvent(event, ...)
 end
 
 function VerticalXPBarMixin:OnMouseUp(button)
+    -- Stop dragging if active
+    local container = self:GetParent()
+    if container and container.isDragging then
+        container:StopMovingOrSizing()
+        container.isDragging = nil
+        if container.SaveStoredPosition then
+            container:SaveStoredPosition()
+        end
+        return
+    end
+
     -- Handle clicks (Alt+Click for options, Ctrl+Click for stats)
     if IsAltKeyDown() then
         if Addon.Options and Addon.Options.Open then
             Addon.Options:Open()
         end
+        return
     elseif IsControlKeyDown() then
-        if Addon.Stats and Addon.Stats.ToggleWindow then
-            Addon.Stats:ToggleWindow()
+        if Addon.Stats then
+            if Addon.Stats.Toggle then
+                Addon.Stats:Toggle()
+            elseif Addon.Stats.ToggleWindow then
+                Addon.Stats:ToggleWindow()
+            end
         end
+        return
+    end
+end
+
+function VerticalXPBarMixin:OnMouseDown(button)
+    -- Forward shift+drag to parent container
+    local container = self:GetParent()
+    if container and IsShiftKeyDown() and button == "LeftButton" then
+        if container:IsMovable() and container.isDragging == nil then
+            container:StartMoving()
+            container.isDragging = true
+        end
+        return
     end
 end
 
@@ -334,7 +503,9 @@ end
 function VerticalXPBarMixin:UpdateAllText()
     -- Adjust text for vertical layout
     local level = UnitLevel("player")
-    self.LevelText:SetText(level)
+    if self.LevelText then
+        self.LevelText:SetText(tostring(level))
+    end
     
     local currentXP = UnitXP("player")
     local maxXP = UnitXPMax("player")
@@ -379,10 +550,16 @@ function VerticalXPBarMixin:ApplyLayout(layout)
     -- For vertical bar, we just need to ensure visibility
     -- The actual rendering is done in UpdateBarFill
     if not layout.visible then
-        self:Hide()
         return
     end
     
+    local parent = self:GetParent()
+    -- Only show the container for the active view; avoid revealing inactive views
+    local activeView = Addon.XPBar and Addon.XPBar:GetActiveView()
+    if activeView == self and parent then
+        parent:Show()
+    end
+
     -- Quest overlays not implemented yet for vertical bar
     -- Just update the main bar and rested overlay
     local currentXP = UnitXP("player")
@@ -418,18 +595,33 @@ function VerticalXPBarMixin:UpdateStatusBarValue(ratio)
 end
 
 function VerticalXPBarMixin:FullUpdate()
+    -- Prevent re-entrant updates for the vertical bar
+    if self._isUpdating then
+        return
+    end
+    self._isUpdating = true
+
     -- Override base to prevent hiding UIParent (since we have no container)
     if not self.state then
         print("VerticalXPBar ERROR: state not initialized!")
+        self._isUpdating = nil
         return
     end
-    
-    local level = UnitLevel("player")
 
-    -- Check if max level - hide SELF, not parent
-    if level >= self.state.maxLevel then
+    self.state.maxLevel = self:GetEffectiveMaxLevel()
+
+    -- Respect max-level visibility preference for standalone bars
+    if self:IsPlayerAtMaxLevel() and (Addon.db and Addon.db.showBarAtMaxLevel == false) then
         self:Hide()
+        self._isUpdating = nil
         return
+    end
+
+    local parent = self:GetParent()
+    -- Only show the container for the active view
+    local activeView = Addon.XPBar and Addon.XPBar:GetActiveView()
+    if activeView == self and parent then
+        parent:Show()
     end
 
     -- Call base update logic
@@ -456,6 +648,7 @@ function VerticalXPBarMixin:FullUpdate()
     -- Update text visibility and content
     self:UpdateTextVisibility()
     self:UpdateAllText()
+    self._isUpdating = nil
 end
 
 function VerticalXPBarMixin:UpdateBarDisplay()
@@ -464,6 +657,8 @@ function VerticalXPBarMixin:UpdateBarDisplay()
         print("VerticalXPBar ERROR: Missing required methods!")
         return
     end
+
+    self.state.maxLevel = self:GetEffectiveMaxLevel()
     
     -- Check if at max level and should hide
     local atMaxLevel = self:IsPlayerAtMaxLevel()
@@ -471,7 +666,15 @@ function VerticalXPBarMixin:UpdateBarDisplay()
     
     if atMaxLevel and not showAtMax then
         self:Hide()  -- Hide SELF, not parent
+        self._isUpdating = nil
         return
+    end
+
+    local parent = self:GetParent()
+    -- Only show the container for the active view
+    local activeView = Addon.XPBar and Addon.XPBar:GetActiveView()
+    if activeView == self and parent then
+        parent:Show()
     end
     
     -- Calculate what to show (state)
@@ -492,7 +695,9 @@ function VerticalXPBarMixin:UpdateBarDisplay()
 end
 
 function VerticalXPBarMixin:OnShow()
-    self:FullUpdate()
+    if not self._isUpdating then
+        self:FullUpdate()
+    end
 end
 
 function VerticalXPBarMixin:Initialize()

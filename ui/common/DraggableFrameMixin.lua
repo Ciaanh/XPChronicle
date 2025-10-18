@@ -35,6 +35,14 @@ function DraggableFrameMixin:EnableDrag(options)
     if FrameUtils and FrameUtils.EnableDrag then
         FrameUtils.EnableDrag(self, options)
     end
+
+    -- Mark frame as draggable so other systems (tooltip, hints) can detect it
+    self.isDraggable = true
+    -- Store modifier/button metadata for hint generation
+    if options and options.requireModifier then
+        self._xpbeDragModifier = options.requireModifier
+    end
+    self._xpbeDragButton = (options and options.button) or "LeftButton"
 end
 
 return DraggableFrameMixin

@@ -6,6 +6,8 @@ local Addon = XPBarEnhanced
 Addon.Config = Addon.Config or {}
 
 local Config = Addon.Config
+-- Local alias for optional tooltip module (may be defined in the UI layer)
+local XPBarTooltip = _G and _G.XPBarTooltip
 -------------------------------------------------------------------
 -- DEFAULTS
 -------------------------------------------------------------------
@@ -26,7 +28,7 @@ local defaults = {
     showTimeToLevelText = true,
     abbreviateNumbers = true,
     showRemainingXP = true,
-    showBarAtMaxLevel = false,
+    showBarAtMaxLevel = true,
     showLevelText = true,
     showXPText = true,
     
@@ -79,6 +81,37 @@ local defaults = {
         relativePoint = "CENTER",
         x = 0,
         y = 0,
+    },
+    -- Per-style saved positions (migrated from single barPosition when needed)
+    barPositions = {
+        legacy = {
+            point = "BOTTOM",
+            relativeTo = "UIParent",
+            relativePoint = "BOTTOM",
+            x = 0,
+            y = 12,
+        },
+        flat = {
+            point = "BOTTOM",
+            relativeTo = "UIParent",
+            relativePoint = "BOTTOM",
+            x = 0,
+            y = 100,
+        },
+        vertical = {
+            point = "CENTER",
+            relativeTo = "UIParent",
+            relativePoint = "CENTER",
+            x = 0,
+            y = 0,
+        },
+        circular = {
+            point = "CENTER",
+            relativeTo = "UIParent",
+            relativePoint = "CENTER",
+            x = 0,
+            y = 0,
+        },
     },
 }
 
@@ -330,7 +363,23 @@ Config.colorOptionByKey = colorOptionByKey
 
 function Config:Initialize()
     -- Configuration is now managed by Database module
-    -- This is just a placeholder for any future init logic
+    -- Migrate single barPosition to per-style barPositions if needed
+    if Addon and Addon.db then
+        if not Addon.db.barPositions then
+            -- If user has an existing single position, copy it to all styles as a sensible default
+            if Addon.db.barPosition then
+                Addon.db.barPositions = {
+                    legacy = Addon.db.barPosition,
+                    flat = Addon.db.barPosition,
+                    vertical = Addon.db.barPosition,
+                    circular = Addon.db.barPosition,
+                }
+            else
+                -- Ensure table exists so code can write per-style entries
+                Addon.db.barPositions = {}
+            end
+        end
+    end
 end
 
 -------------------------------------------------------------------
@@ -481,9 +530,10 @@ function Config:SetColor(key, hex, silent)
     --     flatBar:UpdateBarOverlayColors()
     -- end
     
-    -- Refresh tooltip
-    if XPBarTooltip and XPBarTooltip.Refresh then
-        XPBarTooltip:Refresh()
+    -- Refresh tooltip (resolve at runtime to avoid load-order capture issues)
+    local tt = _G and _G.XPBarTooltip
+    if tt and tt.Refresh then
+        tt:Refresh()
     end
     
     if not silent then
@@ -580,8 +630,10 @@ function Config:ApplyOptionSideEffects(key)
             xpbar:Update()
         end
         
-        -- Force visual refresh of flat bar
-        local flatBar = _G.FlatXPBar
+    -- Force visual refresh of flat bar
+    ---@type _G
+    local _G_alias = _G
+    local flatBar = _G_alias.FlatXPBar
         if flatBar and flatBar:IsShown() and flatBar.Bar then
             if flatBar.Bar.UpdateBarOverlayColors then
                 flatBar.Bar:UpdateBarOverlayColors()
@@ -594,8 +646,10 @@ function Config:ApplyOptionSideEffects(key)
             end
         end
         
-        -- Force visual refresh of legacy bar
-        local legacyBar = _G.LegacyXPBar
+    -- Force visual refresh of legacy bar
+    ---@type _G
+    local _G_alias2 = _G
+    local legacyBar = _G_alias2.LegacyXPBar
         if legacyBar and legacyBar:IsShown() and legacyBar.Bar then
             if legacyBar.Bar.UpdateBarOverlayColors then
                 legacyBar.Bar:UpdateBarOverlayColors()
@@ -746,7 +800,7 @@ function Config:ResetStats()
     end
     
     Addon.db.levelData = Addon.db.levelData or {}
-    local currentLevel = UnitLeve"player"
+    local currentLevel = UnitLevel("player")
     Addon.db.levelData[playerKey] = {
         [currentLevel] = {
             levelStart = time(),

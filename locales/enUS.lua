@@ -47,6 +47,13 @@ L["TT_SESSION_STATS"] = "Session Stats"
 L["TT_LEVEL_TIME"] = "Level Time"
 L["TT_QUEST_XP_COMPLETE"] = "Completed Quest XP"
 L["TT_QUEST_XP_INCOMPLETE"] = "Quest XP (Incomplete)"
+-- Tooltip hints
+L["TT_HINT_CONFIG"] = "Right-click to configure XP Bar"
+L["TT_HINT_DRAG"] = "Hold %s and drag to move the bar"
+-- Modifier display names
+L["KEY_SHIFT"] = "Shift"
+L["KEY_CTRL"] = "Ctrl"
+L["KEY_ALT"] = "Alt"
 
 -- ============================================================================
 -- OPTIONS PANEL

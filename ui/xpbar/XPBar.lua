@@ -580,7 +580,29 @@ function XPBar:GetQuestXPText(completeXP, incompleteXP, abbreviate)
 end
 
 function XPBar:GetHintText(frame)
-    return "Right-click to configure XP Bar"
+    local AddonL = Addon.L or {}
+    local baseHint = AddonL["TT_HINT_CONFIG"] or "Right-click to configure XP Bar"
+
+    -- Show drag hint if the bar's container is draggable and movable
+    local container = frame and frame.GetParent and frame:GetParent()
+    if container and container.isDraggable and container.IsMovable and container:IsMovable() then
+        local modifier = container._xpbeDragModifier or "SHIFT"
+        local modifierName = modifier
+        -- Localize common modifier names
+        if type(modifierName) == "string" then
+            if modifierName:upper() == "SHIFT" then
+                modifierName = AddonL["KEY_SHIFT"] or "Shift"
+            elseif modifierName:upper() == "CTRL" then
+                modifierName = AddonL["KEY_CTRL"] or "Ctrl"
+            elseif modifierName:upper() == "ALT" then
+                modifierName = AddonL["KEY_ALT"] or "Alt"
+            end
+        end
+        local dragFmt = AddonL["TT_HINT_DRAG"] or "Hold %s and drag to move the bar"
+        return string.format("%s | %s", baseHint, string.format(dragFmt, modifierName))
+    end
+
+    return baseHint
 end
 
 --------------------------------------------------------------------------------
@@ -757,13 +779,13 @@ function XPBar:GetFlatView()
 end
 
 function XPBar:GetVerticalView()
-    -- For new styles, the container IS the view
-    return self:GetVerticalContainer()
+    local container = self:GetVerticalContainer()
+    return container and container.Bar
 end
 
 function XPBar:GetCircularView()
-    -- For new styles, the container IS the view
-    return self:GetCircularContainer()
+    local container = self:GetCircularContainer()
+    return container and container.Bar
 end
 
 function XPBar:SetBarStyle(style, skipSave)

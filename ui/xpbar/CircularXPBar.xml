@@ -3,21 +3,40 @@
 ..\..\..\Blizzard_SharedXML\UI.xsd">
     <Script file="CircularXPBarMixin.lua"/>
 
-    <!-- Circular XP Bar Template -->
+    <!-- Circular XP Bar Template (view) -->
     <Frame name="CircularXPBarTemplate" mixin="CircularXPBarMixin" virtual="true" enableMouse="true" frameStrata="MEDIUM">
         <Size x="150" y="150"/>
         <Scripts>
             <OnLoad method="OnLoad"/>
             <OnEvent method="OnEvent"/>
+            <OnEnter method="OnEnter"/>
+            <OnLeave method="OnLeave"/>
+            <OnMouseDown method="OnMouseDown"/>
             <OnMouseUp method="OnMouseUp"/>
             <OnShow method="OnShow"/>
         </Scripts>
     </Frame>
 
-    <!-- Circular XP Bar Instance -->
-    <Frame name="CircularXPBar" inherits="CircularXPBarTemplate" parent="UIParent" hidden="true">
+    <!-- Container Template for Circular XP Bar -->
+    <Frame name="CircularXPBarContainerTemplate" virtual="true" mixin="CircularXPBarContainerMixin">
+        <Size x="150" y="150"/>
+        <Frames>
+            <Frame parentKey="Bar" inherits="CircularXPBarTemplate">
+                <Anchors>
+                    <Anchor point="CENTER" x="0" y="0"/>
+                </Anchors>
+            </Frame>
+        </Frames>
+        <Scripts>
+            <OnLoad method="OnLoad"/>
+            <OnShow method="OnShow"/>
+        </Scripts>
+    </Frame>
+
+    <!-- Circular XP Bar Container Instance -->
+    <Frame name="CircularXPBar" parent="UIParent" inherits="CircularXPBarContainerTemplate" hidden="true">
         <Anchors>
-            <Anchor point="CENTER" relativePoint="CENTER" x="0" y="-200"/>
+            <Anchor point="CENTER" relativePoint="CENTER" x="0" y="0"/>
         </Anchors>
     </Frame>
 </Ui>

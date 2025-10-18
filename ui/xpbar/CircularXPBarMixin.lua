@@ -1,8 +1,133 @@
 -- CircularXPBarMixin.lua
 -- Circular progress ring that fills clockwise from top (12 o'clock position)
 
+---@diagnostic disable: undefined-global, undefined-field, assign-type-mismatch
+
 local ADDON_NAME = "XPBarEnhanced"
 local Addon = XPBarEnhanced
+
+---@field OverlayFrame Frame
+
+---@class CircularXPBarContainerMixin : Frame
+---@field Bar CircularXPBarView
+CircularXPBarContainerMixin = {}
+
+function CircularXPBarContainerMixin:OnLoad()
+    -- Keep container hidden until controller shows it explicitly
+    self:Hide()
+
+    -- Ensure Bar child matches container size
+    if self.Bar and self.Bar.SetSize then
+        self.Bar:SetSize(self:GetWidth(), self:GetHeight())
+    end
+
+    -- Wire text elements (if view provided overlay frames)
+    if self.WireTextElements then
+        self:WireTextElements()
+    end
+
+    -- Retry wiring shortly after load
+    C_Timer.After(0.1, function()
+        if self and self.WireTextElements then
+            self:WireTextElements()
+        end
+    end)
+
+    -- Setup dragging & position storage
+    self:SetFrameStrata("LOW")
+    self:SetMovable(true)
+    self:SetUserPlaced(false)
+    self:SetClampedToScreen(true)
+    self:EnableMouse(true)
+
+    local PositionStoreMixin = Addon.UI and Addon.UI.Mixins and Addon.UI.Mixins.PositionStoreMixin
+    local DraggableFrameMixin = Addon.UI and Addon.UI.Mixins and Addon.UI.Mixins.DraggableFrameMixin
+    if PositionStoreMixin and DraggableFrameMixin then
+        Mixin(self, PositionStoreMixin, DraggableFrameMixin)
+        self:InitPositionStorage(
+            function()
+                if not Addon.db then return nil end
+                if Addon.db.barPositions and Addon.db.barPositions.circular then
+                    return Addon.db.barPositions.circular
+                end
+                return Addon.db.barPosition
+            end,
+            function(pos)
+                if not Addon.db then return end
+                Addon.db.barPositions = Addon.db.barPositions or {}
+                Addon.db.barPositions.circular = pos
+            end,
+            function()
+                if Addon.defaults and Addon.defaults.barPositions and Addon.defaults.barPositions.circular then
+                    return Addon.defaults.barPositions.circular
+                end
+                return Addon.defaults and Addon.defaults.barPosition
+            end
+        )
+        self:EnableDrag({ button = "LeftButton", requireModifier = "SHIFT" })
+    else
+        C_Timer.After(1, function()
+            if self.RetryDraggingSetup then
+                self:RetryDraggingSetup()
+            end
+        end)
+    end
+end
+
+function CircularXPBarContainerMixin:WireTextElements()
+    if not self.Bar then return end
+    if self.Bar.OverlayFrame then
+        self.Bar.LevelText = self.Bar.OverlayFrame.LevelText
+        self.Bar.XPText = self.Bar.OverlayFrame.XPText
+        self.Bar.PercentText = self.Bar.OverlayFrame.PercentText
+    end
+end
+
+function CircularXPBarContainerMixin:OnShow()
+    self:WireTextElements()
+end
+
+function CircularXPBarContainerMixin:RetryDraggingSetup()
+    local PositionStoreMixin = Addon.UI and Addon.UI.Mixins and Addon.UI.Mixins.PositionStoreMixin
+    local DraggableFrameMixin = Addon.UI and Addon.UI.Mixins and Addon.UI.Mixins.DraggableFrameMixin
+    if PositionStoreMixin and DraggableFrameMixin and not self.InitPositionStorage then
+        Mixin(self, PositionStoreMixin, DraggableFrameMixin)
+        self:InitPositionStorage(
+            function()
+                if not Addon.db then return nil end
+                if Addon.db.barPositions and Addon.db.barPositions.circular then
+                    return Addon.db.barPositions.circular
+                end
+                return Addon.db.barPosition
+            end,
+            function(pos)
+                if not Addon.db then return end
+                Addon.db.barPositions = Addon.db.barPositions or {}
+                Addon.db.barPositions.circular = pos
+            end,
+            function()
+                if Addon.defaults and Addon.defaults.barPositions and Addon.defaults.barPositions.circular then
+                    return Addon.defaults.barPositions.circular
+                end
+                return Addon.defaults and Addon.defaults.barPosition
+            end
+        )
+        self:EnableDrag({ button = "LeftButton", requireModifier = "SHIFT" })
+    end
+end
+
+function CircularXPBarContainerMixin:SetLocked(locked)
+    if locked then
+        self:SetMovable(false)
+        self.isDraggable = false
+    else
+        self:SetMovable(true)
+        if self.EnableDrag then
+            self:EnableDrag({ button = "LeftButton", requireModifier = "SHIFT" })
+            self.isDraggable = true
+        end
+    end
+end
 
 ---@class CircularXPBarMixin : XPBarMixinBase
 CircularXPBarMixin = CreateFromMixins(XPBarMixinBase)
@@ -54,15 +179,44 @@ function CircularXPBarMixin:OnEvent(event, ...)
 end
 
 function CircularXPBarMixin:OnMouseUp(button)
+    -- Stop dragging if active
+    local container = self:GetParent()
+    if container and container.isDragging then
+        container:StopMovingOrSizing()
+        container.isDragging = nil
+        if container.SaveStoredPosition then
+            container:SaveStoredPosition()
+        end
+        return
+    end
+
     -- Handle clicks (Alt+Click for options, Ctrl+Click for stats)
     if IsAltKeyDown() then
         if Addon.Options and Addon.Options.Open then
             Addon.Options:Open()
         end
+        return
     elseif IsControlKeyDown() then
-        if Addon.Stats and Addon.Stats.ToggleWindow then
-            Addon.Stats:ToggleWindow()
+        if Addon.Stats then
+            if Addon.Stats.Toggle then
+                Addon.Stats:Toggle()
+            elseif Addon.Stats.ToggleWindow then
+                Addon.Stats:ToggleWindow()
+            end
         end
+        return
+    end
+end
+
+function CircularXPBarMixin:OnMouseDown(button)
+    -- Forward shift+drag to parent container
+    local container = self:GetParent()
+    if container and IsShiftKeyDown() and button == "LeftButton" then
+        if container:IsMovable() and container.isDragging == nil then
+            container:StartMoving()
+            container.isDragging = true
+        end
+        return
     end
 end
 
@@ -307,7 +461,9 @@ end
 function CircularXPBarMixin:UpdateAllText()
     -- Level
     local level = UnitLevel("player")
-    self.LevelText:SetText(level)
+        if self.LevelText then
+            self.LevelText:SetText(tostring(level))
+        end
     
     -- Percentage
     local currentXP = UnitXP("player")
@@ -352,10 +508,16 @@ function CircularXPBarMixin:ApplyLayout(layout)
     -- For circular bar, we just need to ensure visibility
     -- The actual rendering is done in UpdateBarFill
     if not layout.visible then
-        self:Hide()
         return
     end
     
+    local parent = self:GetParent()
+    -- Only show the container for the active view; avoid revealing inactive views
+    local activeView = Addon.XPBar and Addon.XPBar:GetActiveView()
+    if activeView == self and parent then
+        parent:Show()
+    end
+
     -- Quest overlays not implemented yet for circular bar
     -- Just update the main ring and rested arc
     local currentXP = UnitXP("player")
@@ -382,18 +544,33 @@ function CircularXPBarMixin:UpdateStatusBarValue(ratio)
 end
 
 function CircularXPBarMixin:FullUpdate()
+    -- Prevent re-entrant updates for the circular bar
+    if self._isUpdating then
+        return
+    end
+    self._isUpdating = true
+
     -- Override base to prevent hiding UIParent (since we have no container)
     if not self.state then
         print("CircularXPBar ERROR: state not initialized!")
+        self._isUpdating = nil
         return
     end
-    
-    local level = UnitLevel("player")
 
-    -- Check if max level - hide SELF, not parent
-    if level >= self.state.maxLevel then
+    self.state.maxLevel = self:GetEffectiveMaxLevel()
+
+    -- Respect max-level visibility preference for standalone bars
+    if self:IsPlayerAtMaxLevel() and (Addon.db and Addon.db.showBarAtMaxLevel == false) then
         self:Hide()
+        self._isUpdating = nil
         return
+    end
+
+    local parent = self:GetParent()
+    -- Only show the container for the active view
+    local activeView = Addon.XPBar and Addon.XPBar:GetActiveView()
+    if activeView == self and parent then
+        parent:Show()
     end
 
     -- Call base update logic
@@ -420,6 +597,7 @@ function CircularXPBarMixin:FullUpdate()
     -- Update text visibility and content
     self:UpdateTextVisibility()
     self:UpdateAllText()
+    self._isUpdating = nil
 end
 
 function CircularXPBarMixin:UpdateBarDisplay()
@@ -428,6 +606,8 @@ function CircularXPBarMixin:UpdateBarDisplay()
         print("CircularXPBar ERROR: Missing required methods!")
         return
     end
+
+    self.state.maxLevel = self:GetEffectiveMaxLevel()
     
     -- Check if at max level and should hide
     local atMaxLevel = self:IsPlayerAtMaxLevel()
@@ -435,7 +615,15 @@ function CircularXPBarMixin:UpdateBarDisplay()
     
     if atMaxLevel and not showAtMax then
         self:Hide()  -- Hide SELF, not parent
+        self._isUpdating = nil
         return
+    end
+
+    local parent = self:GetParent()
+    -- Only show the container for the active view
+    local activeView = Addon.XPBar and Addon.XPBar:GetActiveView()
+    if activeView == self and parent then
+        parent:Show()
     end
     
     -- Calculate what to show (state)
@@ -456,7 +644,9 @@ function CircularXPBarMixin:UpdateBarDisplay()
 end
 
 function CircularXPBarMixin:OnShow()
-    self:FullUpdate()
+    if not self._isUpdating then
+        self:FullUpdate()
+    end
 end
 
 function CircularXPBarMixin:Initialize()

@@ -35,6 +35,7 @@ ui/options/Options.lua
 ui/xpbar/XPBar.lua
 
 # XP Bar Views (Separate implementations)
+ui/xpbar/XPBarTooltip.lua
 ui/xpbar/XPBarMixinBase.lua
 
 # Stats Module (Consolidated)

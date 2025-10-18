@@ -125,6 +125,8 @@ end
 -----------------------------------
 -- Legacy XP Bar Mixin (Blizzard-style)
 -----------------------------------
+---@class LegacyXPBarMixin : XPBarMixinBase
+---@field StatusBar XPStatusBar
 LegacyXPBarMixin = CreateFromMixins(XPBarMixinBase)
 
 function LegacyXPBarMixin:OnLoad()
@@ -150,7 +152,9 @@ function LegacyXPBarMixin:OnEvent(event, ...)
 end
 
 function LegacyXPBarMixin:OnShow()
-	self:FullUpdate()
+	if not self._isUpdating then
+		self:FullUpdate()
+	end
 end
 
 function LegacyXPBarMixin:OnHide()
@@ -322,59 +326,71 @@ end
 -- NEW ARCHITECTURE: Apply calculated layout to UI
 function LegacyXPBarMixin:ApplyLayout(layout)
 	if not layout.visible then
-		self:Hide()
+		if self.HideQuestOverlays then
+			self:HideQuestOverlays()
+		end
 		return
 	end
+
+	local parent = self:GetParent()
+	-- Only show the container for the active view; avoid revealing inactive views
+	local activeView = Addon.XPBar and Addon.XPBar:GetActiveView()
+	if activeView == self and parent then
+		parent:Show()
+	end
+
+	---@type XPStatusBar
+	local statusBar = self.StatusBar
 	
 	-- Update main bar (already animated separately)
 	-- Note: Main bar animation is handled by the animation system
 	
 	-- Apply quest complete overlay (now with user customizable color)
-	if layout.questComplete.visible and self.StatusBar and self.StatusBar.QuestOverlayComplete then
+	if layout.questComplete.visible and statusBar and statusBar.QuestOverlayComplete then
 		-- Use user's quest complete color
 		local color = XPBarColors:GetUserColor(Color.QuestComplete)
-		self.StatusBar.QuestOverlayComplete:SetVertexColor(color.r, color.g, color.b, color.a)
-		self.StatusBar.QuestOverlayComplete:ClearAllPoints()
-		self.StatusBar.QuestOverlayComplete:SetPoint("BOTTOMLEFT", self.StatusBar, "BOTTOMLEFT", layout.questComplete.offsetPixels, 0)
-		self.StatusBar.QuestOverlayComplete:SetWidth(layout.questComplete.pixels)
-		self.StatusBar.QuestOverlayComplete:Show()
-	elseif self.StatusBar and self.StatusBar.QuestOverlayComplete then
-		self.StatusBar.QuestOverlayComplete:Hide()
+		statusBar.QuestOverlayComplete:SetVertexColor(color.r, color.g, color.b, color.a)
+		statusBar.QuestOverlayComplete:ClearAllPoints()
+		statusBar.QuestOverlayComplete:SetPoint("BOTTOMLEFT", statusBar, "BOTTOMLEFT", layout.questComplete.offsetPixels, 0)
+		statusBar.QuestOverlayComplete:SetWidth(layout.questComplete.pixels)
+		statusBar.QuestOverlayComplete:Show()
+	elseif statusBar and statusBar.QuestOverlayComplete then
+		statusBar.QuestOverlayComplete:Hide()
 	end
 	
 	-- Apply quest incomplete overlay (now with user customizable color)
-	if layout.questIncomplete.visible and self.StatusBar and self.StatusBar.QuestOverlayIncomplete then
+	if layout.questIncomplete.visible and statusBar and statusBar.QuestOverlayIncomplete then
 		-- Use user's quest incomplete color
 		local color = XPBarColors:GetUserColor(Color.QuestIncomplete)
-		self.StatusBar.QuestOverlayIncomplete:SetVertexColor(color.r, color.g, color.b, color.a)
-		self.StatusBar.QuestOverlayIncomplete:ClearAllPoints()
-		self.StatusBar.QuestOverlayIncomplete:SetPoint("BOTTOMLEFT", self.StatusBar, "BOTTOMLEFT", layout.questIncomplete.offsetPixels, 0)
-		self.StatusBar.QuestOverlayIncomplete:SetWidth(layout.questIncomplete.pixels)
-		self.StatusBar.QuestOverlayIncomplete:Show()
-	elseif self.StatusBar and self.StatusBar.QuestOverlayIncomplete then
-		self.StatusBar.QuestOverlayIncomplete:Hide()
+		statusBar.QuestOverlayIncomplete:SetVertexColor(color.r, color.g, color.b, color.a)
+		statusBar.QuestOverlayIncomplete:ClearAllPoints()
+		statusBar.QuestOverlayIncomplete:SetPoint("BOTTOMLEFT", statusBar, "BOTTOMLEFT", layout.questIncomplete.offsetPixels, 0)
+		statusBar.QuestOverlayIncomplete:SetWidth(layout.questIncomplete.pixels)
+		statusBar.QuestOverlayIncomplete:Show()
+	elseif statusBar and statusBar.QuestOverlayIncomplete then
+		statusBar.QuestOverlayIncomplete:Hide()
 	end
 	
 	-- Apply rested overlay (now with user customizable color)
-	if layout.rested.visible and not layout.rested.isFullyRested and self.StatusBar and self.StatusBar.ExhaustionLevelFillBar then
+	if layout.rested.visible and not layout.rested.isFullyRested and statusBar and statusBar.ExhaustionLevelFillBar then
 		-- Apply user's rested overlay color
 		local restedColor = XPBarColors:GetUserColor(Color.Rested)
-		self.StatusBar.ExhaustionLevelFillBar:SetVertexColor(restedColor.r, restedColor.g, restedColor.b, restedColor.a)
-		self.StatusBar.ExhaustionLevelFillBar:ClearAllPoints()
-		self.StatusBar.ExhaustionLevelFillBar:SetPoint("BOTTOMLEFT", self.StatusBar, "BOTTOMLEFT", layout.rested.offsetPixels, 0)
-		self.StatusBar.ExhaustionLevelFillBar:SetWidth(layout.rested.pixels)
-		self.StatusBar.ExhaustionLevelFillBar:Show()
+		statusBar.ExhaustionLevelFillBar:SetVertexColor(restedColor.r, restedColor.g, restedColor.b, restedColor.a)
+		statusBar.ExhaustionLevelFillBar:ClearAllPoints()
+		statusBar.ExhaustionLevelFillBar:SetPoint("BOTTOMLEFT", statusBar, "BOTTOMLEFT", layout.rested.offsetPixels, 0)
+		statusBar.ExhaustionLevelFillBar:SetWidth(layout.rested.pixels)
+		statusBar.ExhaustionLevelFillBar:Show()
 		
 		-- Show exhaustion tick if appropriate (now child of StatusBar)
-		if self.StatusBar.ExhaustionTick and layout.rested.showTick then
-			self.StatusBar.ExhaustionTick:Show()
-		elseif self.StatusBar.ExhaustionTick then
-			self.StatusBar.ExhaustionTick:Hide()
+		if statusBar.ExhaustionTick and layout.rested.showTick then
+			statusBar.ExhaustionTick:Show()
+		elseif statusBar.ExhaustionTick then
+			statusBar.ExhaustionTick:Hide()
 		end
-	elseif self.StatusBar and self.StatusBar.ExhaustionLevelFillBar then
-		self.StatusBar.ExhaustionLevelFillBar:Hide()
-		if self.StatusBar.ExhaustionTick then
-			self.StatusBar.ExhaustionTick:Hide()
+	elseif statusBar and statusBar.ExhaustionLevelFillBar then
+		statusBar.ExhaustionLevelFillBar:Hide()
+		if statusBar.ExhaustionTick then
+			statusBar.ExhaustionTick:Hide()
 		end
 	end
 end
