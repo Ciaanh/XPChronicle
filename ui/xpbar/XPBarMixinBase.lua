@@ -119,12 +119,6 @@ end
 
 -- Common event handler
 function XPBarMixinBase:HandleEvent(event, ...)
-	-- Don't process events if we're not visible (except PLAYER_ENTERING_WORLD)
-	-- This prevents hidden bars from updating and potentially causing issues
-	if event ~= "PLAYER_ENTERING_WORLD" and not self:IsVisible() then
-		return
-	end
-	
 	if event == "PLAYER_XP_UPDATE" then
 		self:UpdateXP()
 		-- Update text that depends on XP
@@ -139,10 +133,7 @@ function XPBarMixinBase:HandleEvent(event, ...)
 		-- Update quest summary (includes rested info)
 		self:UpdateQuestSummaryText()
 	elseif event == "PLAYER_ENTERING_WORLD" then
-		-- Only update if visible
-		if self:IsVisible() then
-			self:FullUpdate()
-		end
+		self:FullUpdate()
 	elseif event == "TIME_PLAYED_MSG" then
 		-- Update session text when we receive time played data
 		self:UpdateSessionText()
