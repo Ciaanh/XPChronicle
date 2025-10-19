@@ -1,7 +1,5 @@
 -- XP Bar Enhanced - Legacy XP Bar Mixin (Blizzard-style with atlases)
--- Uses XPBarMixinBase for shared functionality
 
--- Addon namespace
 local Addon = XPBarEnhanced
 
 -- Get shared dimensions

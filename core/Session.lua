@@ -1,6 +1,5 @@
 -- XP Bar Enhanced - Session.lua
--- Simplified session tracking (Phase 2)
--- Consolidates: SessionService.lua + TimePlayedService.lua
+-- Manages player session data such as XP gained and time played
 
 local Addon = XPBarEnhanced
 Addon.Session = Addon.Session or {}

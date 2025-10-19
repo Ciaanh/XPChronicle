@@ -1,9 +1,6 @@
 -- VerticalXPBarMixin.lua
 -- Vertical XP bar where new XP "falls down" from the top with gravity animation
 
----@diagnostic disable: undefined-global, undefined-field, assign-type-mismatch
-
-local ADDON_NAME = "XPBarEnhanced"
 local Addon = XPBarEnhanced
 
 VerticalXPBarMixin = CreateFromMixins(XPBarMixinBase)

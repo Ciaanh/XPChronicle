@@ -1,7 +1,5 @@
 -- XP Bar Enhanced - Flat XP Bar Mixin (Solid colors, modern style)
--- Uses XPBarMixinBase for shared logic
 
--- Addon namespace
 local Addon = XPBarEnhanced
 
 -- Get shared dimensions

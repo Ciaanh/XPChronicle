@@ -1,20 +1,9 @@
 -- XP Bar Enhanced - XPBar Core Module
--- Consolidates: XPBarController, QuestXPService, TextFormatter, Tooltip, BlizzardBarControl
--- Coordinates XP bar display logic and delegates to view implementations (Legacy/Flat/Future)
+-- Coordinates XP bar display logic and delegates to view implementations
 
 local Addon = XPBarEnhanced
 
 local XPBar = {}
-
---------------------------------------------------------------------------------
--- Constants & Configuration
---------------------------------------------------------------------------------
-
--- Color access (now delegated to Colors module)
--- Use: Addon.Colors:Get(Addon.Colors.Key.XpBar)
--- Kept for backward compatibility
-XPBar.COLORS = nil  -- Deprecated, use Addon.Colors
-XPBar.ColorKey = nil  -- Deprecated, use Addon.Colors.Key
 
 --------------------------------------------------------------------------------
 -- Quest XP Tracking (from QuestXPService.lua)

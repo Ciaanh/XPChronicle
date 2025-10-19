@@ -1,6 +1,5 @@
 -- XP Bar Enhanced - Config.lua
--- Merged configuration system (Phase 2)
--- Consolidates: Defaults.lua + Config.lua + OptionsMetadata.lua
+-- Centralized configuration management and defaults
 
 local Addon = XPBarEnhanced
 Addon.Config = Addon.Config or {}

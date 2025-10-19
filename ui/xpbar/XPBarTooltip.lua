@@ -1,4 +1,5 @@
 -- XP Bar Enhanced - Tooltip module (restored and improved from refs)
+
 local Addon = XPBarEnhanced
 local L = Addon.L or {}
 

@@ -1,9 +1,6 @@
 -- CircularXPBarMixin.lua
 -- Circular progress ring that fills clockwise from top (12 o'clock position)
 
----@diagnostic disable: undefined-global, undefined-field, assign-type-mismatch
-
-local ADDON_NAME = "XPBarEnhanced"
 local Addon = XPBarEnhanced
 
 ---@field OverlayFrame Frame
