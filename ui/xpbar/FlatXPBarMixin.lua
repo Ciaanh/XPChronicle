@@ -190,6 +190,9 @@ function FlatXPBarMixin:OnLoad()
 	-- Initialize shared state
 	self:InitializeState()
 
+	-- Identify style for debugging
+	self._barStyle = "Flat"
+
 	-- Initialize StatusBar with solid color
 	if self.StatusBar then
 		self.StatusBar:SetMinMaxValues(0, 1)
@@ -354,10 +357,16 @@ function FlatXPBarMixin:UpdateStatusBarColor()
 		return
 	end
 
-	local restedState = self:GetRestedState()
+	-- Use fully-rested visual when state indicates the rested portion covers
+	-- the remaining XP; otherwise, apply regular rested or XP bar coloring.
+	if self.state and self.state.isFullyRested then
+		local color = XPBarColors:GetUserColor(Color.XpBarRested)
+		self.StatusBar:SetStatusBarColor(color.r, color.g, color.b, color.a)
+		return
+	end
 
+	local restedState = self:GetRestedState()
 	if (restedState.isRested) then
-		-- Use user's rested color for rested gain
 		local color = XPBarColors:GetUserColor(Color.XpBarRested)
 		self.StatusBar:SetStatusBarColor(color.r, color.g, color.b, color.a)
 		return
@@ -375,12 +384,12 @@ function FlatXPBarMixin:SetFlashAlpha(alpha)
 
 	if alpha > 0 then
 		-- Check if this is a level-up flash (gold color)
-		if self.animationState and self.animationState.isLevelUpFlash then
+		if self.animation and self.animation.isLevelUpFlash then
 			-- Gold color for level-up celebration
 			self.GainFlash:SetColorTexture(1.0, 0.84, 0.0, alpha)
 		else
 			-- Update flash color based on rested state for XP gains
-			local isRested = self.animationState.isRestedGain
+			local isRested = self.animation and self.animation.isRestedGain
 			if isRested then
 				-- Use user's rested color for flash
 				local c = XPBarColors:GetUserColor(Color.Rested)
@@ -413,15 +422,17 @@ function FlatXPBarMixin:UpdateRested()
 	if restedDims then
 		self.state.restedXP = restedDims.restedXP
 
-		-- Hide overlay if fully rested (same logic as Blizzard)
-		if restedDims.isFullyRested then
-			self.StatusBar.RestedOverlay:Hide()
-		else
-			-- Position overlay after quest overlays
-			local questOffset = restedDims.questOffset or 0
-			local offsetPixels = math.floor((questOffset / self.state.maxXP) * BAR_WIDTH)
-			local width = restedDims.restedWidth
+		-- Show the rested overlay whenever there is a non-zero rested overlay portion
+		-- even if the overall rested amount would fully cover the bar. The previous
+		-- behavior hid the overlay when the total (current + quests + rested)
+		-- exceeded the bar width which prevented the overlay from appearing for
+		-- large rested values (e.g. 147%). Instead, compute the actual overlay
+		-- width and display it when > 0.
+		local questOffset = restedDims.questOffset or 0
+		local offsetPixels = math.floor((questOffset / self.state.maxXP) * BAR_WIDTH)
+		local width = restedDims.restedWidth
 
+		if width and width > 0 then
 			-- Bounds check: ensure we don't exceed bar width
 			if offsetPixels + width <= BAR_WIDTH + 1 then -- +1 for floating point tolerance
 				-- Update overlay size and position
@@ -439,9 +450,11 @@ function FlatXPBarMixin:UpdateRested()
 					statusBar.RestedOverlay:Show()
 				else
 					statusBar.RestedOverlay:SetWidth(0)
-					self.StatusBar.RestedOverlay:Hide()
+					statusBar.RestedOverlay:Hide()
 				end
 			end
+		else
+			statusBar.RestedOverlay:Hide()
 		end
 	else
 		self.StatusBar.RestedOverlay:Hide()
@@ -518,7 +531,12 @@ function FlatXPBarMixin:ApplyLayout(layout)
 	end
 
 	-- Apply rested overlay
-	if layout.rested.visible and not layout.rested.isFullyRested and self.StatusBar.RestedOverlay then
+	-- Phase 4: if the rested portion fully covers the remaining XP, hide
+	-- the overlay and let the view change the gained-XP visuals to indicate
+	-- a fully-rested state. Otherwise show the rested overlay for the
+	-- partial rested portion.
+	self.state.isFullyRested = (layout.rested and layout.rested.isFullyRested) or false
+	if layout.rested.visible and not layout.rested.isFullyRested and (layout.rested.pixels or 0) > 0 and self.StatusBar.RestedOverlay then
 		-- Apply user color (fresh from config)
 		local c = XPBarColors:GetUserColor(Color.Rested)
 		self.StatusBar.RestedOverlay:SetVertexColor(c.r, c.g, c.b, c.a)

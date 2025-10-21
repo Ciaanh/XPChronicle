@@ -147,6 +147,9 @@ local LegacyXPBarMixin = CreateFromMixins(XPBarMixinBase)
 function LegacyXPBarMixin:OnLoad()
 	-- Initialize shared state
 	self:InitializeState()
+
+	-- Identify style for debugging
+	self._barStyle = "Legacy"
 	
 	-- Initialize StatusBar
 	if self.StatusBar then
@@ -255,14 +258,20 @@ function LegacyXPBarMixin:UpdateStatusBarColor()
 		return 
 	end
 	
+	-- If the view layout indicates fully-rested, prefer the fully-rested
+	-- visual (whole-bar rested color). Otherwise fall back to restoring the
+	-- regular XP bar color.
+	if self.state and self.state.isFullyRested then
+		local color = XPBarColors:GetUserColor(Color.XpBarRested)
+		self.StatusBar:SetStatusBarColor(color.r, color.g, color.b, color.a)
+		return
+	end
+
 	local restedState = self:GetRestedState()
-	
 	if restedState.isRested then
-		-- Use user's rested color for rested state
 		local color = XPBarColors:GetUserColor(Color.XpBarRested)
 		self.StatusBar:SetStatusBarColor(color.r, color.g, color.b, color.a)
 	else
-		-- Use user's normal XP bar color
 		local color = XPBarColors:GetUserColor(Color.XpBar)
 		self.StatusBar:SetStatusBarColor(color.r, color.g, color.b, color.a)
 	end
@@ -281,12 +290,12 @@ function LegacyXPBarMixin:SetFlashAlpha(alpha)
 	
 	if alpha > 0 then
 		-- Check if this is a level-up flash (gold color)
-		if self.animationState and self.animationState.isLevelUpFlash then
+		if self.animation and self.animation.isLevelUpFlash then
 			-- Gold color for level-up celebration
 			self.GainFlash:SetColorTexture(1.0, 0.84, 0.0, alpha)
 		else
 			-- Update flash color based on rested state for XP gains
-			local isRested = self.animationState and self.animationState.isRestedGain
+			local isRested = self.animation and self.animation.isRestedGain
 			if isRested then
 				-- Use user's rested overlay color for flash
 				local c = XPBarColors:GetUserColor(Color.Rested)
@@ -315,44 +324,43 @@ function LegacyXPBarMixin:UpdateRested()
 	
 	if restedDims then
 		self.state.restedXP = restedDims.restedXP
-		
-		-- Hide overlay if fully rested (Blizzard behavior)
+
+		-- If rested amount fully covers remaining XP, do not draw the overlay;
+		-- the view will present a fully-rested visual instead (e.g. changed
+		-- gain color). Otherwise draw the partial rested overlay as usual.
 		if restedDims.isFullyRested then
 			self.ExhaustionLevelFillBar:Hide()
 			if self.ExhaustionTick then
 				self.ExhaustionTick:Hide()
 			end
 		else
-			-- Position overlay after quest overlays
 			local questOffset = restedDims.questOffset or 0
 			local offsetPixels = math.floor((questOffset / self.state.maxXP) * BAR_WIDTH)
 			local width = restedDims.restedWidth
-			
-			-- Bounds check: ensure we don't exceed bar width
-			if offsetPixels + width <= BAR_WIDTH + 1 then  -- +1 for floating point tolerance
-				-- Update texture size and position
-				self.ExhaustionLevelFillBar:ClearAllPoints()
-				self.ExhaustionLevelFillBar:SetPoint("BOTTOMLEFT", self, "BOTTOMLEFT", offsetPixels, 0)
-				self.ExhaustionLevelFillBar:SetWidth(math.max(1, width))  -- Minimum 1 pixel
-				self.ExhaustionLevelFillBar:Show()
-			else
-				-- Clamp to remaining space
-				local remainingWidth = math.max(0, BAR_WIDTH - offsetPixels)
-				if remainingWidth > 1 then
+
+			if width and width > 0 then
+				-- Bounds check: ensure we don't exceed bar width
+				if offsetPixels + width <= BAR_WIDTH + 1 then
 					self.ExhaustionLevelFillBar:ClearAllPoints()
 					self.ExhaustionLevelFillBar:SetPoint("BOTTOMLEFT", self, "BOTTOMLEFT", offsetPixels, 0)
-					self.ExhaustionLevelFillBar:SetWidth(remainingWidth)
+					self.ExhaustionLevelFillBar:SetWidth(math.max(1, width))
 					self.ExhaustionLevelFillBar:Show()
 				else
-					self.ExhaustionLevelFillBar:SetWidth(0)
-					self.ExhaustionLevelFillBar:Hide()
-					if self.ExhaustionTick then
-						self.ExhaustionTick:Hide()
+					local remainingWidth = math.max(0, BAR_WIDTH - offsetPixels)
+					if remainingWidth > 1 then
+						self.ExhaustionLevelFillBar:ClearAllPoints()
+						self.ExhaustionLevelFillBar:SetPoint("BOTTOMLEFT", self, "BOTTOMLEFT", offsetPixels, 0)
+						self.ExhaustionLevelFillBar:SetWidth(remainingWidth)
+						self.ExhaustionLevelFillBar:Show()
+					else
+						self.ExhaustionLevelFillBar:SetWidth(0)
+						self.ExhaustionLevelFillBar:Hide()
 					end
 				end
+			else
+				self.ExhaustionLevelFillBar:Hide()
 			end
-			
-			-- Show exhaustion tick ONLY if not at edges
+
 			if self.ExhaustionTick then
 				if restedDims.showTick then
 					self.ExhaustionTick:Show()
@@ -363,7 +371,6 @@ function LegacyXPBarMixin:UpdateRested()
 		end
 	else
 		self.ExhaustionLevelFillBar:Hide()
-		
 		if self.ExhaustionTick then
 			self.ExhaustionTick:Hide()
 		end
@@ -421,8 +428,12 @@ function LegacyXPBarMixin:ApplyLayout(layout)
 		statusBar.QuestOverlayIncomplete:Hide()
 	end
 	
-	-- Apply rested overlay (now with user customizable color)
-	if layout.rested.visible and not layout.rested.isFullyRested and statusBar and statusBar.ExhaustionLevelFillBar then
+	-- Apply rested overlay (now with user customizable color).
+	-- If rested portion fully covers remaining XP, we hide the overlay and
+	-- let the view present fully-rested visuals; otherwise show the partial
+	-- rested overlay.
+	self.state.isFullyRested = (layout.rested and layout.rested.isFullyRested) or false
+	if layout.rested.visible and not layout.rested.isFullyRested and (layout.rested.pixels or 0) > 0 and statusBar and statusBar.ExhaustionLevelFillBar then
 		-- Apply user's rested overlay color
 		local restedColor = XPBarColors:GetUserColor(Color.Rested)
 		statusBar.ExhaustionLevelFillBar:SetVertexColor(restedColor.r, restedColor.g, restedColor.b, restedColor.a)
@@ -430,7 +441,7 @@ function LegacyXPBarMixin:ApplyLayout(layout)
 		statusBar.ExhaustionLevelFillBar:SetPoint("BOTTOMLEFT", statusBar, "BOTTOMLEFT", layout.rested.offsetPixels, 0)
 		statusBar.ExhaustionLevelFillBar:SetWidth(layout.rested.pixels)
 		statusBar.ExhaustionLevelFillBar:Show()
-		
+
 		-- Show exhaustion tick if appropriate (now child of StatusBar)
 		if statusBar.ExhaustionTick and layout.rested.showTick then
 			statusBar.ExhaustionTick:Show()

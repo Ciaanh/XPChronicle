@@ -882,46 +882,89 @@ end
 --------------------------------------------------------------------------------
 
 function XPBar:Initialize()
-    -- Register quest events
-    self:RegisterQuestEvents()
-    
-    -- Load saved bar style and show the appropriate bar
-    local style = Addon.db and Addon.db.barStyle or "legacy"
-    self:SetBarStyle(style, true)
-    
-    -- Initial update
-    self:Update()
-    
-    -- Start periodic updates for time-based displays
-    self:StartPeriodicUpdates()
+	-- Register for centralized XP events
+	self:RegisterXPEvents()
+	
+	-- Register quest events
+	self:RegisterQuestEvents()
+	
+	-- Load saved bar style and show the appropriate bar
+	local style = Addon.db and Addon.db.barStyle or "legacy"
+	self:SetBarStyle(style, true)
+	
+	-- Initial update
+	self:Update()
+	
+	-- Start periodic updates for time-based displays
+	self:StartPeriodicUpdates()
 end
 
 function XPBar:Update()
-    if self.currentView and self.currentView.FullUpdate then
-        self.currentView:FullUpdate()
-    end
+	if self.currentView and self.currentView.FullUpdate then
+		self.currentView:FullUpdate()
+	end
+end
+
+function XPBar:RegisterXPEvents()
+	-- Create centralized XP event frame (controller handles PLAYER_XP_UPDATE)
+	if self.xpEventFrame then
+		return
+	end
+
+	local frame = CreateFrame("Frame")
+	frame:RegisterEvent("PLAYER_XP_UPDATE")
+	frame:RegisterEvent("PLAYER_LEVEL_UP")
+	frame:RegisterEvent("UPDATE_EXHAUSTION")
+
+    -- Initialize global XP snapshot immediately so the first PLAYER_XP_UPDATE
+    -- handler has a sensible "before" value instead of defaulting to 0.
+    -- This prevents the first animation from appearing to start at 0 XP.
+    Addon._lastKnownXP = Addon._lastKnownXP or UnitXP("player")
+    Addon._lastKnownLevel = Addon._lastKnownLevel or UnitLevel("player")
+
+    frame:RegisterEvent("PLAYER_ENTERING_WORLD")
+
+    frame:SetScript("OnEvent", function(_, event, ...)
+        if event == "PLAYER_XP_UPDATE" then
+            self:HandleXPUpdate()
+        elseif event == "PLAYER_LEVEL_UP" then
+            local newLevel = ...
+            self:OnLevelUp(newLevel)
+        elseif event == "UPDATE_EXHAUSTION" then
+            -- Update rested state for active view
+            if self.currentView and self.currentView.FullUpdate then
+                self.currentView:FullUpdate()
+            end
+        elseif event == "PLAYER_ENTERING_WORLD" then
+            -- On login/reload, set the global XP snapshot so the first XP gain uses the correct previous value
+            Addon._lastKnownXP = UnitXP("player")
+            Addon._lastKnownLevel = UnitLevel("player")
+        end
+    end)
+
+	self.xpEventFrame = frame
 end
 
 function XPBar:RegisterQuestEvents()
-    -- Avoid creating multiple frames
-    if self.questEventFrame then
-        return
-    end
+	-- Avoid creating multiple frames
+	if self.questEventFrame then
+		return
+	end
+	
+	local frame = CreateFrame("Frame")
+	frame:RegisterEvent("QUEST_ACCEPTED")
+	frame:RegisterEvent("QUEST_REMOVED")
+	frame:RegisterEvent("QUEST_TURNED_IN")
+	frame:RegisterEvent("QUEST_LOG_UPDATE")
+	frame:RegisterEvent("UNIT_QUEST_LOG_CHANGED")
+	frame:RegisterEvent("QUEST_WATCH_UPDATE")
 
-    local frame = CreateFrame("Frame")
-    frame:RegisterEvent("QUEST_ACCEPTED")
-    frame:RegisterEvent("QUEST_REMOVED")
-    frame:RegisterEvent("QUEST_TURNED_IN")
-    frame:RegisterEvent("QUEST_LOG_UPDATE")
-    frame:RegisterEvent("UNIT_QUEST_LOG_CHANGED")
-    frame:RegisterEvent("QUEST_WATCH_UPDATE")
+	frame:SetScript("OnEvent", function(_, event, ...)
+		-- Filter unit events to player only via OnQuestEvent
+		self:OnQuestEvent(event, ...)
+	end)
 
-    frame:SetScript("OnEvent", function(_, event, ...)
-        -- Filter unit events to player only via OnQuestEvent
-        self:OnQuestEvent(event, ...)
-    end)
-
-    self.questEventFrame = frame
+	self.questEventFrame = frame
 end
 
 function XPBar:ShutdownQuestEventHandling()
@@ -936,31 +979,107 @@ end
 -- Event Handlers
 --------------------------------------------------------------------------------
 
+-- Centralized XP Update Handler (Phase 1-2: Immutable Context Pattern)
+function XPBar:HandleXPUpdate()
+	local activeView = self:GetActiveView()
+	if not activeView then
+		-- No active view, just update global snapshot
+		Addon._lastKnownXP = UnitXP("player")
+		return
+	end
+	
+	-- Build immutable animation context from global snapshot
+	local prevXP = Addon._lastKnownXP or 0
+	local currentXP = UnitXP("player")
+	local maxXP = UnitXPMax("player")
+	local level = UnitLevel("player")
+
+	
+    -- Detect special cases
+    local prevLevel = Addon._lastKnownLevel or level
+    local isLevelUp = (level > prevLevel)
+    local restedXP = GetXPExhaustion() or 0
+    local isRested = restedXP > 0
+    -- Determine whether rested XP covers the remaining XP for the level
+    local remainingBefore = math.max(0, maxXP - prevXP)
+    local isFullyRested = restedXP >= remainingBefore
+	
+	-- Create immutable context (never modified after creation)
+	local context = {
+		-- Logical state (immutable)
+		xpBefore = prevXP,
+		xpAfter = currentXP,
+		xpMax = maxXP,
+		xpGained = math.max(0, currentXP - prevXP),
+		
+		-- Metadata
+		level = level,
+		prevLevel = prevLevel,
+		isLevelUp = isLevelUp,
+    isRested = isRested,
+    restedXP = restedXP,
+    isFullyRested = isFullyRested,
+		timestamp = GetTime(),
+		
+		-- Source tracking
+		source = "PLAYER_XP_UPDATE",
+	}
+	
+    -- Dispatch immutable context to the active view. All built-in views implement
+    -- AnimateXPChange; keep a compatibility fallback to UpdateXP() for any
+    -- non-conforming or external view implementations.
+    if activeView and activeView.AnimateXPChange then
+        activeView:AnimateXPChange(context)
+    else
+        -- No compatible animation consumer available; log for diagnostics
+        DebugLog(1, "[XPBar] No AnimateXPChange() implementation on active view; update skipped")
+    end
+	
+	-- Update global snapshot AFTER dispatch (so next event sees this as "before")
+	Addon._lastKnownXP = currentXP
+	Addon._lastKnownLevel = level
+	
+	-- Update all non-active views' state without animation
+	for _, view in pairs({self:GetLegacyView(), self:GetFlatView(), self:GetVerticalView(), self:GetCircularView()}) do
+		if view and view ~= activeView then
+			-- Sync state only (no animation)
+			if view.state then
+				view.state.currentXP = currentXP
+				view.state.maxXP = maxXP
+			end
+			-- Update previousXP for consistency
+			if view.animation then
+				view.animation.previousXP = currentXP
+			end
+		end
+	end
+end
+
 function XPBar:OnXPUpdate()
-    self:Update()
+	self:Update()
 end
 
 function XPBar:OnLevelUp(newLevel)
-    self:InvalidateQuestCache()
-    self:Update()
+	self:InvalidateQuestCache()
+	self:Update()
 end
 
 function XPBar:OnQuestEvent(event, ...)
-    self:InvalidateQuestCache()
-    
-    -- Delayed update to ensure quest log is updated (cancelable)
-    if self._questUpdateTimer then
-        pcall(function() self._questUpdateTimer:Cancel() end)
-        self._questUpdateTimer = nil
-    end
-    self._questUpdateTimer = C_Timer.NewTimer(0.5, function()
-        if not self or not self.Update then
-            self._questUpdateTimer = nil
-            return
-        end
-        self:Update()
-        self._questUpdateTimer = nil
-    end)
+	self:InvalidateQuestCache()
+	
+	-- Delayed update to ensure quest log is updated (cancelable)
+	if self._questUpdateTimer then
+		pcall(function() self._questUpdateTimer:Cancel() end)
+		self._questUpdateTimer = nil
+	end
+	self._questUpdateTimer = C_Timer.NewTimer(0.5, function()
+		if not self or not self.Update then
+			self._questUpdateTimer = nil
+			return
+		end
+		self:Update()
+		self._questUpdateTimer = nil
+	end)
 end
 
 function XPBar:OnEnteringWorld(isInitialLogin, isReloadingUI)
@@ -971,28 +1090,31 @@ function XPBar:OnEnteringWorld(isInitialLogin, isReloadingUI)
 end
 
 function XPBar:Shutdown()
-    -- Cancel any pending quest update timer
-    if self._questUpdateTimer then
-        pcall(function() self._questUpdateTimer:Cancel() end)
-        self._questUpdateTimer = nil
-    end
+	-- Cancel any pending quest update timer
+	if self._questUpdateTimer then
+		pcall(function() self._questUpdateTimer:Cancel() end)
+		self._questUpdateTimer = nil
+	end
 
-    -- Stop periodic updates
-    self:StopPeriodicUpdates()
+	-- Stop periodic updates
+	self:StopPeriodicUpdates()
 
-    -- (No global animation registry in this build; per-view handlers are frame-driven.)
+	-- Shutdown centralized XP event handling
+	if self.xpEventFrame then
+		self.xpEventFrame:UnregisterAllEvents()
+		self.xpEventFrame:SetScript("OnEvent", nil)
+		self.xpEventFrame = nil
+	end
 
-    -- Clear active view reference
-    self.currentView = nil
-    self.currentViewType = nil
-    
-    -- Shutdown quest event handling
-    if self.ShutdownQuestEventHandling then
-        self:ShutdownQuestEventHandling()
-    end
-end
-
---------------------------------------------------------------------------------
+	-- Clear active view reference
+	self.currentView = nil
+	self.currentViewType = nil
+	
+	-- Shutdown quest event handling
+	if self.ShutdownQuestEventHandling then
+		self:ShutdownQuestEventHandling()
+	end
+end--------------------------------------------------------------------------------
 -- Registration
 --------------------------------------------------------------------------------
 

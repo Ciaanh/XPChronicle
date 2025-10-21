@@ -174,6 +174,8 @@ function VerticalXPBarMixin:OnLoad()
     
     -- Vertical bar specific setup
     self.orientation = "VERTICAL"
+    -- Identify style for debugging
+    self._barStyle = "Vertical"
     self.fillDirection = "BOTTOM_TO_TOP"
     
     -- Animation state
@@ -800,9 +802,8 @@ function VerticalXPBarMixin:FullUpdate()
     local currentXP = UnitXP("player")
     local maxXP = UnitXPMax("player")
     local targetRatio = (maxXP > 0) and (currentXP / maxXP) or 0
-    self.animationState.currentValue = targetRatio
-    self.animationState.targetValue = targetRatio
-    self.animationState.previousXP = currentXP
+    self._currentRatio = targetRatio
+    self.animation.previousXP = currentXP
     self:UpdateStatusBarValue(targetRatio)
 
     -- Update text visibility and content

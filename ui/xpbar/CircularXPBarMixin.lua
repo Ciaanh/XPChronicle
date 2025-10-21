@@ -180,6 +180,8 @@ function CircularXPBarMixin:OnLoad()
     
     -- Circular bar specific setup
     self.orientation = "CIRCULAR"
+    -- Identify style for debugging
+    self._barStyle = "Circular"
     self.segments = {}
     self.restedSegments = {}
     self.lastProgress = 0
@@ -828,9 +830,8 @@ function CircularXPBarMixin:FullUpdate()
     local currentXP = UnitXP("player")
     local maxXP = UnitXPMax("player")
     local targetRatio = (maxXP > 0) and (currentXP / maxXP) or 0
-    self.animationState.currentValue = targetRatio
-    self.animationState.targetValue = targetRatio
-    self.animationState.previousXP = currentXP
+    self._currentRatio = targetRatio
+    self.animation.previousXP = currentXP
     self:UpdateStatusBarValue(targetRatio)
 
     -- Update text visibility and content

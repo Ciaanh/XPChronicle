@@ -77,17 +77,54 @@ function Tooltip:AddQuestSection(tt)
     end
 
     local maxXP = UnitXPMax("player") or 1
-    if showComplete and complete and complete > 0 then
-        local pct = (complete / maxXP) * 100
+    -- Show completed quests XP + count if present; if XP == 0 but there are
+    -- completed quests, show the count only (useful for reputation/zero-XP quests)
+    if showComplete and ((complete or 0) > 0 or (completeCount or 0) > 0) then
         local c = (XPBarColors and XPBarColors.GetUserColor) and XPBarColors:GetUserColor(Color.QuestComplete) or { r=1,g=0.65,b=0 }
-        local countText = (completeCount == 1) and (L["TT_QUEST"] or "quest") or string.format(L["TT_QUESTS"] or "%d quests", completeCount)
-        tt:AddDoubleLine(L["TT_QUEST_XP_COMPLETE"] or "Completed quest XP:", string.format("%s (%.1f%%) - %s", fmtNumber(complete), pct, countText), c.r, c.g, c.b, c.r, c.g, c.b)
+        local countText = nil
+        if completeCount and completeCount > 0 then
+            if completeCount == 1 then
+                countText = string.format(L["TT_QUEST"] or "%d quest", completeCount)
+            else
+                countText = string.format(L["TT_QUESTS"] or "%d quests", completeCount)
+            end
+        end
+        if (complete or 0) > 0 then
+            local pct = (complete / maxXP) * 100
+            if countText then
+                tt:AddDoubleLine(L["TT_QUEST_XP_COMPLETE"] or "Completed quest XP:", string.format("%s (%.1f%%) - %s", fmtNumber(complete), pct, countText), c.r, c.g, c.b, c.r, c.g, c.b)
+            else
+                tt:AddDoubleLine(L["TT_QUEST_XP_COMPLETE"] or "Completed quest XP:", string.format("%s (%.1f%%)", fmtNumber(complete), pct), c.r, c.g, c.b, c.r, c.g, c.b)
+            end
+        else
+            if countText then
+                tt:AddDoubleLine(L["TT_QUEST_XP_COMPLETE"] or "Completed quest XP:", countText, c.r, c.g, c.b, c.r, c.g, c.b)
+            end
+        end
     end
-    if showIncomplete and incomplete and incomplete > 0 then
-        local pct = (incomplete / maxXP) * 100
+
+    if showIncomplete and ((incomplete or 0) > 0 or (incompleteCount or 0) > 0) then
         local c = (XPBarColors and XPBarColors.GetUserColor) and XPBarColors:GetUserColor(Color.QuestIncomplete) or { r=1,g=1,b=0 }
-        local countText = (incompleteCount == 1) and (L["TT_QUEST"] or "quest") or string.format(L["TT_QUESTS"] or "%d quests", incompleteCount)
-        tt:AddDoubleLine(L["TT_QUEST_XP_INCOMPLETE"] or "Incomplete quest XP:", string.format("%s (%.1f%%) - %s", fmtNumber(incomplete), pct, countText), c.r, c.g, c.b, c.r, c.g, c.b)
+        local countText = nil
+        if incompleteCount and incompleteCount > 0 then
+            if incompleteCount == 1 then
+                countText = string.format(L["TT_QUEST"] or "%d quest", incompleteCount)
+            else
+                countText = string.format(L["TT_QUESTS"] or "%d quests", incompleteCount)
+            end
+        end
+        if (incomplete or 0) > 0 then
+            local pct = (incomplete / maxXP) * 100
+            if countText then
+                tt:AddDoubleLine(L["TT_QUEST_XP_INCOMPLETE"] or "Incomplete quest XP:", string.format("%s (%.1f%%) - %s", fmtNumber(incomplete), pct, countText), c.r, c.g, c.b, c.r, c.g, c.b)
+            else
+                tt:AddDoubleLine(L["TT_QUEST_XP_INCOMPLETE"] or "Incomplete quest XP:", string.format("%s (%.1f%%)", fmtNumber(incomplete), pct), c.r, c.g, c.b, c.r, c.g, c.b)
+            end
+        else
+            if countText then
+                tt:AddDoubleLine(L["TT_QUEST_XP_INCOMPLETE"] or "Incomplete quest XP:", countText, c.r, c.g, c.b, c.r, c.g, c.b)
+            end
+        end
     end
 end
 
