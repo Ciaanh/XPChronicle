@@ -365,8 +365,8 @@ function FlatXPBarMixin:UpdateStatusBarColor()
 		return
 	end
 
-	local restedState = self:GetRestedState()
-	if (restedState.isRested) then
+	-- Check if player has rested XP available (not just in rested area)
+	if self.state and self.state.isRested then
 		local color = XPBarColors:GetUserColor(Color.XpBarRested)
 		self.StatusBar:SetStatusBarColor(color.r, color.g, color.b, color.a)
 		return
@@ -535,7 +535,7 @@ function FlatXPBarMixin:ApplyLayout(layout)
 	-- the overlay and let the view change the gained-XP visuals to indicate
 	-- a fully-rested state. Otherwise show the rested overlay for the
 	-- partial rested portion.
-	self.state.isFullyRested = (layout.rested and layout.rested.isFullyRested) or false
+	-- Note: isFullyRested state is now set in UpdateBarDisplay, not here
 	if layout.rested.visible and not layout.rested.isFullyRested and (layout.rested.pixels or 0) > 0 and self.StatusBar.RestedOverlay then
 		-- Apply user color (fresh from config)
 		local c = XPBarColors:GetUserColor(Color.Rested)
@@ -547,6 +547,9 @@ function FlatXPBarMixin:ApplyLayout(layout)
 	elseif self.StatusBar.RestedOverlay then
 		self.StatusBar.RestedOverlay:Hide()
 	end
+	
+	-- Update status bar color based on current state
+	self:UpdateStatusBarColor()
 end
 
 -----------------------------------

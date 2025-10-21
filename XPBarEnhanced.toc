@@ -13,6 +13,8 @@
 ## Version: 1.0.2
 
 ## SavedVariables: XPBarEnhancedDB
+## IconTexture: 4675649
+## Category: Quests & Leveling
 ## X-Category: Quests & Leveling
 ## X-Website: https://github.com/Ciaanh/XPBarEnhanced
 ## X-Curse-Project-ID: YOUR_PROJECT_ID_HERE

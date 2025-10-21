@@ -267,8 +267,8 @@ function LegacyXPBarMixin:UpdateStatusBarColor()
 		return
 	end
 
-	local restedState = self:GetRestedState()
-	if restedState.isRested then
+	-- Check if player has rested XP available (not just in rested area)
+	if self.state and self.state.isRested then
 		local color = XPBarColors:GetUserColor(Color.XpBarRested)
 		self.StatusBar:SetStatusBarColor(color.r, color.g, color.b, color.a)
 	else
@@ -432,7 +432,7 @@ function LegacyXPBarMixin:ApplyLayout(layout)
 	-- If rested portion fully covers remaining XP, we hide the overlay and
 	-- let the view present fully-rested visuals; otherwise show the partial
 	-- rested overlay.
-	self.state.isFullyRested = (layout.rested and layout.rested.isFullyRested) or false
+	-- Note: isFullyRested state is now set in UpdateBarDisplay, not here
 	if layout.rested.visible and not layout.rested.isFullyRested and (layout.rested.pixels or 0) > 0 and statusBar and statusBar.ExhaustionLevelFillBar then
 		-- Apply user's rested overlay color
 		local restedColor = XPBarColors:GetUserColor(Color.Rested)
@@ -454,6 +454,9 @@ function LegacyXPBarMixin:ApplyLayout(layout)
 			statusBar.ExhaustionTick:Hide()
 		end
 	end
+	
+	-- Update status bar color based on current state
+	self:UpdateStatusBarColor()
 end
 
 -----------------------------------
