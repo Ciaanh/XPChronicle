@@ -4,48 +4,45 @@ local Addon = XPBarEnhanced
 
 -- Get shared dimensions
 local BAR_WIDTH, BAR_HEIGHT = XPBarMixinBase.GetBarDimensions()
-BAR_HEIGHT = 30  -- Override for Flat bar height
+BAR_HEIGHT = 30 -- Override for Flat bar height
 
 -----------------------------------
 -- Container Mixin
 -----------------------------------
----@class FlatXPBarContainerMixin : Frame
----@field isDragging boolean
----@field SaveStoredPosition fun(self)
----@field InitPositionStorage fun(self, getter:fun():table, setter:fun(table), defaults:fun():table)
----@field EnableDrag fun(self, opts:table)
----@field RetryDraggingSetup fun(self)
-FlatXPBarContainerMixin = {}
+
+-- InitPositionStorage signature declared centrally in core/Types.lua
+
+local FlatXPBarContainerMixin = {}
 
 function FlatXPBarContainerMixin:OnLoad()
 	local Addon = XPBarEnhanced
-	
+
 	-- IMPORTANT: Stay hidden until controller shows us based on barStyle setting
 	self:Hide()
-	
+
 	-- Container sizing
 	if self.Bar then
 		self.Bar:SetSize(BAR_WIDTH, BAR_HEIGHT)
-		
+
 		if self.Bar.StatusBar then
 			self.Bar.StatusBar:SetSize(BAR_WIDTH, BAR_HEIGHT)
 		end
-		
+
 		-- Wire up text elements
 		self:WireTextElements()
 	end
-	
+
 	-- Enable dragging for Flat bar (Shift+drag)
 	self:SetFrameStrata("LOW")
 	self:SetMovable(true)
 	self:SetUserPlaced(false)
 	self:SetClampedToScreen(true)
 	self:EnableMouse(true)
-	
+
 	-- Get mixins and apply them
 	local PositionStoreMixin = Addon.UI and Addon.UI.Mixins and Addon.UI.Mixins.PositionStoreMixin
 	local DraggableFrameMixin = Addon.UI and Addon.UI.Mixins and Addon.UI.Mixins.DraggableFrameMixin
-	
+
 	if PositionStoreMixin and DraggableFrameMixin then
 		Mixin(self, PositionStoreMixin, DraggableFrameMixin)
 		self:InitPositionStorage(
@@ -61,18 +58,37 @@ function FlatXPBarContainerMixin:OnLoad()
 				return Addon.defaults and Addon.defaults.barPosition
 			end
 		)
-		
-		self:EnableDrag({
-			button = "LeftButton",
-			requireModifier = "SHIFT",
-		})
+
+		self:EnableDrag(
+			{
+				button = "LeftButton",
+				requireModifier = "SHIFT"
+			}
+		)
 	else
-		-- Schedule a retry after PLAYER_LOGIN
-		C_Timer.After(1, function()
-			if self.RetryDraggingSetup then
-				self:RetryDraggingSetup()
+		-- Schedule a retry after PLAYER_LOGIN (cancelable)
+		if self._dragRetryTimer then
+			pcall(
+				function()
+					self._dragRetryTimer:Cancel()
+				end
+			)
+			self._dragRetryTimer = nil
+		end
+		self._dragRetryTimer =
+			C_Timer.NewTimer(
+			1,
+			function()
+				if not self or not self:IsShown() then
+					self._dragRetryTimer = nil
+					return
+				end
+				if self.RetryDraggingSetup then
+					self:RetryDraggingSetup()
+				end
+				self._dragRetryTimer = nil
 			end
-		end)
+		)
 	end
 end
 
@@ -80,14 +96,14 @@ function FlatXPBarContainerMixin:WireTextElements()
 	if not self.Bar then
 		return
 	end
-	
+
 	-- Wire up on-bar text elements from OverlayFrame to main bar
 	if self.Bar.OverlayFrame then
 		self.Bar.LevelText = self.Bar.OverlayFrame.LevelText
 		self.Bar.XPText = self.Bar.OverlayFrame.XPText
 		self.Bar.PercentText = self.Bar.OverlayFrame.PercentText
 	end
-	
+
 	-- Wire up below-bar text elements to the bar for easy access
 	if self.BelowBarTextContainer then
 		self.Bar.RateText = self.BelowBarTextContainer.RateText
@@ -101,12 +117,23 @@ function FlatXPBarContainerMixin:OnShow()
 	self:WireTextElements()
 end
 
+function FlatXPBarContainerMixin:OnHide()
+	if self._dragRetryTimer then
+		pcall(
+			function()
+				self._dragRetryTimer:Cancel()
+			end
+		)
+		self._dragRetryTimer = nil
+	end
+end
+
 -- Retry dragging setup if mixins weren't available at OnLoad
 function FlatXPBarContainerMixin:RetryDraggingSetup()
 	local Addon = XPBarEnhanced
 	local PositionStoreMixin = Addon.UI and Addon.UI.Mixins and Addon.UI.Mixins.PositionStoreMixin
 	local DraggableFrameMixin = Addon.UI and Addon.UI.Mixins and Addon.UI.Mixins.DraggableFrameMixin
-	
+
 	if PositionStoreMixin and DraggableFrameMixin then
 		Mixin(self, PositionStoreMixin, DraggableFrameMixin)
 		self:InitPositionStorage(
@@ -122,11 +149,13 @@ function FlatXPBarContainerMixin:RetryDraggingSetup()
 				return Addon.defaults and Addon.defaults.barPosition
 			end
 		)
-		
-		self:EnableDrag({
-			button = "LeftButton",
-			requireModifier = "SHIFT",
-		})
+
+		self:EnableDrag(
+			{
+				button = "LeftButton",
+				requireModifier = "SHIFT"
+			}
+		)
 	end
 end
 
@@ -141,10 +170,12 @@ function FlatXPBarContainerMixin:SetLocked(locked)
 		self:SetMovable(true)
 		-- Re-enable drag if mixins are available
 		if self.EnableDrag then
-			self:EnableDrag({
-				button = "LeftButton",
-				requireModifier = "SHIFT",
-			})
+			self:EnableDrag(
+				{
+					button = "LeftButton",
+					requireModifier = "SHIFT"
+				}
+			)
 			self.isDraggable = true
 		end
 	end
@@ -153,29 +184,60 @@ end
 -----------------------------------
 -- Flat XP Bar Mixin (Solid colors)
 -----------------------------------
----@class FlatXPBarMixin : XPBarMixinBase
----@field StatusBar XPStatusBar
-FlatXPBarMixin = CreateFromMixins(XPBarMixinBase)
+local FlatXPBarMixin = CreateFromMixins(XPBarMixinBase)
 
 function FlatXPBarMixin:OnLoad()
 	-- Initialize shared state
 	self:InitializeState()
-	
+
 	-- Initialize StatusBar with solid color
 	if self.StatusBar then
 		self.StatusBar:SetMinMaxValues(0, 1)
 		self.StatusBar:SetValue(0)
-		
+
+		-- Use the StatusBar's default smoothing for the flat bar (legacy behavior).
+		-- Do not disable built-in smoothing here to avoid visible jumps when other
+		-- systems or templates drive the StatusBar value.
+
 		-- Set initial color based on rested state
 		self:UpdateStatusBarColor()
 	end
-	
+
 	-- Initialize overlay colors once
 	self:InitializeOverlayColors()
 
+	-- No StatusBar:SetValue hook for flat bar — rely on the widget's smoothing
+	-- instead of a complex override which can interact poorly with other addons.
+
 	-- Register common events
 	self:RegisterCommonEvents()
+
+	-- Mark this instance as the Flat/StatusBar-based bar so AnimateToValue can
+	-- use the StatusBar's native smoothing (if present) for visually reliable
+	-- interpolation.
+	self.isFlatBar = true
 end
+
+-- Set display value (override for StatusBar-based rendering)
+-- For flat bars, this is only called by non-animation code paths since
+-- flat bars use native StatusBar smoothing for animations.
+function FlatXPBarMixin:SetDisplayValue(ratio)
+	if not self.StatusBar then
+		return
+	end
+
+	ratio = tonumber(ratio) or 0
+	ratio = math.max(0, math.min(1, ratio))
+	self:UpdateStatusBarValue(ratio)
+end
+
+-- Export mixins into the Addon namespace (namespaced) and global table for XML compatibility
+Addon.Mixins = Addon.Mixins or {}
+Addon.Mixins.FlatXPBarContainerMixin = FlatXPBarContainerMixin
+Addon.Mixins.FlatXPBarMixin = FlatXPBarMixin
+-- Legacy compatibility
+_G.FlatXPBarContainerMixin = FlatXPBarContainerMixin
+_G.FlatXPBarMixin = FlatXPBarMixin
 
 function FlatXPBarMixin:OnEvent(event, ...)
 	-- Use base handler
@@ -183,21 +245,37 @@ function FlatXPBarMixin:OnEvent(event, ...)
 end
 
 function FlatXPBarMixin:OnShow()
+	if not self._eventsRegistered and self.RegisterCommonEvents then
+		self:RegisterCommonEvents()
+	end
+
 	if not self._isUpdating then
 		self:FullUpdate()
 	end
 end
 
 function FlatXPBarMixin:OnHide()
-	-- Unsubscribe from events to prevent memory leaks
+	-- Clean up timers and unsubscribe from events to prevent leaks
+	if self.CleanupTimers then
+		self:CleanupTimers()
+	end
 	if self.UnsubscribeFromEvents then
 		self:UnsubscribeFromEvents()
+	end
+
+	-- Restore original StatusBar SetValue method if we patched it
+	if self.StatusBar and self.StatusBar._xpbar_origSetValue then
+		pcall(function()
+			self.StatusBar.SetValue = self.StatusBar._xpbar_origSetValue
+			self.StatusBar._xpbar_origSetValue = nil
+			self.StatusBar._xpbar_owner = nil
+			self.StatusBar._xpbar_pendingExternal = nil
+		end)
 	end
 end
 
 -- Forward drag events to container for Shift+drag functionality
 function FlatXPBarMixin:OnMouseDown(button)
-	---@type FlatXPBarContainerMixin
 	local container = self:GetParent()
 	if container and IsShiftKeyDown() and button == "LeftButton" then
 		-- Forward drag to container
@@ -210,9 +288,8 @@ function FlatXPBarMixin:OnMouseDown(button)
 end
 
 function FlatXPBarMixin:OnMouseUp(button)
-	---@type FlatXPBarContainerMixin
 	local container = self:GetParent()
-	
+
 	-- Stop drag if active
 	if container and container.isDragging then
 		container:StopMovingOrSizing()
@@ -223,13 +300,13 @@ function FlatXPBarMixin:OnMouseUp(button)
 		end
 		return
 	end
-	
+
 	-- Alt + Click: Open options panel
 	if IsAltKeyDown() then
 		Addon.Config:OpenOptions()
 		return
 	end
-	
+
 	-- Ctrl + Click: Toggle stats window
 	if IsControlKeyDown() then
 		Addon.Stats:Toggle()
@@ -245,9 +322,10 @@ end
 -- Initialize overlay colors once at startup
 function FlatXPBarMixin:InitializeOverlayColors()
 	-- Overlays are now on StatusBar, not on self
-	if not self.StatusBar then return end
+	if not self.StatusBar then
+		return
+	end
 
-	---@type XPStatusBar
 	local statusBar = self.StatusBar
 
 	-- Rested overlay - now uses SetVertexColor since we added file="WHITE8X8"
@@ -255,7 +333,7 @@ function FlatXPBarMixin:InitializeOverlayColors()
 		local c = XPBarColors:GetUserColor(Color.Rested)
 		statusBar.RestedOverlay:SetVertexColor(c.r, c.g, c.b, c.a)
 	end
-	
+
 	-- Note: Quest overlay colors are set in ApplyLayout when shown
 	-- This allows dynamic color updates if needed
 end
@@ -264,7 +342,7 @@ end
 function FlatXPBarMixin:UpdateBarOverlayColors()
 	-- Update the main bar color immediately
 	self:UpdateStatusBarColor()
-	
+
 	-- Re-apply current layout to update overlay colors
 	local state = self:CalculateBarState()
 	local layout = self:CalculateBarLayout(state)
@@ -272,13 +350,13 @@ function FlatXPBarMixin:UpdateBarOverlayColors()
 end
 
 function FlatXPBarMixin:UpdateStatusBarColor()
-	if not self.StatusBar then 
-		return 
+	if not self.StatusBar then
+		return
 	end
-	
+
 	local restedState = self:GetRestedState()
-	
-	if(restedState.isRested) then
+
+	if (restedState.isRested) then
 		-- Use user's rested color for rested gain
 		local color = XPBarColors:GetUserColor(Color.XpBarRested)
 		self.StatusBar:SetStatusBarColor(color.r, color.g, color.b, color.a)
@@ -294,7 +372,7 @@ function FlatXPBarMixin:SetFlashAlpha(alpha)
 	if not self.GainFlash then
 		return
 	end
-	
+
 	if alpha > 0 then
 		-- Check if this is a level-up flash (gold color)
 		if self.animationState and self.animationState.isLevelUpFlash then
@@ -321,17 +399,20 @@ end
 
 -- Implementation-specific: Update rested XP overlay (solid color texture)
 function FlatXPBarMixin:UpdateRested()
-	if not self.StatusBar then return end
+	if not self.StatusBar then
+		return
+	end
 
-	---@type XPStatusBar
 	local statusBar = self.StatusBar
-	if not statusBar.RestedOverlay then return end
+	if not statusBar.RestedOverlay then
+		return
+	end
 
 	local restedDims = self:CalculateRestedDimensions()
-	
+
 	if restedDims then
 		self.state.restedXP = restedDims.restedXP
-		
+
 		-- Hide overlay if fully rested (same logic as Blizzard)
 		if restedDims.isFullyRested then
 			self.StatusBar.RestedOverlay:Hide()
@@ -342,11 +423,11 @@ function FlatXPBarMixin:UpdateRested()
 			local width = restedDims.restedWidth
 
 			-- Bounds check: ensure we don't exceed bar width
-			if offsetPixels + width <= BAR_WIDTH + 1 then  -- +1 for floating point tolerance
+			if offsetPixels + width <= BAR_WIDTH + 1 then -- +1 for floating point tolerance
 				-- Update overlay size and position
 				statusBar.RestedOverlay:ClearAllPoints()
 				statusBar.RestedOverlay:SetPoint("BOTTOMLEFT", statusBar, "BOTTOMLEFT", offsetPixels, 0)
-				statusBar.RestedOverlay:SetWidth(math.max(1, width))  -- Minimum 1 pixel
+				statusBar.RestedOverlay:SetWidth(math.max(1, width)) -- Minimum 1 pixel
 				statusBar.RestedOverlay:Show()
 			else
 				-- Clamp to remaining space
@@ -379,8 +460,10 @@ function FlatXPBarMixin:ApplyLayout(layout)
 		end
 		return
 	end
-	
-	if not self.StatusBar then return end
+
+	if not self.StatusBar then
+		return
+	end
 
 	local parent = self:GetParent()
 	-- Only show the container for the active view; avoid revealing inactive views
@@ -388,10 +471,10 @@ function FlatXPBarMixin:ApplyLayout(layout)
 	if activeView == self and parent then
 		parent:Show()
 	end
-	
+
 	-- Update main bar (already animated separately)
 	-- Note: Main bar animation is handled by the animation system
-	
+
 	-- Apply quest complete overlay
 	if layout.questComplete.visible and self.StatusBar.QuestOverlayComplete then
 		-- Get color fresh from user settings
@@ -400,13 +483,19 @@ function FlatXPBarMixin:ApplyLayout(layout)
 			self.StatusBar.QuestOverlayComplete:SetVertexColor(c.r, c.g, c.b, c.a)
 		end
 		self.StatusBar.QuestOverlayComplete:ClearAllPoints()
-		self.StatusBar.QuestOverlayComplete:SetPoint("BOTTOMLEFT", self.StatusBar, "BOTTOMLEFT", layout.questComplete.offsetPixels, 0)
+		self.StatusBar.QuestOverlayComplete:SetPoint(
+			"BOTTOMLEFT",
+			self.StatusBar,
+			"BOTTOMLEFT",
+			layout.questComplete.offsetPixels,
+			0
+		)
 		self.StatusBar.QuestOverlayComplete:SetWidth(layout.questComplete.pixels)
 		self.StatusBar.QuestOverlayComplete:Show()
 	elseif self.StatusBar.QuestOverlayComplete then
 		self.StatusBar.QuestOverlayComplete:Hide()
 	end
-	
+
 	-- Apply quest incomplete overlay
 	if layout.questIncomplete.visible and self.StatusBar.QuestOverlayIncomplete then
 		-- Get color fresh from user settings
@@ -415,13 +504,19 @@ function FlatXPBarMixin:ApplyLayout(layout)
 			self.StatusBar.QuestOverlayIncomplete:SetVertexColor(c.r, c.g, c.b, c.a)
 		end
 		self.StatusBar.QuestOverlayIncomplete:ClearAllPoints()
-		self.StatusBar.QuestOverlayIncomplete:SetPoint("BOTTOMLEFT", self.StatusBar, "BOTTOMLEFT", layout.questIncomplete.offsetPixels, 0)
+		self.StatusBar.QuestOverlayIncomplete:SetPoint(
+			"BOTTOMLEFT",
+			self.StatusBar,
+			"BOTTOMLEFT",
+			layout.questIncomplete.offsetPixels,
+			0
+		)
 		self.StatusBar.QuestOverlayIncomplete:SetWidth(layout.questIncomplete.pixels)
 		self.StatusBar.QuestOverlayIncomplete:Show()
 	elseif self.StatusBar.QuestOverlayIncomplete then
 		self.StatusBar.QuestOverlayIncomplete:Hide()
 	end
-	
+
 	-- Apply rested overlay
 	if layout.rested.visible and not layout.rested.isFullyRested and self.StatusBar.RestedOverlay then
 		-- Apply user color (fresh from config)
@@ -436,67 +531,6 @@ function FlatXPBarMixin:ApplyLayout(layout)
 	end
 end
 
--- OLD ARCHITECTURE: Keep for backward compatibility during migration
-
--- Set complete quest overlay (orange) with offset support
-function FlatXPBarMixin:SetCompleteQuestOverlay(percent, offset, show)
-	if not self.StatusBar or not self.StatusBar.QuestOverlayComplete then return end
-	
-	if show and percent > 0 then
-		-- Set user's color before showing
-		local c = XPBarColors:GetUserColor(Color.QuestComplete)
-		self.StatusBar.QuestOverlayComplete:SetVertexColor(c.r, c.g, c.b, c.a)
-
-		-- Calculate width and position (minimum 1 pixel)
-		local width = math.max(1, math.floor(BAR_WIDTH * percent))
-		local offsetPixels = 0 -- Complete quest starts at current XP (no offset)
-
-		-- Position and size the overlay
-		self.StatusBar.QuestOverlayComplete:ClearAllPoints()
-		self.StatusBar.QuestOverlayComplete:SetPoint("BOTTOMLEFT", self.StatusBar, "BOTTOMLEFT", offsetPixels, 0)
-		self.StatusBar.QuestOverlayComplete:SetWidth(width)
-		
-		self.StatusBar.QuestOverlayComplete:Show()
-	else
-		self.StatusBar.QuestOverlayComplete:SetWidth(0)
-		self.StatusBar.QuestOverlayComplete:Hide()
-	end
-end
-
--- Set incomplete quest overlay (yellow) with offset support
-function FlatXPBarMixin:SetIncompleteQuestOverlay(percent, offset, show)
-	if not self.StatusBar or not self.StatusBar.QuestOverlayIncomplete then
-		return
-	end
-
-	if show and percent > 0 then
-		-- Set user's color before showing
-		local c = XPBarColors:GetUserColor(Color.QuestIncomplete)
-		self.StatusBar.QuestOverlayIncomplete:SetVertexColor(c.r, c.g, c.b, c.a)
-
-		-- Calculate width and position (offset by complete quest XP)
-		local width = math.max(1, math.floor(BAR_WIDTH * percent))
-		local offsetPixels = math.floor((offset / self.state.maxXP) * BAR_WIDTH)
-
-		-- Bounds check: ensure we don't exceed bar width
-		if offsetPixels + width <= BAR_WIDTH then
-			-- Position and size the overlay
-			self.StatusBar.QuestOverlayIncomplete:ClearAllPoints()
-			self.StatusBar.QuestOverlayIncomplete:SetPoint("BOTTOMLEFT", self.StatusBar, "BOTTOMLEFT", offsetPixels, 0)
-			self.StatusBar.QuestOverlayIncomplete:SetWidth(width)
-			
-			self.StatusBar.QuestOverlayIncomplete:Show()
-		else
-			-- If it would exceed the bar, hide it
-			self.StatusBar.QuestOverlayIncomplete:SetWidth(0)
-			self.StatusBar.QuestOverlayIncomplete:Hide()
-		end
-	else
-		self.StatusBar.QuestOverlayIncomplete:SetWidth(0)
-		self.StatusBar.QuestOverlayIncomplete:Hide()
-	end
-end
-
 -----------------------------------
 -- Color Update Methods
 -----------------------------------
@@ -505,13 +539,13 @@ end
 function FlatXPBarMixin:UpdateAllColors()
 	-- Update main bar color
 	self:UpdateStatusBarColor()
-	
+
 	-- Update rested overlay color
 	if self.RestedOverlay then
 		local c = XPBarColors:GetUserColor(Color.Rested)
 		self.RestedOverlay:SetColorTexture(c.r, c.g, c.b, c.a)
 	end
-	
+
 	-- Trigger full update to reapply all overlays with new colors
 	self:UpdateBarDisplay()
 end

@@ -30,7 +30,7 @@ local OpacitySliderFrame = rawget(_G, "OpacitySliderFrame")
 
 local PANEL_NAME = "XP Bar Enhanced"
 
-XPBarEnhancedOptionsMixin = {}
+local XPBarEnhancedOptionsMixin = {}
 
 local function clamp01(value)
     if not value then
@@ -64,6 +64,7 @@ local function PlayCheckboxSound(checked)
     end
 end
 
+---Collects immediate children of a container indexed by their `configKey` field
 local function CollectChildrenByConfigKey(container)
     if not container then
         return {}
@@ -1396,9 +1397,10 @@ function Options:OnOptionChanged(key)
     elseif key == "showQuestXP" or key == "showQuestPercent" or key == "questOverlaysEnabled"
         or key == "showCompleteQuestOverlay" or key == "showIncompleteQuestOverlay" then
         -- Update quest-related display (overlays and text)
+        -- Full bar update will recalculate layout and apply all overlays
         if Addon.XPBar then
-            if Addon.XPBar.UpdateQuestOverlays then
-                Addon.XPBar:UpdateQuestOverlays()
+            if Addon.XPBar.UpdateBarDisplay then
+                Addon.XPBar:UpdateBarDisplay()
             end
             if Addon.XPBar.UpdateTextDisplay then
                 Addon.XPBar:UpdateTextDisplay()
@@ -1438,6 +1440,13 @@ function Options:OnColorCancel()
 end
 
 -- Register as a feature for compatibility
+-- Export the mixin into a namespaced table for internal use and also
+-- expose the global name required by XML mixin attributes.
+Addon.UI = Addon.UI or {}
+Addon.UI.Mixins = Addon.UI.Mixins or {}
+Addon.UI.Mixins.XPBarEnhancedOptionsMixin = XPBarEnhancedOptionsMixin
+_G.XPBarEnhancedOptionsMixin = XPBarEnhancedOptionsMixin
+
 Addon:RegisterFeature("options", Options)
 
 return Options

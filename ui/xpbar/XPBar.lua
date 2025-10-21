@@ -4,6 +4,8 @@
 local Addon = XPBarEnhanced
 
 local XPBar = {}
+local L = Addon.L or {}
+local Compatibility = Addon.Compatibility or {}
 
 --------------------------------------------------------------------------------
 -- Quest XP Tracking (from QuestXPService.lua)
@@ -14,6 +16,8 @@ local questCache = {
     timestamp = 0,
     TTL = 0.5,  -- Cache duration in seconds
 }
+
+---Check whether all objectives for a quest are complete
 
 local function areObjectivesComplete(questID)
     if not (C_QuestLog and C_QuestLog.GetQuestObjectives) then
@@ -34,6 +38,7 @@ local function areObjectivesComplete(questID)
     return true
 end
 
+---Determine if a quest is ready for turn in using available info and compatibility fallbacks
 local function isQuestReadyForTurnIn(questID, info)
     if info then
         if info.isComplete or info.isAutoComplete then
@@ -45,14 +50,13 @@ local function isQuestReadyForTurnIn(questID, info)
         end
     end
 
-    if C_QuestLog then
-        if C_QuestLog.IsComplete and C_QuestLog.IsComplete(questID) then
-            return true
-        end
-
-        if C_QuestLog.ReadyForTurnIn and C_QuestLog.ReadyForTurnIn(questID) then
-            return true
-        end
+    -- Use compatibility wrappers where available (prefer Addon.Compatibility if populated)
+    local comp = Addon.Compatibility or Compatibility
+    if comp and comp.IsQuestComplete and comp:IsQuestComplete(questID) then
+        return true
+    end
+    if comp and comp.ReadyForTurnIn and comp:ReadyForTurnIn(questID) then
+        return true
     end
 
     if areObjectivesComplete(questID) then
@@ -67,8 +71,12 @@ function XPBar:InvalidateQuestCache()
     questCache.timestamp = 0
 end
 
+---Collects quest XP totals from the player's quest log.
+---Returns three values: totalQuestXP, completeQuestXP, incompleteQuestXP
 function XPBar:GetQuestXP(forceRefresh)
-    if not C_QuestLog or not C_QuestLog.GetNumQuestLogEntries then
+    -- Use Compatibility wrappers to support multiple client APIs
+    local comp = Addon.Compatibility or Compatibility
+    if not comp or not comp.GetNumQuestLogEntries then
         return 0, 0, 0
     end
 
@@ -82,7 +90,7 @@ function XPBar:GetQuestXP(forceRefresh)
         end
     end
 
-    local numEntries = C_QuestLog.GetNumQuestLogEntries()
+    local numEntries = comp:GetNumQuestLogEntries()
     if not numEntries or numEntries <= 0 then
         questCache.data = {
             totalQuestXP = 0,
@@ -101,25 +109,26 @@ function XPBar:GetQuestXP(forceRefresh)
     local countedQuests = {}
 
     for i = 1, numEntries do
-        local info = C_QuestLog.GetInfo(i)
+        local info = comp:GetQuestInfo(i)
         
         if info and not info.isHeader and not info.isHidden then
-            local questID = info.questID
-            
-            if questID and not countedQuests[questID] then
-                countedQuests[questID] = true
-                
-                local xp = GetQuestLogRewardXP(questID) or 0
-                
+            -- Use questID when available, otherwise fall back to a stable index-based key
+            local key = info.questID or ("idx:" .. tostring(i))
+            if not countedQuests[key] then
+                countedQuests[key] = true
+
+                -- Compatibility:GetQuestRewardXP now accepts (index, questID) to be resilient
+                local xp = comp:GetQuestRewardXP(i, info.questID) or 0
+
                 if xp > 0 then
-                    if isQuestReadyForTurnIn(questID, info) then
+                    if isQuestReadyForTurnIn(info.questID, info) then
                         completeQuestXP = completeQuestXP + xp
                         completeQuestCount = completeQuestCount + 1
                     else
                         incompleteQuestXP = incompleteQuestXP + xp
                         incompleteQuestCount = incompleteQuestCount + 1
                     end
-                    
+
                     totalQuestXP = totalQuestXP + xp
                 end
             end
@@ -139,6 +148,7 @@ function XPBar:GetQuestXP(forceRefresh)
     return totalQuestXP, completeQuestXP, incompleteQuestXP
 end
 
+---Return two numbers: completeQuestCount, incompleteQuestCount
 function XPBar:GetQuestCounts()
     -- Ensure cache is fresh
     self:GetQuestXP()
@@ -244,6 +254,7 @@ end
 -- Color Utilities (from XPBarColors.lua)
 --------------------------------------------------------------------------------
 
+---Convert color components to a WoW color escape hex string
 function XPBar:RGBToHex(r, g, b, a)
     a = a or 1.0
     local ra = math.floor(a * 255)
@@ -254,6 +265,7 @@ function XPBar:RGBToHex(r, g, b, a)
 end
 
 -- Delegate to Colors module
+---Return a color table for the given key
 function XPBar:GetColor(colorKey)
     return Addon.Colors:Get(colorKey)
 end
@@ -268,6 +280,7 @@ function XPBar:GetTextColor(colorKey)
     return self:RGBToHex(color.r, color.g, color.b, color.a)
 end
 
+---Wrap text in a colored escape sequence
 function XPBar:ColorText(text, colorKey)
     local colorCode = self:GetTextColor(colorKey)
     return colorCode .. text .. "|r"
@@ -421,41 +434,24 @@ function XPBar:GetTimeToLevelText(secondsToLevel, prefix)
 end
 
 function XPBar:GetQuestSummaryText(completeXP, incompleteXP, totalXP, maxXP, restedXP, decimals)
+    -- Prefer centralized overlay helper when available
+    if Addon.OverlayHelper and type(Addon.OverlayHelper.GetQuestSummaryText) == "function" then
+        return Addon.OverlayHelper:GetQuestSummaryText(completeXP, incompleteXP, totalXP, maxXP, restedXP, { decimals = decimals })
+    end
+
+    -- Fallback: simple summary
     if not maxXP or maxXP <= 0 then
         return ""
     end
-    
-    local db = Addon.db or {}
-    local questOverlaysEnabled = db.showQuestXP ~= false
-    local showComplete = db.showCompleteQuestOverlay ~= false
-    
-    local parts = {}
     decimals = decimals or 1
-    
-    -- Get dynamic colors from COLORS table
-    local completeColor = "|cFFF2A633"  -- Bright Gold/Orange (matches questComplete)
-    local restedColor = "|cFF00CCFF"     -- Light Blue (matches rested)
-    local resetColor = "|r"
-    
-    -- Quest completion percentage
-    if questOverlaysEnabled and showComplete and completeXP and completeXP > 0 then
-        local completePercent = self:FormatPercent(completeXP, maxXP, decimals)
-        table.insert(parts, string.format("Completed Quests: %s%s%s", 
-            completeColor, completePercent, resetColor))
+    local parts = {}
+    if completeXP and completeXP > 0 then
+        table.insert(parts, string.format("Completed: %s", self:FormatNumber(completeXP, true)))
     end
-    
-    -- Rested percentage
-    if restedXP and restedXP > 0 and maxXP and maxXP > 0 then
-        local restedPercent = self:FormatPercent(restedXP, maxXP, 0)
-        table.insert(parts, string.format("Rested: %s%s%s", 
-            restedColor, restedPercent, resetColor))
+    if restedXP and restedXP > 0 then
+        table.insert(parts, string.format("Rested: %s", self:FormatNumber(restedXP, true)))
     end
-    
-    if #parts == 0 then
-        return ""
-    end
-    
-    return table.concat(parts, " - ")
+    return #parts > 0 and table.concat(parts, " - ") or ""
 end
 
 function XPBar:GetSessionTimeText(sessionSeconds, prefix)
@@ -611,17 +607,17 @@ function XPBar:ShowTooltip(frame)
     local percentXP = math.floor((currentXP / maxXP) * 100)
     local remainingXP = maxXP - currentXP
     
-    GameTooltip_SetTitle(GameTooltip, L("TT_EXPERIENCE"))
+    GameTooltip_SetTitle(GameTooltip, L["TT_EXPERIENCE"] or "Experience")
     
     GameTooltip:AddDoubleLine(
-        L("TT_CURRENT") .. ":",
+        (L["TT_CURRENT"] or "Current") .. ":",
         string.format("%s / %s", self:FormatNumber(currentXP, false), self:FormatNumber(maxXP, false)),
         0.7, 0.7, 0.7,
         1.0, 1.0, 1.0
     )
     
     GameTooltip:AddDoubleLine(
-        L("TT_REMAINING") .. ":",
+        (L["TT_REMAINING"] or "Remaining") .. ":",
         self:FormatNumber(remainingXP, false),
         0.7, 0.7, 0.7,
         1.0, 1.0, 1.0
@@ -635,7 +631,7 @@ function XPBar:ShowTooltip(frame)
         local restedR, restedG, restedB = self:GetTooltipColor(self.ColorKey.Rested)
         
         GameTooltip:AddDoubleLine(
-            L("TT_RESTED"),
+            L["TT_RESTED"] or "Rested",
             string.format("%s (%.0f%%)", self:FormatNumber(restedXP, false), restedPercent),
             restedR, restedG, restedB,
             restedR, restedG, restedB
@@ -662,7 +658,7 @@ function XPBar:ShowTooltip(frame)
                 local completeR, completeG, completeB = self:GetTooltipColor(self.ColorKey.QuestComplete)
                 
                 GameTooltip:AddDoubleLine(
-                    L("TT_QUESTS_COMPLETE"),
+                    L["TT_QUESTS_COMPLETE"] or "Quests Complete",
                     string.format("%d (%s, %.1f%%)", completeQuestCount, 
                                   self:FormatNumber(completeQuestXP, false), questPercent),
                     completeR, completeG, completeB,
@@ -675,7 +671,7 @@ function XPBar:ShowTooltip(frame)
                 local incompleteR, incompleteG, incompleteB = self:GetTooltipColor(self.ColorKey.QuestIncomplete)
                 
                 GameTooltip:AddDoubleLine(
-                    L("TT_QUESTS_INCOMPLETE"),
+                    L["TT_QUESTS_INCOMPLETE"] or "Quests Incomplete",
                     string.format("%d (%s, %.1f%%)", incompleteQuestCount, 
                                   self:FormatNumber(incompleteQuestXP, false), questPercent),
                     incompleteR, incompleteG, incompleteB,
@@ -690,13 +686,13 @@ function XPBar:ShowTooltip(frame)
         local session = Addon.Session:GetCurrent()
         if session and session.gainedXP and session.gainedXP > 0 then
             GameTooltip:AddLine(" ")
-            GameTooltip:AddLine(L("TT_SESSION"), 0.4, 0.78, 1.0)
+            GameTooltip:AddLine(L["TT_SESSION"] or "Session", 0.4, 0.78, 1.0)
             
             local sessionTime = time() - (session.sessionStart or time())
             if sessionTime > 0 then
                 local xpPerHour = math.floor((session.gainedXP / sessionTime) * 3600)
                 GameTooltip:AddDoubleLine(
-                    L("TT_XP_HOUR") .. ":",
+                    (L["TT_XP_HOUR"] or "XP/Hour") .. ":",
                     self:FormatNumber(xpPerHour, false),
                     0.7, 0.7, 0.7,
                     1.0, 1.0, 1.0
@@ -705,7 +701,7 @@ function XPBar:ShowTooltip(frame)
                 if xpPerHour > 0 then
                     local timeToLevel = math.floor((remainingXP / xpPerHour) * 3600)
                     GameTooltip:AddDoubleLine(
-                        L("TT_TIME_TO_LEVEL") .. ":",
+                        (L["TT_TIME_TO_LEVEL"] or "Time to Level") .. ":",
                         self:FormatTime(timeToLevel, false),
                         0.7, 0.7, 0.7,
                         1.0, 1.0, 1.0
@@ -757,6 +753,10 @@ function XPBar:GetCircularContainer()
     return _G.CircularXPBar
 end
 
+function XPBar:GetTestContainer()
+    return _G.TestXPBar
+end
+
 function XPBar:GetLegacyView()
     local container = self:GetLegacyContainer()
     return container and container.Bar
@@ -774,6 +774,11 @@ end
 
 function XPBar:GetCircularView()
     local container = self:GetCircularContainer()
+    return container and container.Bar
+end
+
+function XPBar:GetTestView()
+    local container = self:GetTestContainer()
     return container and container.Bar
 end
 
@@ -860,6 +865,11 @@ function XPBar:StartPeriodicUpdates()
     end)
 end
 
+--------------------------------------------------------------------------------
+-- NOTE: Earlier versions used per-frame OnUpdate handlers for animations. The
+-- centralized animation registry was removed per user request to restore the
+-- original, frame-driven animation behavior.
+
 function XPBar:StopPeriodicUpdates()
     if self.periodicUpdateTimer then
         self.periodicUpdateTimer:Cancel()
@@ -893,17 +903,33 @@ function XPBar:Update()
 end
 
 function XPBar:RegisterQuestEvents()
+    -- Avoid creating multiple frames
+    if self.questEventFrame then
+        return
+    end
+
     local frame = CreateFrame("Frame")
     frame:RegisterEvent("QUEST_ACCEPTED")
     frame:RegisterEvent("QUEST_REMOVED")
     frame:RegisterEvent("QUEST_TURNED_IN")
     frame:RegisterEvent("QUEST_LOG_UPDATE")
-    
+    frame:RegisterEvent("UNIT_QUEST_LOG_CHANGED")
+    frame:RegisterEvent("QUEST_WATCH_UPDATE")
+
     frame:SetScript("OnEvent", function(_, event, ...)
+        -- Filter unit events to player only via OnQuestEvent
         self:OnQuestEvent(event, ...)
     end)
-    
+
     self.questEventFrame = frame
+end
+
+function XPBar:ShutdownQuestEventHandling()
+    if self.questEventFrame then
+        self.questEventFrame:UnregisterAllEvents()
+        self.questEventFrame:SetScript("OnEvent", nil)
+        self.questEventFrame = nil
+    end
 end
 
 --------------------------------------------------------------------------------
@@ -922,9 +948,18 @@ end
 function XPBar:OnQuestEvent(event, ...)
     self:InvalidateQuestCache()
     
-    -- Delayed update to ensure quest log is updated
-    C_Timer.After(0.5, function()
+    -- Delayed update to ensure quest log is updated (cancelable)
+    if self._questUpdateTimer then
+        pcall(function() self._questUpdateTimer:Cancel() end)
+        self._questUpdateTimer = nil
+    end
+    self._questUpdateTimer = C_Timer.NewTimer(0.5, function()
+        if not self or not self.Update then
+            self._questUpdateTimer = nil
+            return
+        end
         self:Update()
+        self._questUpdateTimer = nil
     end)
 end
 
@@ -932,6 +967,28 @@ function XPBar:OnEnteringWorld(isInitialLogin, isReloadingUI)
     if isInitialLogin or isReloadingUI then
         self:InvalidateQuestCache()
         self:Update()
+    end
+end
+
+function XPBar:Shutdown()
+    -- Cancel any pending quest update timer
+    if self._questUpdateTimer then
+        pcall(function() self._questUpdateTimer:Cancel() end)
+        self._questUpdateTimer = nil
+    end
+
+    -- Stop periodic updates
+    self:StopPeriodicUpdates()
+
+    -- (No global animation registry in this build; per-view handlers are frame-driven.)
+
+    -- Clear active view reference
+    self.currentView = nil
+    self.currentViewType = nil
+    
+    -- Shutdown quest event handling
+    if self.ShutdownQuestEventHandling then
+        self:ShutdownQuestEventHandling()
     end
 end
 

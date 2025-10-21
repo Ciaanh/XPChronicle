@@ -8,7 +8,7 @@ local BAR_WIDTH, BAR_HEIGHT = XPBarMixinBase.GetBarDimensions()
 -----------------------------------
 -- Exhaustion Tick Mixin
 -----------------------------------
-ExhaustionTickMixin = {}
+local ExhaustionTickMixin = {}
 
 function ExhaustionTickMixin:OnEnter()
 	local exhaustionStateID, exhaustionStateName, exhaustionStateMultiplier = GetRestState()
@@ -50,7 +50,8 @@ end
 -----------------------------------
 -- Container Mixin
 -----------------------------------
-LegacyXPBarContainerMixin = {}
+---@class LegacyXPBarContainerMixin : XPBarContainerMixin
+local LegacyXPBarContainerMixin = {}
 
 function LegacyXPBarContainerMixin:OnLoad()
 	-- IMPORTANT: Stay hidden until controller shows us based on barStyle setting
@@ -75,11 +76,20 @@ function LegacyXPBarContainerMixin:OnLoad()
 	-- Try immediately, and retry after a delay if Blizzard bar not found
 	self:PositionToMatchBlizzardBar()
 	
-	-- Retry positioning after 0.5s in case Blizzard bars aren't loaded yet
-	C_Timer.After(0.5, function()
-		if self and self.PositionToMatchBlizzardBar then
-			self:PositionToMatchBlizzardBar()
+	-- Retry positioning after 0.5s in case Blizzard's UI frames aren't fully loaded yet.
+	-- This handles race conditions during addon initialization where MainMenuBarExpBar
+	-- or StatusTrackingBarManager may not exist when OnLoad is called.
+	if self._positionRestoreTimer then
+		pcall(function() self._positionRestoreTimer:Cancel() end)
+		self._positionRestoreTimer = nil
+	end
+	self._positionRestoreTimer = C_Timer.NewTimer(0.5, function()
+		if not self or not self.PositionToMatchBlizzardBar then
+			self._positionRestoreTimer = nil
+			return
 		end
+		self:PositionToMatchBlizzardBar()
+		self._positionRestoreTimer = nil
 	end)
 end
 
@@ -108,6 +118,13 @@ function LegacyXPBarContainerMixin:OnShow()
 	self:WireTextElements()
 end
 
+function LegacyXPBarContainerMixin:OnHide()
+	if self._positionRestoreTimer then
+		pcall(function() self._positionRestoreTimer:Cancel() end)
+		self._positionRestoreTimer = nil
+	end
+end
+
 function LegacyXPBarContainerMixin:PositionToMatchBlizzardBar()
 	-- Simple and reliable: anchor to MainStatusTrackingBarContainer's top-left
 	local container = _G.MainStatusTrackingBarContainer
@@ -124,8 +141,8 @@ end
 -- Legacy XP Bar Mixin (Blizzard-style)
 -----------------------------------
 ---@class LegacyXPBarMixin : XPBarMixinBase
----@field StatusBar XPStatusBar
-LegacyXPBarMixin = CreateFromMixins(XPBarMixinBase)
+-- ... StatusBar declared centrally in core/Types.lua
+local LegacyXPBarMixin = CreateFromMixins(XPBarMixinBase)
 
 function LegacyXPBarMixin:OnLoad()
 	-- Initialize shared state
@@ -136,6 +153,14 @@ function LegacyXPBarMixin:OnLoad()
 		self.StatusBar:SetMinMaxValues(0, 1)
 		self.StatusBar:SetValue(0)
 		
+		-- CRITICAL: Disable WoW's built-in StatusBar smoothing
+		-- We handle all animation ourselves via OnUpdate
+		-- Without this, the StatusBar widget applies its own instant/smooth animation
+		-- that bypasses our animation system
+		if self.StatusBar.SetStatusBarAnimatedDuration then
+			self.StatusBar:SetStatusBarAnimatedDuration(0) -- Disable built-in smoothing
+		end
+		
 		-- Set initial colors
 		self:UpdateStatusBarColor()
 	end
@@ -144,19 +169,47 @@ function LegacyXPBarMixin:OnLoad()
 	self:RegisterCommonEvents()
 end
 
+-- Set display value (override for StatusBar-based rendering)
+-- Blizzard pattern: Bar-specific rendering implementation
+function LegacyXPBarMixin:SetDisplayValue(ratio)
+	if not self.StatusBar then
+		return
+	end
+	
+	-- Delegate to base UpdateStatusBarValue (already expects ratio)
+	self:UpdateStatusBarValue(ratio)
+end
+
+-- Export mixins into the Addon namespace (namespaced) and global table for XML compatibility
+Addon.Mixins = Addon.Mixins or {}
+Addon.Mixins.ExhaustionTickMixin = ExhaustionTickMixin
+Addon.Mixins.LegacyXPBarContainerMixin = LegacyXPBarContainerMixin
+Addon.Mixins.LegacyXPBarMixin = LegacyXPBarMixin
+-- Legacy compatibility
+_G.ExhaustionTickMixin = ExhaustionTickMixin
+_G.LegacyXPBarContainerMixin = LegacyXPBarContainerMixin
+_G.LegacyXPBarMixin = LegacyXPBarMixin
+
 function LegacyXPBarMixin:OnEvent(event, ...)
 	-- Use base handler
 	self:HandleEvent(event, ...)
 end
 
 function LegacyXPBarMixin:OnShow()
+	if not self._eventsRegistered and self.RegisterCommonEvents then
+		self:RegisterCommonEvents()
+	end
+
 	if not self._isUpdating then
 		self:FullUpdate()
 	end
 end
 
 function LegacyXPBarMixin:OnHide()
-	-- Unsubscribe from events to prevent memory leaks
+	-- Clean up timers and unsubscribe from events to prevent memory leaks
+	if self.CleanupTimers then
+		self:CleanupTimers()
+	end
 	if self.UnsubscribeFromEvents then
 		self:UnsubscribeFromEvents()
 	end
@@ -337,7 +390,6 @@ function LegacyXPBarMixin:ApplyLayout(layout)
 		parent:Show()
 	end
 
-	---@type XPStatusBar
 	local statusBar = self.StatusBar
 	
 	-- Update main bar (already animated separately)
@@ -390,66 +442,6 @@ function LegacyXPBarMixin:ApplyLayout(layout)
 		if statusBar.ExhaustionTick then
 			statusBar.ExhaustionTick:Hide()
 		end
-	end
-end
-
--- OLD ARCHITECTURE: Keep for backward compatibility during migration
--- Set the complete quest overlay width and visibility with offset support
-function LegacyXPBarMixin:SetCompleteQuestOverlay(percent, offset, show)
-	if not self.QuestOverlayComplete then
-		return
-	end
-	
-	if show and percent > 0 then
-		-- Use user's quest complete color
-		local color = XPBarColors:GetUserColor(Color.QuestComplete)
-		self.QuestOverlayComplete:SetVertexColor(color.r, color.g, color.b, color.a)
-		
-		-- Calculate width and position (minimum 1 pixel)
-		local width = math.max(1, math.floor(BAR_WIDTH * percent))
-		local offsetPixels = 0  -- Complete quest starts at current XP (no offset)
-		
-		-- Position and size the overlay
-		self.QuestOverlayComplete:ClearAllPoints()
-		self.QuestOverlayComplete:SetPoint("BOTTOMLEFT", self, "BOTTOMLEFT", offsetPixels, 0)
-		self.QuestOverlayComplete:SetWidth(width)
-		self.QuestOverlayComplete:Show()
-	else
-		self.QuestOverlayComplete:SetWidth(0)
-		self.QuestOverlayComplete:Hide()
-	end
-end
-
--- Set incomplete quest overlay with offset support
-function LegacyXPBarMixin:SetIncompleteQuestOverlay(percent, offset, show)
-	if not self.QuestOverlayIncomplete then
-		return
-	end
-	
-	if show and percent > 0 then
-		-- Use user's quest incomplete color
-		local color = XPBarColors:GetUserColor(Color.QuestIncomplete)
-		self.QuestOverlayIncomplete:SetVertexColor(color.r, color.g, color.b, color.a)
-		
-		-- Calculate width and position (offset by complete quest XP)
-		local width = math.max(1, math.floor(BAR_WIDTH * percent))
-		local offsetPixels = math.floor((offset / self.state.maxXP) * BAR_WIDTH)
-		
-		-- Bounds check: ensure we don't exceed bar width
-		if offsetPixels + width <= BAR_WIDTH then
-			-- Position and size the overlay
-			self.QuestOverlayIncomplete:ClearAllPoints()
-			self.QuestOverlayIncomplete:SetPoint("BOTTOMLEFT", self, "BOTTOMLEFT", offsetPixels, 0)
-			self.QuestOverlayIncomplete:SetWidth(width)
-			self.QuestOverlayIncomplete:Show()
-		else
-			-- If it would exceed the bar, hide it
-			self.QuestOverlayIncomplete:SetWidth(0)
-			self.QuestOverlayIncomplete:Hide()
-		end
-	else
-		self.QuestOverlayIncomplete:SetWidth(0)
-		self.QuestOverlayIncomplete:Hide()
 	end
 end
 

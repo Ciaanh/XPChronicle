@@ -21,9 +21,8 @@ Colors.Key = {
 -- Color Access
 -------------------------------------------------------------------
 
--- Get color from config or defaults
--- @param colorKey string - One of Colors.Key values
--- @return table - Color table with r, g, b, a fields
+---Get color from config or defaults
+-- table with fields r,g,b,a
 function Colors:Get(colorKey)
     local db = Addon.db or {}
     local colors = db.colors or (Addon.defaults and Addon.defaults.colors)
@@ -36,9 +35,7 @@ function Colors:Get(colorKey)
     return { r = 1, g = 1, b = 1, a = 1 }
 end
 
--- Set color in config
--- @param colorKey string - One of Colors.Key values
--- @param color table - Color table with r, g, b, a fields
+---Set color in configuration
 function Colors:Set(colorKey, color)
     if not Addon.db then
         return
@@ -56,9 +53,7 @@ function Colors:Set(colorKey, color)
     }
 end
 
--- Get default color (from defaults table)
--- @param colorKey string - One of Colors.Key values
--- @return table - Color table with r, g, b, a fields
+---Get default color from the defaults table
 function Colors:GetDefault(colorKey)
     if not Addon.defaults or not Addon.defaults.colors then
         return { r = 1, g = 1, b = 1, a = 1 }
@@ -67,8 +62,7 @@ function Colors:GetDefault(colorKey)
     return Addon.defaults.colors[colorKey] or { r = 1, g = 1, b = 1, a = 1 }
 end
 
--- Reset color to default
--- @param colorKey string - One of Colors.Key values
+---Reset a color to its default value
 function Colors:Reset(colorKey)
     local defaultColor = self:GetDefault(colorKey)
     self:Set(colorKey, defaultColor)

@@ -173,6 +173,12 @@ function eventHandlers:OnDisableXPGain()
     end
 end
 
+function eventHandlers:OnPlayerLogout()
+    if Addon.XPBar and Addon.XPBar.Shutdown then
+        Addon.XPBar:Shutdown()
+    end
+end
+
 -- Event name to handler mapping
 local eventMap = {
     ADDON_LOADED = "OnAddonLoaded",
@@ -185,6 +191,7 @@ local eventMap = {
     TIME_PLAYED_MSG = "OnTimePlayedMsg",
     ENABLE_XP_GAIN = "OnEnableXPGain",
     DISABLE_XP_GAIN = "OnDisableXPGain",
+    PLAYER_LOGOUT = "OnPlayerLogout",
 }
 
 -- Event dispatcher
@@ -216,7 +223,7 @@ local function showHelp()
     print("|cff33ff99XP Bar Enhanced|r Commands:")
     print("  /xpbe |cFFFFFFFFoptions|r - Open options panel")
     print("  /xpbe |cFFFFFFFFstats|r - Toggle statistics window")
-    print("  /xpbe |cFFFFFFFFstyle <none|legacy|flat>|r - Change bar style")
+    print("  /xpbe |cFFFFFFFFstyle <none|legacy|flat|vertical|circular>|r - Change bar style")
     print("  /xpbe |cFFFFFFFFreset|r - Reset all settings")
     print("  /xpbe |cFFFFFFFFresetstats|r - Reset statistics")
     print("  /xpbe |cFFFFFFFFresetcolors|r - Reset colors to defaults")
@@ -288,7 +295,7 @@ local function handleStyle(style)
         return
     end
     
-    if style == "none" or style == "legacy" or style == "flat" then
+    if style == "none" or style == "legacy" or style == "flat" or style == "vertical" or style == "circular" then
         -- Use simplified XPBar module
         if Addon.XPBar and Addon.XPBar.SetBarStyle then
             Addon.XPBar:SetBarStyle(style)
@@ -297,7 +304,7 @@ local function handleStyle(style)
             print("|cFFFF0000XP Bar Enhanced:|r XP Bar module not available")
         end
     else
-        print("|cFFFF0000XP Bar Enhanced:|r Invalid style. Use: none, legacy, or flat")
+        print("|cFFFF0000XP Bar Enhanced:|r Invalid style. Use: none, legacy, flat, vertical, circular")
     end
 end
 
@@ -327,12 +334,14 @@ end
 -- Register slash commands
 SLASH_XPBARENHANCED1 = "/xpbe"
 SLASH_XPBARENHANCED2 = "/xpbarenhanced"
+SLASH_XPBARENHANCED3 = "/xpbar"
 SlashCmdList["XPBARENHANCED"] = handleSlashCommand
 
 -------------------------------------------------------------------
 -- Public API (for backward compatibility and external access)
 -------------------------------------------------------------------
 
+---Register a feature module with a short name
 function Addon:RegisterFeature(name, feature)
     if not name or type(feature) ~= "table" then
         return
@@ -340,10 +349,12 @@ function Addon:RegisterFeature(name, feature)
     self.Features[name] = feature
 end
 
+---Return a previously registered feature by name
 function Addon:GetFeature(name)
     return self.Features[name]
 end
 
+---Return whether a feature with the provided name is registered
 function Addon:HasFeature(name)
     return self.Features[name] ~= nil
 end

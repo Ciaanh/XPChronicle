@@ -3,11 +3,10 @@
 
 local Addon = XPBarEnhanced
 
----@field OverlayFrame Frame
-
----@class CircularXPBarContainerMixin : Frame
----@field Bar CircularXPBarView
-CircularXPBarContainerMixin = {}
+-- OverlayFrame (if present) is wired into the Bar by the container
+---@class CircularXPBarContainerMixin : XPBarContainerMixin
+-- Bar field declared in core/Types.lua
+local CircularXPBarContainerMixin = {}
 
 function CircularXPBarContainerMixin:OnLoad()
     -- Keep container hidden until controller shows it explicitly
@@ -23,11 +22,18 @@ function CircularXPBarContainerMixin:OnLoad()
         self:WireTextElements()
     end
 
-    -- Retry wiring shortly after load
-    C_Timer.After(0.1, function()
-        if self and self.WireTextElements then
-            self:WireTextElements()
+    -- Retry wiring shortly after load (cancelable)
+    if self._initTimer1 then
+        pcall(function() self._initTimer1:Cancel() end)
+        self._initTimer1 = nil
+    end
+    self._initTimer1 = C_Timer.NewTimer(0.1, function()
+        if not self or not self:IsShown() or not self.WireTextElements then
+            self._initTimer1 = nil
+            return
         end
+        self:WireTextElements()
+        self._initTimer1 = nil
     end)
 
     -- Setup dragging & position storage
@@ -63,10 +69,19 @@ function CircularXPBarContainerMixin:OnLoad()
         )
         self:EnableDrag({ button = "LeftButton", requireModifier = "SHIFT" })
     else
-        C_Timer.After(1, function()
+        if self._dragRetryTimer then
+            pcall(function() self._dragRetryTimer:Cancel() end)
+            self._dragRetryTimer = nil
+        end
+        self._dragRetryTimer = C_Timer.NewTimer(1, function()
+            if not self or not self:IsShown() then
+                self._dragRetryTimer = nil
+                return
+            end
             if self.RetryDraggingSetup then
                 self:RetryDraggingSetup()
             end
+            self._dragRetryTimer = nil
         end)
     end
 end
@@ -82,6 +97,17 @@ end
 
 function CircularXPBarContainerMixin:OnShow()
     self:WireTextElements()
+end
+
+function CircularXPBarContainerMixin:OnHide()
+    if self._initTimer1 then
+        pcall(function() self._initTimer1:Cancel() end)
+        self._initTimer1 = nil
+    end
+    if self._dragRetryTimer then
+        pcall(function() self._dragRetryTimer:Cancel() end)
+        self._dragRetryTimer = nil
+    end
 end
 
 function CircularXPBarContainerMixin:RetryDraggingSetup()
@@ -127,15 +153,17 @@ function CircularXPBarContainerMixin:SetLocked(locked)
 end
 
 ---@class CircularXPBarMixin : XPBarMixinBase
-CircularXPBarMixin = CreateFromMixins(XPBarMixinBase)
+local CircularXPBarMixin = CreateFromMixins(XPBarMixinBase)
 
 -- Constants
 local RING_SEGMENTS = 60        -- Number of segments for smooth arc
 local RING_THICKNESS = 0.15     -- Ring thickness as percentage of radius (0-1)
+-- Sublevels used when creating ring textures. Quest overlays should render above rested segments.
+local RING_REST_SUBLEVEL = 1
+local RING_QUEST_SUBLEVEL = 3
 local GLOW_DURATION = 0.5       -- Duration of glow pulse on XP gain
 local ARC_SMOOTH_DURATION = 0.3 -- Duration of arc fill animation
 
----@param self Frame
 function CircularXPBarMixin:OnLoad()
     -- Ensure addon is loaded
     if not XPBarEnhanced then
@@ -231,15 +259,33 @@ function CircularXPBarMixin:CreateRingSegments()
         self.segments[i] = segment
     end
     
-    -- Create rested segments (slightly transparent, on top)
+    -- Create rested segments (slightly transparent, below quest overlays)
     for i = 1, RING_SEGMENTS do
-        local segment = self:CreateTexture(nil, "ARTWORK", nil, 1)
+        local segment = self:CreateTexture(nil, "ARTWORK", nil, RING_REST_SUBLEVEL)
         segment:SetTexture("Interface\\Buttons\\WHITE8X8")
         segment:SetSize(4, radius - innerRadius)
         segment:SetBlendMode("ADD")
         segment:SetAlpha(0.3)
         segment:Hide()
         self.restedSegments[i] = segment
+    end
+
+    -- Create quest overlay segments (complete & incomplete) - render above rested segments
+    self.questCompleteSegments = {}
+    self.questIncompleteSegments = {}
+    for i = 1, RING_SEGMENTS do
+        -- Use a higher sub-level so quest overlays always draw above rested overlay
+    local qc = self:CreateTexture(nil, "ARTWORK", nil, RING_QUEST_SUBLEVEL)
+        qc:SetTexture("Interface\\Buttons\\WHITE8X8")
+        qc:SetSize(4, radius - innerRadius)
+        qc:Hide()
+        self.questCompleteSegments[i] = qc
+
+        local qi = self:CreateTexture(nil, "ARTWORK", nil, RING_QUEST_SUBLEVEL)
+        qi:SetTexture("Interface\\Buttons\\WHITE8X8")
+        qi:SetSize(4, radius - innerRadius)
+        qi:Hide()
+        self.questIncompleteSegments[i] = qi
     end
     
     -- Create background ring
@@ -255,19 +301,25 @@ function CircularXPBarMixin:CreateRingSegments()
 end
 
 function CircularXPBarMixin:PositionSegments()
+    -- local profiler = Addon.Profiler
+    -- if profiler and profiler._enabled then profiler:Start("Circular.PositionSegments") end
     local radius = math.min(self:GetWidth(), self:GetHeight()) / 2
     local innerRadius = radius * (1 - RING_THICKNESS)
     local centerX, centerY = self:GetWidth() / 2, self:GetHeight() / 2
     local avgRadius = (radius + innerRadius) / 2
     
+    -- Localize heavy math functions for the inner loop
+    local math_cos = math.cos
+    local math_sin = math.sin
+    local math_pi = math.pi
     for i = 1, RING_SEGMENTS do
         -- Angle in radians (start from top, go clockwise)
         -- 0 degrees = top (12 o'clock) = -90 degrees in standard coordinates
-        local angle = ((i - 1) / RING_SEGMENTS) * (2 * math.pi) - (math.pi / 2)
-        
+        local angle = ((i - 1) / RING_SEGMENTS) * (2 * math_pi) - (math_pi / 2)
+
         -- Calculate position
-        local x = centerX + math.cos(angle) * avgRadius
-        local y = centerY + math.sin(angle) * avgRadius
+        local x = centerX + math_cos(angle) * avgRadius
+        local y = centerY + math_sin(angle) * avgRadius
         
         -- Position XP segment
         local segment = self.segments[i]
@@ -285,7 +337,19 @@ function CircularXPBarMixin:PositionSegments()
         restedSegment:ClearAllPoints()
         restedSegment:SetPoint("CENTER", self, "BOTTOMLEFT", x, y)
         self:RotateTexture(restedSegment, rotation)
+
+            -- Position quest overlay segments
+            local qc = self.questCompleteSegments[i]
+            qc:ClearAllPoints()
+            qc:SetPoint("CENTER", self, "BOTTOMLEFT", x, y)
+            self:RotateTexture(qc, rotation)
+
+            local qi = self.questIncompleteSegments[i]
+            qi:ClearAllPoints()
+            qi:SetPoint("CENTER", self, "BOTTOMLEFT", x, y)
+            self:RotateTexture(qi, rotation)
     end
+    -- if profiler and profiler._enabled then profiler:Stop("Circular.PositionSegments") end
 end
 
 function CircularXPBarMixin:RotateTexture(texture, rotation)
@@ -358,18 +422,25 @@ function CircularXPBarMixin:AnimateArcFill()
     self.isAnimating = true
     local startProgress = self.lastProgress
     local targetProgress = self.targetProgress
-    local startTime = GetTime()
-    
+    -- Prefer the global animation task registry for smooth centralized updates.
+    -- This follows the guidance in `refs/BlizzardInterfaceCode` for animation timing
+    -- and uses patterns from `refs/Animated addons` as implementation examples.
+    local xpbar = Addon.XPBar
+    local getTime = GetTime
+    local math_min = math.min
+    local startTime = getTime()
+
+    -- Use a frame OnUpdate to animate the arc fill (frame-driven)
+    local fallbackStart = getTime()
+    if type(self.GetScript) == "function" and self:GetScript("OnUpdate") then
+        self:SetScript("OnUpdate", nil)
+    end
     self:SetScript("OnUpdate", function(frame, elapsed)
-        local elapsedTime = GetTime() - startTime
+        local elapsedTime = getTime() - fallbackStart
         local animProgress = math.min(elapsedTime / ARC_SMOOTH_DURATION, 1)
-        
-        -- Ease out
         local easedProgress = 1 - (1 - animProgress) * (1 - animProgress)
         local currentProgress = startProgress + (targetProgress - startProgress) * easedProgress
-        
         frame:SetArcProgress(currentProgress)
-        
         if animProgress >= 1 then
             frame:SetScript("OnUpdate", nil)
             frame.lastProgress = targetProgress
@@ -377,6 +448,19 @@ function CircularXPBarMixin:AnimateArcFill()
             frame:PlayGlowPulse()
         end
     end)
+end
+
+function CircularXPBarMixin:OnHide()
+    -- Cancel any running per-frame arc animation
+    if type(self.GetScript) == "function" and self:GetScript("OnUpdate") then
+        self:SetScript("OnUpdate", nil)
+    end
+    self.isAnimating = false
+
+    -- Call base cleanup to cancel timers and unsubscribe events
+    if XPBarMixinBase and XPBarMixinBase.OnHide then
+        XPBarMixinBase.OnHide(self)
+    end
 end
 
 function CircularXPBarMixin:SetArcProgress(progress)
@@ -410,7 +494,9 @@ function CircularXPBarMixin:UpdateRestedArc(currentXP, maxXP)
         -- Get rested color
         local color = Addon.Colors:Get("xpBarRested")
         
-        -- Show rested segments
+        -- Show rested segments between current progress and rested progress. Quest
+        -- segments are drawn on a higher sublevel so they will be visible above
+        -- these rested segments without additional masking logic.
         for i = 1, RING_SEGMENTS do
             if i > currentSegment and i <= restedSegment then
                 self.restedSegments[i]:SetColorTexture(color.r, color.g, color.b, 1)
@@ -436,22 +522,40 @@ function CircularXPBarMixin:PlayGlowPulse()
         end
     end
     
-    -- Glow up
-    C_Timer.After(0, function()
+    -- Glow up (cancelable)
+    if self._glowUpTimer then
+        pcall(function() self._glowUpTimer:Cancel() end)
+        self._glowUpTimer = nil
+    end
+    self._glowUpTimer = C_Timer.NewTimer(0, function()
+        if not self or not self:IsShown() then
+            self._glowUpTimer = nil
+            return
+        end
         for i = 1, RING_SEGMENTS do
             if self.segments[i]:IsShown() then
                 self.segments[i]:SetAlpha(1)
             end
         end
+        self._glowUpTimer = nil
     end)
-    
-    -- Fade back
-    C_Timer.After(GLOW_DURATION / 2, function()
+
+    -- Fade back (cancelable)
+    if self._glowDownTimer then
+        pcall(function() self._glowDownTimer:Cancel() end)
+        self._glowDownTimer = nil
+    end
+    self._glowDownTimer = C_Timer.NewTimer(GLOW_DURATION / 2, function()
+        if not self or not self:IsShown() then
+            self._glowDownTimer = nil
+            return
+        end
         for i = 1, RING_SEGMENTS do
             if self.segments[i]:IsShown() and originalAlpha[i] then
                 self.segments[i]:SetAlpha(originalAlpha[i])
             end
         end
+        self._glowDownTimer = nil
     end)
 end
 
@@ -484,9 +588,10 @@ function CircularXPBarMixin:UpdateTextVisibility()
     local db = Addon.db
     if not db then return end
     
-    self.LevelText:SetShown(db.showLevel ~= false)
-    self.PercentText:SetShown(db.showPercent ~= false)
-    self.XPPerHourText:SetShown(db.showXPRate ~= false)
+    -- Use canonical config keys from Config.lua
+    self.LevelText:SetShown(db.showLevelText == true)
+    self.PercentText:SetShown(db.showPercentage == true)
+    self.XPPerHourText:SetShown(db.showXPPerHourText == true)
 end
 
 function CircularXPBarMixin:ApplyBarColor()
@@ -523,6 +628,29 @@ function CircularXPBarMixin:ApplyLayout(layout)
     if maxXP > 0 then
         self:UpdateBarFill(currentXP, maxXP)
     end
+
+        -- Call UpdateQuestArc to render complete/incomplete segments
+        self:UpdateQuestArc(layout)
+end
+
+-- Set display value (override for circular rendering)
+-- Blizzard pattern: Bar-specific rendering implementation
+function CircularXPBarMixin:SetDisplayValue(ratio)
+	-- Update circular arc directly (doesn't use StatusBar widget)
+	self:SetArcProgress(ratio)
+	self.lastProgress = ratio
+	self.targetProgress = ratio
+	
+	-- Update rested overlay (needs actual XP values)
+	local currentXP = UnitXP("player")
+	local maxXP = UnitXPMax("player")
+	if maxXP > 0 then
+		self:UpdateRestedArc(currentXP, maxXP)
+	end
+	
+	-- Update quest overlay
+	local layout = self._lastLayout or self:CalculateBarLayout(self:CalculateBarState())
+	self:UpdateQuestArc(layout)
 end
 
 function CircularXPBarMixin:UpdateStatusBarValue(ratio)
@@ -537,6 +665,120 @@ function CircularXPBarMixin:UpdateStatusBarValue(ratio)
         self.lastProgress = ratio
         self.targetProgress = ratio
         self:UpdateRestedArc(currentXP, maxXP)
+    end
+    -- Delegate quest overlay rendering to helper. Use cached layout when available
+    local layout = self._lastLayout or self:CalculateBarLayout(self:CalculateBarState())
+    self:UpdateQuestArc(layout)
+end
+
+-- Pure helper: compute which segment indices should be used for complete and incomplete quest overlays
+-- Returns two arrays: completeIndices, incompleteIndices
+function CircularXPBarMixin:ComputeQuestSegmentRanges(layout)
+    if not layout or not layout.visible then
+        return {}, {}
+    end
+    local currentProgress = layout.current and layout.current.ratio or 0
+    local currentSegment = math.floor(currentProgress * RING_SEGMENTS)
+    -- Compute counts and ensure visibility for tiny values: if layout marks an overlay as visible
+    -- but rounding produces 0 segments, force at least 1 segment so it is visible on the ring.
+    local completeCount = 0
+    if layout.questComplete and layout.questComplete.visible and (layout.questComplete.ratio or 0) > 0 then
+        completeCount = math.max(1, math.floor(layout.questComplete.ratio * RING_SEGMENTS + 0.5))
+    end
+    local incompleteCount = 0
+    if layout.questIncomplete and layout.questIncomplete.visible and (layout.questIncomplete.ratio or 0) > 0 then
+        incompleteCount = math.max(1, math.floor(layout.questIncomplete.ratio * RING_SEGMENTS + 0.5))
+    end
+
+    -- Clamp to total available segments to avoid overflow
+    if completeCount + incompleteCount > RING_SEGMENTS then
+        if completeCount >= RING_SEGMENTS then
+            completeCount = RING_SEGMENTS
+            incompleteCount = 0
+        else
+            incompleteCount = RING_SEGMENTS - completeCount
+        end
+    end
+
+    local completeIndices = {}
+    local incompleteIndices = {}
+    local start = currentSegment + 1
+    for j = 0, completeCount - 1 do
+        local idx = ((start + j - 1) % RING_SEGMENTS) + 1
+        completeIndices[#completeIndices + 1] = idx
+    end
+    local start2 = start + completeCount
+    for j = 0, incompleteCount - 1 do
+        local idx = ((start2 + j - 1) % RING_SEGMENTS) + 1
+        incompleteIndices[#incompleteIndices + 1] = idx
+    end
+    return completeIndices, incompleteIndices
+end
+
+-- Pure helper: compute which segment indices correspond to the rested overlay
+-- Returns array of indices (could overlap with quest indices). This is a pure
+-- function and useful for unit tests and layout validation.
+function CircularXPBarMixin:ComputeRestSegmentRanges(layout)
+    if not layout or not layout.visible or not layout.current or not layout.rested then
+        return {}
+    end
+    local currentProgress = layout.current and layout.current.ratio or 0
+    local restedProgress = math.min((currentProgress + (layout.rested and layout.rested.ratio or 0)), 1)
+    local currentSegment = math.floor(currentProgress * RING_SEGMENTS)
+    local restedSegment = math.floor(restedProgress * RING_SEGMENTS)
+
+    local restIndices = {}
+    for j = currentSegment + 1, currentSegment + (restedSegment - currentSegment) do
+        if (restedSegment - currentSegment) <= 0 then break end
+        local idx = ((j - 1) % RING_SEGMENTS) + 1
+        restIndices[#restIndices + 1] = idx
+    end
+    return restIndices
+end
+
+function CircularXPBarMixin:GetRingSublevels()
+    return { rest = RING_REST_SUBLEVEL, quest = RING_QUEST_SUBLEVEL }
+end
+
+function CircularXPBarMixin:UpdateQuestArc(layout)
+    -- If caller didn't provide a layout (e.g. animation-only update), fall back to cached layout
+    local effectiveLayout = layout or self._lastLayout
+    -- Hide everything if layout is not visible
+    if not effectiveLayout or not effectiveLayout.visible then
+        for i = 1, RING_SEGMENTS do
+            if self.questCompleteSegments and self.questCompleteSegments[i] then self.questCompleteSegments[i]:Hide() end
+            if self.questIncompleteSegments and self.questIncompleteSegments[i] then self.questIncompleteSegments[i]:Hide() end
+        end
+        return
+    end
+
+    -- Compute indices for overlays
+    local completeIndices, incompleteIndices = self:ComputeQuestSegmentRanges(effectiveLayout)
+
+    -- Hide all first
+    for i = 1, RING_SEGMENTS do
+        if self.questCompleteSegments[i] then self.questCompleteSegments[i]:Hide() end
+        if self.questIncompleteSegments[i] then self.questIncompleteSegments[i]:Hide() end
+    end
+
+    -- Show complete segments
+    local qcColor = Addon.Colors and Addon.Colors:Get(Addon.Colors.Key.QuestComplete) or { r = 1, g = 0.59, b = 0 }
+    for _, idx in ipairs(completeIndices) do
+        local seg = self.questCompleteSegments[idx]
+        if seg then
+            seg:SetColorTexture(qcColor.r, qcColor.g, qcColor.b, 1)
+            seg:Show()
+        end
+    end
+
+    -- Show incomplete segments
+    local qiColor = Addon.Colors and Addon.Colors:Get(Addon.Colors.Key.QuestIncomplete) or { r = 1, g = 1, b = 0 }
+    for _, idx in ipairs(incompleteIndices) do
+        local seg = self.questIncompleteSegments[idx]
+        if seg then
+            seg:SetColorTexture(qiColor.r, qiColor.g, qiColor.b, 1)
+            seg:Show()
+        end
     end
 end
 
@@ -641,6 +883,11 @@ function CircularXPBarMixin:UpdateBarDisplay()
 end
 
 function CircularXPBarMixin:OnShow()
+    -- Ensure events are registered when shown
+    if not self._eventsRegistered and self.RegisterCommonEvents then
+        self:RegisterCommonEvents()
+    end
+
     if not self._isUpdating then
         self:FullUpdate()
     end
@@ -656,4 +903,10 @@ function CircularXPBarMixin:Initialize()
 end
 
 -- Export
-Addon.CircularXPBarMixin = CircularXPBarMixin
+-- Export mixins into the Addon namespace (namespaced) and global table for XML compatibility
+Addon.Mixins = Addon.Mixins or {}
+Addon.Mixins.CircularXPBarContainerMixin = CircularXPBarContainerMixin
+Addon.Mixins.CircularXPBarMixin = CircularXPBarMixin
+-- Legacy compatibility
+_G.CircularXPBarContainerMixin = CircularXPBarContainerMixin
+_G.CircularXPBarMixin = CircularXPBarMixin

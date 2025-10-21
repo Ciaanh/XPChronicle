@@ -27,6 +27,7 @@ end
 -- SESSION MANAGEMENT
 -------------------------------------------------------------------
 
+---Return the currently active session table, or nil if DB unavailable
 function Session:GetCurrent()
     local Database = Addon.Database
     if not Database then
@@ -167,6 +168,7 @@ end
 -- SESSION STATS (for backward compatibility)
 -------------------------------------------------------------------
 
+---Return a normalized stats table for the current session
 function Session:GetStats()
     local session = self:GetCurrent()
     if not session then

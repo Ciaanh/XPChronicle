@@ -37,16 +37,19 @@ end
 -- DATABASE ACCESS
 -------------------------------------------------------------------
 
+---Return the root saved-variables database table
 function Database:GetDB()
     return Addon.db or {}
 end
 
+---Return the session data table stored in the database
 function Database:GetSessionData()
     local db = self:GetDB()
     db.sessionData = db.sessionData or {}
     return db.sessionData
 end
 
+---Return the cached player/realm key used for per-character storage
 function Database:GetPlayerKey()
     -- Generate playerKey on-demand if not yet initialized
     if not Addon.playerKey then
@@ -61,6 +64,7 @@ end
 -- XP GAIN STATE
 -------------------------------------------------------------------
 
+---Return whether XP gain is currently disabled for the player
 function Database:IsXPGainDisabled()
     -- Safe call to IsXPUserDisabled (may not exist in all versions)
     local disabled = false
@@ -71,6 +75,7 @@ function Database:IsXPGainDisabled()
     return disabled
 end
 
+---Set whether XP gain is disabled
 function Database:SetXPGainDisabled(disabled)
     Addon.state.xpGainDisabled = disabled
 end

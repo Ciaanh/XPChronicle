@@ -30,14 +30,17 @@ local function mergeDefaults(target, source)
     end
 end
 
+---Deep clone a value (tables are cloned recursively)
 function Utils.Clone(value)
     return cloneTable(value)
 end
 
+---Merge defaults from `source` into `target` without overwriting explicit values
 function Utils.MergeDefaults(target, source)
     mergeDefaults(target, source)
 end
 
+---Return a human-friendly short representation of a number (e.g. 1.2K, 3.4M)
 function Utils.ShortNumber(value)
     if not value or value <= 0 then
         return "0"
@@ -52,6 +55,7 @@ function Utils.ShortNumber(value)
     return BreakUpLargeNumbers(math.floor(value + 0.5))
 end
 
+---Format a duration in seconds into compact days/hours/minutes string
 function Utils.FormatDuration(seconds)
     if not seconds or seconds <= 0 then
         return "--"
@@ -81,6 +85,7 @@ function Utils.FormatDuration(seconds)
     return table.concat(parts, " ")
 end
 
+---Format seconds into a user-friendly time string (e.g. "1h 2m")
 function Utils.FormatTime(seconds)
     seconds = tonumber(seconds)
     if not seconds or seconds <= 0 then
@@ -102,6 +107,7 @@ function Utils.FormatTime(seconds)
     end
 end
 
+---Print a prefixed addon message to the default output
 function Utils.Print(message, ...)
     if not message then
         return

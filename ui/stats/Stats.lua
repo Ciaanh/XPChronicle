@@ -26,7 +26,12 @@ local frame
 --------------------------------------------------------------------------------
 
 local StatsFrameMixin = {}
-XPBarEnhancedStatsMixin = StatsFrameMixin
+-- Register the mixin under a namespaced table and expose the global
+-- alias only for XML mixin resolution.
+Addon.UI = Addon.UI or {}
+Addon.UI.Mixins = Addon.UI.Mixins or {}
+Addon.UI.Mixins.StatsFrameMixin = StatsFrameMixin
+_G.XPBarEnhancedStatsMixin = StatsFrameMixin
 
 function StatsFrameMixin:OnLoad()
     local statsFrame = self
@@ -89,11 +94,13 @@ end
 -- Core Stats Module
 --------------------------------------------------------------------------------
 
+---Set the Stats frame instance used by the module
 function Stats:SetFrame(newFrame)
     frame = newFrame
     self.frame = newFrame
 end
 
+---Return the currently registered Stats frame (or nil)
 function Stats:GetFrame()
     if frame then
         return frame
@@ -111,10 +118,63 @@ function Stats:Initialize()
     if existing and existing.OnLoad then
         existing:OnLoad()
         self:SetFrame(existing)
+        -- Register for game events to keep stats up-to-date
+        self:RegisterEventHandlers()
     elseif existing then
         self:SetFrame(existing)
         self:Update()
+        -- Register for game events even if OnLoad wasn't called
+        self:RegisterEventHandlers()
     end
+end
+
+function Stats:RegisterEventHandlers()
+    if self.eventFrame then return end
+
+    local f = CreateFrame and CreateFrame('Frame') or {}
+    -- Provide safe no-op implementations when running in test/stubbed env
+    f.RegisterEvent = f.RegisterEvent or function(_, _) end
+    f.UnregisterAllEvents = f.UnregisterAllEvents or function(_) end
+    f.SetScript = f.SetScript or function(_, _, _) end
+
+    -- Register events we care about
+    if f.RegisterEvent then
+        f:RegisterEvent('PLAYER_XP_UPDATE')
+        f:RegisterEvent('PLAYER_LEVEL_UP')
+        f:RegisterEvent('TIME_PLAYED_MSG')
+        f:RegisterEvent('QUEST_LOG_UPDATE')
+        f:RegisterEvent('UNIT_QUEST_LOG_CHANGED')
+    end
+
+    -- OnEvent handler dispatches to Stats methods
+    if f.SetScript then
+        f:SetScript('OnEvent', function(_, event, ...)
+            if event == 'PLAYER_XP_UPDATE' then
+                self:OnXPUpdate(...)
+            elseif event == 'PLAYER_LEVEL_UP' then
+                self:OnLevelUp(...)
+            elseif event == 'TIME_PLAYED_MSG' then
+                self:OnTimePlayed(...)
+            elseif event == 'QUEST_LOG_UPDATE' or event == 'UNIT_QUEST_LOG_CHANGED' then
+                self:OnQuestXPUpdated(...)
+            end
+        end)
+    end
+
+    self.eventFrame = f
+end
+
+function Stats:ShutdownEventHandlers()
+    if not self.eventFrame then return end
+    pcall(function()
+        if self.eventFrame.UnregisterAllEvents then
+            self.eventFrame:UnregisterAllEvents()
+        end
+        if self.eventFrame.SetScript then
+            self.eventFrame:SetScript('OnEvent', nil)
+        end
+    end)
+    self.eventFrame = nil
 end
 
 function Stats:Toggle()
@@ -353,6 +413,7 @@ end
 -- Quest XP Integration
 --------------------------------------------------------------------------------
 
+---Return quest XP totals (total, complete, incomplete)
 function Stats:GetQuestXP(forceRefresh)
     -- Try new consolidated path first
     if Addon.XPBar and Addon.XPBar.GetQuestXP then
