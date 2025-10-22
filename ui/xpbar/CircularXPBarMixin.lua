@@ -152,7 +152,6 @@ function CircularXPBarContainerMixin:SetLocked(locked)
     end
 end
 
----@class CircularXPBarMixin : XPBarMixinBase
 local CircularXPBarMixin = CreateFromMixins(XPBarMixinBase)
 
 -- Constants
@@ -355,14 +354,35 @@ function CircularXPBarMixin:PositionSegments()
 end
 
 function CircularXPBarMixin:RotateTexture(texture, rotation)
-    -- Simplified rotation using SetTexCoord
-    -- This is a basic implementation; full rotation requires more complex math
-    local cos = math.cos(rotation)
-    local sin = math.sin(rotation)
-    
-    -- For now, just use default texcoords
-    -- Full rotation implementation would calculate UL, LL, UR, LR corners
-    texture:SetTexCoord(0, 1, 0, 1)
+    if not texture then
+        return
+    end
+
+    -- Use the modern SetRotation API (available in retail WoW)
+    -- This is the recommended method from Blizzard for rotating textures
+    -- See refs/BlizzardInterfaceCode/docs/TEXTURE_ROTATION.md for details
+    if texture.SetRotation then
+        texture:SetRotation(rotation)
+    else
+        -- Fallback for older clients: use SetTexCoord for 90° rotations only
+        -- For arbitrary angles, we'll skip rotation on legacy clients
+        local degrees = math.deg(rotation)
+        local normalized = (degrees % 360 + 360) % 360
+        
+        if normalized < 45 or normalized >= 315 then
+            -- 0 degrees
+            texture:SetTexCoord(0, 0, 0, 1, 1, 0, 1, 1)
+        elseif normalized >= 45 and normalized < 135 then
+            -- 90 degrees
+            texture:SetTexCoord(0, 1, 1, 1, 0, 0, 1, 0)
+        elseif normalized >= 135 and normalized < 225 then
+            -- 180 degrees
+            texture:SetTexCoord(1, 1, 1, 0, 0, 1, 0, 0)
+        elseif normalized >= 225 and normalized < 315 then
+            -- 270 degrees
+            texture:SetTexCoord(1, 0, 0, 0, 1, 1, 0, 1)
+        end
+    end
 end
 
 function CircularXPBarMixin:SetupCenterContent()
