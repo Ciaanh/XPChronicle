@@ -308,6 +308,31 @@ local function handleStyle(style)
     end
 end
 
+local function handleAnimate(arg)
+    local bar = Addon and Addon.XPBar and Addon.XPBar:GetActiveView()
+    if not (bar and bar.AnimateArcFill) then
+        -- Try to get the global CircularXPBar instance
+        bar = _G.CircularXPBar and _G.CircularXPBar.Bar
+    end
+    if bar and bar.AnimateArcFill then
+        -- Show the container and bar if hidden
+        if bar:GetParent() and not bar:GetParent():IsShown() then
+            bar:GetParent():Show()
+        end
+        if not bar:IsShown() then
+            bar:Show()
+        end
+        bar.lastProgress = 0.2
+        bar.targetProgress = 0.8
+        bar:AnimateArcFill()
+        if Addon.Utils and Addon.Utils.Print then
+            Addon.Utils.Print("XPBar animation test triggered.")
+        end
+    else
+        print("XPBarEnhanced: Could not find circular bar for animation test.")
+    end
+end
+
 local function handleSlashCommand(message)
     local command, arg = string.match(message or "", "^(%S*)%s*(.-)$")
     command = string.lower(command or "")
@@ -326,6 +351,8 @@ local function handleSlashCommand(message)
         handleResetColors()
     elseif command == "style" or command == "barstyle" or command == "mode" then
         handleStyle(arg)
+    elseif command == "animate" then
+        handleAnimate(arg)
     else
         printUnknown(command)
     end

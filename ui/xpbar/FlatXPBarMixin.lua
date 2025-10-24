@@ -68,11 +68,8 @@ function FlatXPBarContainerMixin:OnLoad()
 	else
 		-- Schedule a retry after PLAYER_LOGIN (cancelable)
 		if self._dragRetryTimer then
-			pcall(
-				function()
-					self._dragRetryTimer:Cancel()
-				end
-			)
+			self._dragRetryTimer:Cancel()
+
 			self._dragRetryTimer = nil
 		end
 		self._dragRetryTimer =
@@ -119,11 +116,8 @@ end
 
 function FlatXPBarContainerMixin:OnHide()
 	if self._dragRetryTimer then
-		pcall(
-			function()
-				self._dragRetryTimer:Cancel()
-			end
-		)
+		self._dragRetryTimer:Cancel()
+
 		self._dragRetryTimer = nil
 	end
 end
@@ -268,12 +262,10 @@ function FlatXPBarMixin:OnHide()
 
 	-- Restore original StatusBar SetValue method if we patched it
 	if self.StatusBar and self.StatusBar._xpbar_origSetValue then
-		pcall(function()
-			self.StatusBar.SetValue = self.StatusBar._xpbar_origSetValue
-			self.StatusBar._xpbar_origSetValue = nil
-			self.StatusBar._xpbar_owner = nil
-			self.StatusBar._xpbar_pendingExternal = nil
-		end)
+		self.StatusBar.SetValue = self.StatusBar._xpbar_origSetValue
+		self.StatusBar._xpbar_origSetValue = nil
+		self.StatusBar._xpbar_owner = nil
+		self.StatusBar._xpbar_pendingExternal = nil
 	end
 end
 
@@ -531,12 +523,15 @@ function FlatXPBarMixin:ApplyLayout(layout)
 	end
 
 	-- Apply rested overlay
-	-- Phase 4: if the rested portion fully covers the remaining XP, hide
+	-- if the rested portion fully covers the remaining XP, hide
 	-- the overlay and let the view change the gained-XP visuals to indicate
 	-- a fully-rested state. Otherwise show the rested overlay for the
 	-- partial rested portion.
 	-- Note: isFullyRested state is now set in UpdateBarDisplay, not here
-	if layout.rested.visible and not layout.rested.isFullyRested and (layout.rested.pixels or 0) > 0 and self.StatusBar.RestedOverlay then
+	if
+		layout.rested.visible and not layout.rested.isFullyRested and (layout.rested.pixels or 0) > 0 and
+			self.StatusBar.RestedOverlay
+	 then
 		-- Apply user color (fresh from config)
 		local c = XPBarColors:GetUserColor(Color.Rested)
 		self.StatusBar.RestedOverlay:SetVertexColor(c.r, c.g, c.b, c.a)
@@ -547,7 +542,7 @@ function FlatXPBarMixin:ApplyLayout(layout)
 	elseif self.StatusBar.RestedOverlay then
 		self.StatusBar.RestedOverlay:Hide()
 	end
-	
+
 	-- Update status bar color based on current state
 	self:UpdateStatusBarColor()
 end

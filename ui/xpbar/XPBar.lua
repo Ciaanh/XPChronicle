@@ -979,7 +979,7 @@ end
 -- Event Handlers
 --------------------------------------------------------------------------------
 
--- Centralized XP Update Handler (Phase 1-2: Immutable Context Pattern)
+-- Centralized XP Update Handler
 function XPBar:HandleXPUpdate()
 	local activeView = self:GetActiveView()
 	if not activeView then
@@ -1069,7 +1069,7 @@ function XPBar:OnQuestEvent(event, ...)
 	
 	-- Delayed update to ensure quest log is updated (cancelable)
 	if self._questUpdateTimer then
-		pcall(function() self._questUpdateTimer:Cancel() end)
+        self._questUpdateTimer:Cancel()
 		self._questUpdateTimer = nil
 	end
 	self._questUpdateTimer = C_Timer.NewTimer(0.5, function()
@@ -1092,7 +1092,7 @@ end
 function XPBar:Shutdown()
 	-- Cancel any pending quest update timer
 	if self._questUpdateTimer then
-		pcall(function() self._questUpdateTimer:Cancel() end)
+        self._questUpdateTimer:Cancel()
 		self._questUpdateTimer = nil
 	end
 

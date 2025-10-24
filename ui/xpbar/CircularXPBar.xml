@@ -5,7 +5,7 @@
 
     <!-- Circular XP Bar Template (view) -->
     <Frame name="CircularXPBarTemplate" mixin="CircularXPBarMixin" virtual="true" enableMouse="true" frameStrata="MEDIUM">
-        <Size x="150" y="150"/>
+        <Size x="256" y="256"/>
         <Scripts>
             <OnLoad method="OnLoad"/>
             <OnEvent method="OnEvent"/>
@@ -19,7 +19,14 @@
 
     <!-- Container Template for Circular XP Bar -->
     <Frame name="CircularXPBarContainerTemplate" virtual="true" mixin="CircularXPBarContainerMixin">
-        <Size x="150" y="150"/>
+        <Size x="256" y="256"/>
+        <!-- <Layers>
+            <Layer level="BACKGROUND">
+                <Texture parentKey="DebugBG" setAllPoints="true">
+                    <Color r="0.2" g="0.6" b="0.9" a="0.5"/>
+                </Texture>
+            </Layer>
+        </Layers> -->
         <Frames>
             <Frame parentKey="Bar" inherits="CircularXPBarTemplate">
                 <Anchors>

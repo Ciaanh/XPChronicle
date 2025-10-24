@@ -80,7 +80,7 @@ function LegacyXPBarContainerMixin:OnLoad()
 	-- This handles race conditions during addon initialization where MainMenuBarExpBar
 	-- or StatusTrackingBarManager may not exist when OnLoad is called.
 	if self._positionRestoreTimer then
-		pcall(function() self._positionRestoreTimer:Cancel() end)
+		self._positionRestoreTimer:Cancel()
 		self._positionRestoreTimer = nil
 	end
 	self._positionRestoreTimer = C_Timer.NewTimer(0.5, function()
@@ -120,7 +120,7 @@ end
 
 function LegacyXPBarContainerMixin:OnHide()
 	if self._positionRestoreTimer then
-		pcall(function() self._positionRestoreTimer:Cancel() end)
+		self._positionRestoreTimer:Cancel()
 		self._positionRestoreTimer = nil
 	end
 end

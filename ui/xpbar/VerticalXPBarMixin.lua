@@ -58,7 +58,7 @@ function VerticalXPBarContainerMixin:OnLoad()
     else
         -- Retry after login if mixins aren't available yet (cancelable)
         if self._dragRetryTimer then
-            pcall(function() self._dragRetryTimer:Cancel() end)
+            self._dragRetryTimer:Cancel()
             self._dragRetryTimer = nil
         end
         self._dragRetryTimer = C_Timer.NewTimer(1, function()
@@ -91,7 +91,7 @@ end
 
 function VerticalXPBarContainerMixin:OnHide()
     if self._dragRetryTimer then
-        pcall(function() self._dragRetryTimer:Cancel() end)
+    self._dragRetryTimer:Cancel()
         self._dragRetryTimer = nil
     end
 end
@@ -508,7 +508,7 @@ function VerticalXPBarMixin:PlayBounceAnimation()
     
     -- Bounce up (cancelable)
     if self._bounceUpTimer then
-        pcall(function() self._bounceUpTimer:Cancel() end)
+        self._bounceUpTimer:Cancel()
         self._bounceUpTimer = nil
     end
     self._bounceUpTimer = C_Timer.NewTimer(0, function()
@@ -522,7 +522,7 @@ function VerticalXPBarMixin:PlayBounceAnimation()
 
     -- Settle back (cancelable)
     if self._bounceDownTimer then
-        pcall(function() self._bounceDownTimer:Cancel() end)
+        self._bounceDownTimer:Cancel()
         self._bounceDownTimer = nil
     end
     self._bounceDownTimer = C_Timer.NewTimer(BOUNCE_DURATION, function()
@@ -778,7 +778,7 @@ function VerticalXPBarMixin:FullUpdate()
     end)
     if not ok then
         self.Border:SetTexture("Interface\\Tooltips\\UI-Tooltip-Border")
-        pcall(function() self.Border:SetTexCoord(0.08, 0.92, 0.08, 0.92) end)
+        self.Border:SetTexCoord(0.08, 0.92, 0.08, 0.92)
     end
     -- Only show the container for the active view
     local activeView = Addon.XPBar and Addon.XPBar:GetActiveView()
@@ -869,17 +869,17 @@ end
 function VerticalXPBarMixin:OnHide()
     -- Cancel any pending drag retry timer
     if self._dragRetryTimer then
-        pcall(function() self._dragRetryTimer:Cancel() end)
+        self._dragRetryTimer:Cancel()
         self._dragRetryTimer = nil
     end
 
     -- Cancel bounce timers
     if self._bounceUpTimer then
-        pcall(function() self._bounceUpTimer:Cancel() end)
+        self._bounceUpTimer:Cancel()
         self._bounceUpTimer = nil
     end
     if self._bounceDownTimer then
-        pcall(function() self._bounceDownTimer:Cancel() end)
+        self._bounceDownTimer:Cancel()
         self._bounceDownTimer = nil
     end
 
@@ -896,7 +896,7 @@ function VerticalXPBarMixin:OnHide()
     if self.particlePool then
         for _, particle in ipairs(self.particlePool) do
             if particle._fallbackTicker then
-                pcall(function() particle._fallbackTicker:Cancel() end)
+                particle._fallbackTicker:Cancel()
                 particle._fallbackTicker = nil
             end
             if type(particle.GetScript) == "function" and particle:GetScript("OnUpdate") then

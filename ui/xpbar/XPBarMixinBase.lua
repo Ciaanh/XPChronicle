@@ -27,20 +27,16 @@ local ANIMATION_CONSTANTS = {
 	GAIN_FLASH_HALF_PERIOD_SECONDS = 0.25,
 	GAIN_FLASH_MAX_ALPHA = 0.5,
 	PAUSE_SECONDS = 0.5,
-	
 	-- Speed configuration
 	DEFAULT_ANIMATION_SPEED = 1.0,
-	
 	-- Duration bounds (backup values - faster, more responsive feel)
-	MIN_ANIMATION_DURATION = 0.3,  -- Was 0.5 (backup proven value)
-	MAX_ANIMATION_DURATION = 2.0,  -- Was 3.0 (backup proven value)
-	
+	MIN_ANIMATION_DURATION = 0.3, -- Was 0.5 (backup proven value)
+	MAX_ANIMATION_DURATION = 2.0, -- Was 3.0 (backup proven value)
 	-- Diff thresholds
-	ANIMATION_THRESHOLD = 0.001,   -- Minimum change to animate (0.1%)
-	INSTANT_THRESHOLD = 0.95,      -- Changes >95% are instant
-	
+	ANIMATION_THRESHOLD = 0.001, -- Minimum change to animate (0.1%)
+	INSTANT_THRESHOLD = 0.95, -- Changes >95% are instant
 	-- Enforced minimum for visibility
-	ENFORCED_MIN_DURATION = 0.25,  -- Clearly visible at 60 FPS (15 frames)
+	ENFORCED_MIN_DURATION = 0.25 -- Clearly visible at 60 FPS (15 frames)
 }
 
 -----------------------------------
@@ -51,7 +47,6 @@ local XPBarMixinBase = {}
 -- Local alias for optional tooltip module (may be defined elsewhere)
 local XPBarTooltip = _G and _G.XPBarTooltip
 
-
 -- Initialize shared state
 function XPBarMixinBase:InitializeState()
 	self.state = {
@@ -59,7 +54,7 @@ function XPBarMixinBase:InitializeState()
 		maxXP = 1,
 		restedXP = 0,
 		level = 1,
-		maxLevel = 1,
+		maxLevel = 1
 	}
 
 	-- Re-entrancy guard & scheduling state
@@ -77,7 +72,7 @@ function XPBarMixinBase:InitializeState()
 
 	-- Initialize text system
 	self:InitializeTextSystem()
-	
+
 	-- Initialize quest overlay system
 	self:InitializeQuestOverlays()
 end
@@ -93,20 +88,17 @@ function XPBarMixinBase:InitializeAnimationState()
 		startTime = 0,
 		duration = 0,
 		pauseUntil = 0,
-		
 		-- Flash effect
 		flashingXPGain = false,
 		flashStartTime = 0,
 		flashDuration = 0,
 		isRestedGain = false,
-		
 		-- Previous XP for gain detection
 		previousXP = 0,
-		
 		-- Optional metadata for style-specific effects
-		metadata = nil,
+		metadata = nil
 	}
-	
+
 	-- Track current displayed ratio (for retargeting)
 	self._currentRatio = 0
 
@@ -127,13 +119,16 @@ function XPBarMixinBase:InitializeAnimationState()
 			bar._xpbar_driverRegistered = true
 			-- Ensure OnUpdate is active
 			if not self._isRunning then
-				self:SetScript("OnUpdate", function(frame, elapsed)
-					-- Iterate copy to avoid modification during iteration
-					for b, _ in pairs(frame.bars) do
-						-- Safely call the animation update for each bar
-						pcall(XPBarMixinBase.OnAnimationUpdate, b, elapsed)
+				self:SetScript(
+					"OnUpdate",
+					function(frame, elapsed)
+						-- Iterate copy to avoid modification during iteration
+						for b, _ in pairs(frame.bars) do
+							-- Safely call the animation update for each bar
+							XPBarMixinBase.OnAnimationUpdate(b, elapsed)
+						end
 					end
-				end)
+				)
 				self._isRunning = true
 			end
 		end
@@ -150,70 +145,74 @@ function XPBarMixinBase:InitializeAnimationState()
 			end
 		end
 		Addon._AnimationDriver = driver
-		end
 	end
+end
 
-	-- Return a human-readable style name for logging
-	function XPBarMixinBase:GetBarStyleName()
-		-- Prefer explicit override set by concrete mixins
-		if self._barStyle and type(self._barStyle) == "string" then
-			return self._barStyle
-		end
-		-- Common fallbacks based on flags used by mixins
-		if self.isFlatBar then
-			return "Flat"
-		end
-		if self.orientation == "VERTICAL" then
-			return "Vertical"
-		end
-		if self.orientation == "CIRCULAR" then
-			return "Circular"
-		end
-		-- As a last resort, use the frame name if available
-		if type(self.GetName) == "function" then
-			local name = self:GetName()
-			if name and name ~= "" then
-				return tostring(name)
-			end
-		end
-		return "Unknown"
+-- Return a human-readable style name for logging
+function XPBarMixinBase:GetBarStyleName()
+	-- Prefer explicit override set by concrete mixins
+	if self._barStyle and type(self._barStyle) == "string" then
+		return self._barStyle
 	end
+	-- Common fallbacks based on flags used by mixins
+	if self.isFlatBar then
+		return "Flat"
+	end
+	if self.orientation == "VERTICAL" then
+		return "Vertical"
+	end
+	if self.orientation == "CIRCULAR" then
+		return "Circular"
+	end
+	-- As a last resort, use the frame name if available
+	if type(self.GetName) == "function" then
+		local name = self:GetName()
+		if name and name ~= "" then
+			return tostring(name)
+		end
+	end
+	return "Unknown"
+end
 
 -- Initialize text overlay system
 function XPBarMixinBase:InitializeTextSystem()
 	-- Defer a small amount so SavedVariables and other modules are available.
 	if self._textInitTimer then
-		pcall(function() self._textInitTimer:Cancel() end)
+		self._textInitTimer:Cancel()
 		self._textInitTimer = nil
 	end
 
-	self._textInitTimer = C_Timer.NewTimer(0.1, function()
-		if not self or not self.UpdateTextVisibility then
-			self._textInitTimer = nil
-			return
-		end
-
-		-- Only update if frame is shown to avoid unnecessary work for hidden views
-		if not self:IsShown() then
-			self._textInitTimer = nil
-			return
-		end
-
-		self:UpdateTextVisibility()
-		-- Force an update of all text
-		self:UpdateAllText()
-
-		-- Request time played data if time text is enabled
-		local db = Addon.db or {}
-		if db.showLevelTimeText or db.showSessionTimeText then
-			if Addon.Session and Addon.Session.RequestTimePlayed then
-				Addon.Session:RequestTimePlayed()
+	self._textInitTimer =
+		C_Timer.NewTimer(
+		0.1,
+		function()
+			if not self or not self.UpdateTextVisibility then
+				self._textInitTimer = nil
+				return
 			end
-		end
 
-		-- Clear timer reference
-		self._textInitTimer = nil
-	end)
+			-- Only update if frame is shown to avoid unnecessary work for hidden views
+			if not self:IsShown() then
+				self._textInitTimer = nil
+				return
+			end
+
+			self:UpdateTextVisibility()
+			-- Force an update of all text
+			self:UpdateAllText()
+
+			-- Request time played data if time text is enabled
+			local db = Addon.db or {}
+			if db.showLevelTimeText or db.showSessionTimeText then
+				if Addon.Session and Addon.Session.RequestTimePlayed then
+					Addon.Session:RequestTimePlayed()
+				end
+			end
+
+			-- Clear timer reference
+			self._textInitTimer = nil
+		end
+	)
 end
 
 -- Register common events
@@ -224,15 +223,15 @@ function XPBarMixinBase:RegisterCommonEvents()
 	end
 
 	-- NOTE: PLAYER_XP_UPDATE is now handled centrally by XPBar controller
-	-- Individual views no longer register for this event (Phase 1-2: Centralized Event Handling)
+	-- Individual views no longer register for this event
 	-- self:RegisterEvent("PLAYER_XP_UPDATE")  -- REMOVED
-	
+
 	self:RegisterEvent("PLAYER_LEVEL_UP")
 	self:RegisterEvent("UPDATE_EXHAUSTION")
 	self:RegisterEvent("PLAYER_ENTERING_WORLD")
 	self:RegisterEvent("PLAYER_UPDATE_RESTING")
 	self:RegisterEvent("TIME_PLAYED_MSG")
-    
+
 	-- Quest events for overlays
 	if self.RegisterQuestEvents then
 		self:RegisterQuestEvents()
@@ -243,23 +242,19 @@ end
 
 function XPBarMixinBase:UnsubscribeFromEvents()
 	-- Unregister common events
-	pcall(function()
-		self:UnregisterEvent("PLAYER_XP_UPDATE")
-		self:UnregisterEvent("PLAYER_LEVEL_UP")
-		self:UnregisterEvent("UPDATE_EXHAUSTION")
-		self:UnregisterEvent("PLAYER_ENTERING_WORLD")
-		self:UnregisterEvent("PLAYER_UPDATE_RESTING")
-		self:UnregisterEvent("TIME_PLAYED_MSG")
-	end)
+	self:UnregisterEvent("PLAYER_XP_UPDATE")
+	self:UnregisterEvent("PLAYER_LEVEL_UP")
+	self:UnregisterEvent("UPDATE_EXHAUSTION")
+	self:UnregisterEvent("PLAYER_ENTERING_WORLD")
+	self:UnregisterEvent("PLAYER_UPDATE_RESTING")
+	self:UnregisterEvent("TIME_PLAYED_MSG")
 
 	-- If mixin registered quest events, unregister them too
-	pcall(function()
-		self:UnregisterEvent("QUEST_ACCEPTED")
-		self:UnregisterEvent("QUEST_REMOVED")
-		self:UnregisterEvent("QUEST_TURNED_IN")
-		self:UnregisterEvent("QUEST_LOG_UPDATE")
-		self:UnregisterEvent("UNIT_QUEST_LOG_CHANGED")
-	end)
+	self:UnregisterEvent("QUEST_ACCEPTED")
+	self:UnregisterEvent("QUEST_REMOVED")
+	self:UnregisterEvent("QUEST_TURNED_IN")
+	self:UnregisterEvent("QUEST_LOG_UPDATE")
+	self:UnregisterEvent("UNIT_QUEST_LOG_CHANGED")
 
 	self._eventsRegistered = false
 end
@@ -293,11 +288,10 @@ function XPBarMixinBase:HandleEvent(event, ...)
 	elseif event == "TIME_PLAYED_MSG" then
 		-- Update session text when we receive time played data
 		self:UpdateSessionText()
-	elseif event == "QUEST_ACCEPTED" or
-	       event == "QUEST_REMOVED" or
-	       event == "QUEST_TURNED_IN" or
-	       event == "QUEST_LOG_UPDATE" or
-	       event == "UNIT_QUEST_LOG_CHANGED" then
+	elseif
+		event == "QUEST_ACCEPTED" or event == "QUEST_REMOVED" or event == "QUEST_TURNED_IN" or event == "QUEST_LOG_UPDATE" or
+			event == "UNIT_QUEST_LOG_CHANGED"
+	 then
 		-- NEW ARCHITECTURE: Update entire bar when quest state changes
 		self:UpdateBarDisplay()
 	end
@@ -369,7 +363,7 @@ function XPBarMixinBase:FullUpdate()
 	self._isUpdating = nil
 end
 
--- Animate XP Change with Immutable Context (Phase 1-2: Centralized Event Handling)
+-- Animate XP Change with Immutable Context
 -- Called by XPBar controller with an immutable context object.
 -- This method handles aggregation for rapid XP gains.
 function XPBarMixinBase:AnimateXPChange(context)
@@ -382,17 +376,16 @@ function XPBarMixinBase:AnimateXPChange(context)
 	if self.animation.isAnimating and self.animation.context then
 		-- Aggregate: compute combined gain, keep original xpBefore
 		local combinedContext = {
-			xpBefore = self.animation.context.xpBefore,  -- Keep original start
-			xpAfter = context.xpAfter,                    -- New target
+			xpBefore = self.animation.context.xpBefore, -- Keep original start
+			xpAfter = context.xpAfter, -- New target
 			xpMax = context.xpMax,
-			xpGained = context.xpAfter - self.animation.context.xpBefore,  -- Total gain
-            
+			xpGained = context.xpAfter - self.animation.context.xpBefore, -- Total gain
 			level = context.level,
 			prevLevel = self.animation.context.prevLevel or context.prevLevel,
 			isLevelUp = context.isLevelUp or self.animation.context.isLevelUp,
 			isRested = context.isRested,
 			timestamp = context.timestamp,
-			source = "aggregated",
+			source = "aggregated"
 		}
 		self.animation.context = combinedContext
 	else
@@ -417,7 +410,7 @@ function XPBarMixinBase:AnimateXPChange(context)
 		self:TriggerXPGainFlash(self.animation.context.isRested)
 	end
 
-	-- Phase 4: Pass context directly to AnimateToRatio (no metadata conversion)
+	-- Pass context directly to AnimateToRatio (no metadata conversion)
 	self:AnimateToRatio(targetRatio, self.animation.context)
 end
 
@@ -492,12 +485,12 @@ function XPBarMixinBase:CalculateRestedDimensions()
 
 	-- Account for quest overlays offset
 	local questOffset = self.questOffsetForRested or 0
-	
+
 	-- Calculate rested position: current XP + quest overlays + rested XP
 	local totalWithQuestsAndRested = currentXP + questOffset + restedXP
 	local restedRatio = math.min(totalWithQuestsAndRested / maxXP, 1.0)
 	local restedWidth = restedRatio * BAR_WIDTH
-	
+
 	-- Calculate the actual rested width (not including current XP or quest offset)
 	local currentPlusQuestRatio = math.min((currentXP + questOffset) / maxXP, 1.0)
 	local currentPlusQuestWidth = currentPlusQuestRatio * BAR_WIDTH
@@ -505,10 +498,10 @@ function XPBarMixinBase:CalculateRestedDimensions()
 
 	return {
 		restedXP = restedXP,
-		restedRatio = restedRatio,  -- Total ratio including current XP + quests + rested
-		restedWidth = actualRestedWidth,  -- Width of rested overlay only
-		restedFullWidth = restedWidth,  -- Full width including offset (for tick positioning)
-		questOffset = questOffset,  -- Store offset for positioning
+		restedRatio = restedRatio, -- Total ratio including current XP + quests + rested
+		restedWidth = actualRestedWidth, -- Width of rested overlay only
+		restedFullWidth = restedWidth, -- Full width including offset (for tick positioning)
+		questOffset = questOffset, -- Store offset for positioning
 		isFullyRested = restedWidth >= BAR_WIDTH,
 		showTick = restedRatio >= 0.01 and restedRatio <= 0.99
 	}
@@ -537,7 +530,7 @@ function XPBarMixinBase:OnLevelUp(newLevel)
 	if Addon._AnimationDriver then
 		Addon._AnimationDriver:RemoveBar(self)
 	end
-	
+
 	-- Hide flash
 	if self.SetFlashAlpha then
 		self:SetFlashAlpha(0)
@@ -551,7 +544,7 @@ function XPBarMixinBase:OnLevelUp(newLevel)
 		end
 		return
 	end
-	
+
 	-- Invalidate quest XP cache - quest rewards change with level
 	if Addon.XPBar and Addon.XPBar.InvalidateQuestCache then
 		Addon.XPBar:InvalidateQuestCache()
@@ -568,7 +561,7 @@ function XPBarMixinBase:OnLevelUp(newLevel)
 
 	-- Update level text immediately
 	self:UpdateLevelText()
-	
+
 	-- Update all text including quest-related displays
 	self:UpdateAllText()
 end
@@ -579,7 +572,7 @@ end
 
 function XPBarMixinBase:PlayLevelUpCelebration(newLevel)
 	local db = Addon.db or {}
-	
+
 	-- Celebration configuration
 	local speedMultiplier = 1.0
 	if db.celebrationSpeed == "fast" then
@@ -587,79 +580,83 @@ function XPBarMixinBase:PlayLevelUpCelebration(newLevel)
 	elseif db.celebrationSpeed == "slow" then
 		speedMultiplier = 1.5
 	end
-	
+
 	-- Trigger gold flash
 	self:TriggerLevelUpFlash(speedMultiplier)
-	
+
 	-- Schedule full bar update after flash (cancelable)
 	if self._celebrationTimer then
-		pcall(function() self._celebrationTimer:Cancel() end)
+		self._celebrationTimer:Cancel()
 		self._celebrationTimer = nil
 	end
-	self._celebrationTimer = C_Timer.NewTimer(1.0 * speedMultiplier, function()
-		if not self or not self:IsShown() or not self.FullUpdate then
+	self._celebrationTimer =
+		C_Timer.NewTimer(
+		1.0 * speedMultiplier,
+		function()
+			if not self or not self:IsShown() or not self.FullUpdate then
+				self._celebrationTimer = nil
+				return
+			end
+			self:FullUpdate()
 			self._celebrationTimer = nil
-			return
 		end
-		self:FullUpdate()
-		self._celebrationTimer = nil
-	end)
+	)
 end
 
 -- Cancel and cleanup any pending timers attached to this mixin instance
 function XPBarMixinBase:CleanupTimers()
 	if self._textInitTimer then
-		pcall(function() self._textInitTimer:Cancel() end)
+		self._textInitTimer:Cancel()
 		self._textInitTimer = nil
 	end
 
 	if self._celebrationTimer then
-		pcall(function() self._celebrationTimer:Cancel() end)
+		self._celebrationTimer:Cancel()
 		self._celebrationTimer = nil
 	end
 
 	if self._updateDelayTimer then
-		pcall(function() self._updateDelayTimer:Cancel() end)
+		self._updateDelayTimer:Cancel()
 		self._updateDelayTimer = nil
 	end
 
 	if self._animationTicker then
-		pcall(function() self._animationTicker:Cancel() end)
+		self._animationTicker:Cancel()
 		self._animationTicker = nil
 	end
 
 	if self._dragRetryTimer then
-		pcall(function() self._dragRetryTimer:Cancel() end)
+		self._dragRetryTimer:Cancel()
 		self._dragRetryTimer = nil
 	end
 
 	if self._positionRestoreTimer then
-		pcall(function() self._positionRestoreTimer:Cancel() end)
+		self._positionRestoreTimer:Cancel()
 		self._positionRestoreTimer = nil
 	end
-    
+
 	if self._fullUpdateTimer then
-		pcall(function() self._fullUpdateTimer:Cancel() end)
+		self._fullUpdateTimer:Cancel()
 		self._fullUpdateTimer = nil
 	end
-    
+
 	if self._glowUpTimer then
-		pcall(function() self._glowUpTimer:Cancel() end)
+		self._glowUpTimer:Cancel()
 		self._glowUpTimer = nil
 	end
 
 	if self._glowDownTimer then
-		pcall(function() self._glowDownTimer:Cancel() end)
+		self._glowDownTimer:Cancel()
 		self._glowDownTimer = nil
 	end
-    
+
 	if self._bounceUpTimer then
-		pcall(function() self._bounceUpTimer:Cancel() end)
+		self._bounceUpTimer:Cancel()
 		self._bounceUpTimer = nil
 	end
 
 	if self._bounceDownTimer then
-		pcall(function() self._bounceDownTimer:Cancel() end)
+		self._bounceDownTimer:Cancel()
 		self._bounceDownTimer = nil
 	end
 
@@ -694,17 +691,17 @@ end
 
 function XPBarMixinBase:TriggerLevelUpFlash(speedMultiplier)
 	speedMultiplier = speedMultiplier or 1.0
-	
+
 	if not self.SetFlashAlpha then
 		return
 	end
-	
+
 	-- Gold color for level-up flash (different from XP gain)
 	self.animation.flashingXPGain = true
 	self.animation.flashStartTime = GetTime()
 	self.animation.flashDuration = 1.0 * speedMultiplier
-	self.animation.isLevelUpFlash = true  -- Mark as level-up flash
-	
+	self.animation.isLevelUpFlash = true -- Mark as level-up flash
+
 	-- Register with global driver
 	if Addon._AnimationDriver then
 		Addon._AnimationDriver:AddBar(self)
@@ -718,20 +715,20 @@ end
 -- Get animation configuration
 function XPBarMixinBase:GetAnimationConfig()
 	local db = Addon.db or {}
-	
+
 	-- Validate animationSpeed is a number (fix for corrupted SavedVariables)
 	local speed = db.animationSpeed
 	if type(speed) ~= "number" then
 		speed = ANIMATION_CONSTANTS.DEFAULT_ANIMATION_SPEED
 	end
-	
+
 	return {
 		enabled = db.enableAnimations ~= false, -- Default to enabled
 		speed = speed,
 		easing = db.animationEasing or "easeOut",
 		flashOnGain = db.flashOnGain ~= false, -- Default to enabled
-		pauseOnHover = db.pauseOnHover ~= false, -- Default to enabled
-	-- Debug testing hooks (none by default)
+		pauseOnHover = db.pauseOnHover ~= false -- Default to enabled
+		-- Debug testing hooks (none by default)
 	}
 end
 
@@ -741,59 +738,61 @@ end
 -- Called by global driver every frame for registered bars
 function XPBarMixinBase:OnAnimationUpdate(elapsed)
 	local now = GetTime()
-	
+
 	-- DEBUG: Print every 60 frames
 	self._debugUpdateCount = (self._debugUpdateCount or 0) + 1
 	if self._debugUpdateCount % 60 == 0 then
-		print(string.format("[XPBar Update] frame=%d, animating=%s, flashing=%s", 
-			self._debugUpdateCount, 
-			tostring(self.animation.isAnimating), 
-			tostring(self.animation.flashingXPGain)))
+		print(
+			string.format(
+				"[XPBar Update] frame=%d, animating=%s, flashing=%s",
+				self._debugUpdateCount,
+				tostring(self.animation.isAnimating),
+				tostring(self.animation.flashingXPGain)
+			)
+		)
 	end
-    
+
 	-- Check if paused
 	if self.animation.pauseUntil > now then
 		return
 	end
-    
+
 	-- Update flash effect
 	if self.animation.flashingXPGain then
 		self:UpdateFlashEffect(now, elapsed)
 	end
-    
+
 	-- Update bar fill animation
 	if self.animation.isAnimating then
 		local elapsed_since_start = now - self.animation.startTime
-		
+
 		if elapsed_since_start >= self.animation.duration then
+			-- DON'T unregister yet if flash is still running
+			-- (OnAnimationUpdate will handle unregister when both complete)
 			-- Animation complete
 			self.animation.isAnimating = false
 			self._currentRatio = self.animation.targetRatio
-			
+
 			-- Update display to final target
 			self:SetDisplayValue(self.animation.targetRatio)
-			
-			-- Call completion hook (Phase 3: context will be cleared in OnAnimationComplete)
+
+			-- Call completion hook (context will be cleared in OnAnimationComplete)
 			local completionData = self.animation.context or self.animation.metadata
 			self:OnAnimationComplete(completionData)
-			
-			-- DON'T unregister yet if flash is still running
-			-- (OnAnimationUpdate will handle unregister when both complete)
 		else
 			-- Calculate progress with easing
 			local progress = math.min(elapsed_since_start / self.animation.duration, 1.0)
 			progress = self:ApplyEasing(progress)
-			
+
 			-- Pure Lua interpolation (deterministic, client-independent)
-			local currentRatio = self.animation.startRatio + 
-			                    (self.animation.targetRatio - self.animation.startRatio) * progress
-			
+			local currentRatio = self.animation.startRatio + (self.animation.targetRatio - self.animation.startRatio) * progress
+
 			-- Update display (delegates to style-specific rendering)
 			self:SetDisplayValue(currentRatio)
 			self._currentRatio = currentRatio
 		end
 	end
-    
+
 	-- Unregister if nothing is animating
 	if not self.animation.isAnimating and not self.animation.flashingXPGain then
 		if Addon._AnimationDriver then
@@ -802,12 +801,12 @@ function XPBarMixinBase:OnAnimationUpdate(elapsed)
 	end
 end
 
--- Start animation to target ratio (Phase 3: Context-Aware)
+-- Start animation to target ratio
 -- Main entry point for all bar animations
 function XPBarMixinBase:AnimateToRatio(targetRatio, metadata)
 	local config = self:GetAnimationConfig()
-	
-	-- Phase 3: Use context if available (new path), fall back to metadata (legacy path)
+
+	-- Use context if available (new path), fall back to metadata (legacy path)
 	local context = self.animation.context or metadata
 	local currentRatio = self._currentRatio or 0
 
@@ -816,19 +815,18 @@ function XPBarMixinBase:AnimateToRatio(targetRatio, metadata)
 	if context and context.xpBefore and context.xpMax and context.xpMax > 0 then
 		logicalStartRatio = math.min(context.xpBefore / context.xpMax, 1.0)
 	end
-	
+
 	-- If retargeting (animation already in progress), use interpolated visual position
 	local visualStartRatio = logicalStartRatio
 	if self.animation.isAnimating then
 		local elapsed = GetTime() - self.animation.startTime
 		local progress = math.min(elapsed / self.animation.duration, 1.0)
 		progress = self:ApplyEasing(progress)
-		visualStartRatio = self.animation.startRatio + 
-		                   (self.animation.targetRatio - self.animation.startRatio) * progress
+		visualStartRatio = self.animation.startRatio + (self.animation.targetRatio - self.animation.startRatio) * progress
 	elseif logicalStartRatio ~= currentRatio then
 		visualStartRatio = logicalStartRatio
 	end
-	
+
 	-- Rule: Check if should animate
 	local shouldAnimate, reason = self:ShouldAnimateChange(visualStartRatio, targetRatio, config)
 	if not shouldAnimate then
@@ -836,29 +834,29 @@ function XPBarMixinBase:AnimateToRatio(targetRatio, metadata)
 		self:SetDisplayValue(targetRatio)
 		self._currentRatio = targetRatio
 		self:OnAnimationComplete(context)
-		-- Phase 3: Clear context on completion
+		-- Clear context on completion
 		self.animation.context = nil
 		return
 	end
-	
+
 	-- Calculate duration from visual delta (smooth retargeting)
 	local delta = math.abs(targetRatio - visualStartRatio)
 	local duration = self:CalculateAnimationDuration(delta, config)
-	
+
 	-- Setup animation state
 	self.animation.isAnimating = true
 	self.animation.startRatio = visualStartRatio
 	self.animation.targetRatio = targetRatio
 	self.animation.startTime = GetTime()
 	self.animation.duration = duration
-	-- Phase 3: Store context reference (already set by AnimateXPChange or converted from metadata)
+	-- Store context reference (already set by AnimateXPChange or converted from metadata)
 	if not self.animation.context then
-		self.animation.context = metadata  -- Legacy fallback
+		self.animation.context = metadata -- Legacy fallback
 	end
-	
+
 	-- Backward compatibility: Keep metadata field for any legacy code
 	self.animation.metadata = metadata or context
-	
+
 	-- Register with global driver (frame-driven interpolation)
 	if Addon._AnimationDriver then
 		Addon._AnimationDriver:AddBar(self)
@@ -869,31 +867,31 @@ end
 function XPBarMixinBase:ShouldAnimateChange(currentRatio, newRatio, config)
 	local constants = ANIMATION_CONSTANTS
 	local delta = math.abs(newRatio - currentRatio)
-	
+
 	-- Rule: User disabled animations
 	if not config.enabled then
 		return false, "user_disabled"
 	end
-	
+
 	-- Rule: Tiny changes are instant (avoid micro-animations)
 	if delta < constants.ANIMATION_THRESHOLD then
 		return false, "delta_too_small"
 	end
-	
+
 	-- Rule: Huge changes are instant (level-up, addon reload)
 	-- REMOVED: This was causing normal XP gains to appear instant
 	-- The backup version doesn't have this check and works correctly
 	-- if delta > constants.INSTANT_THRESHOLD then
 	-- 	return false, "delta_too_large"
 	-- end
-	
+
 	-- Rule: Inactive view = instant (avoid duplicate animations)
 	if Addon and Addon.XPBar and Addon.XPBar.GetActiveView then
 		if Addon.XPBar:GetActiveView() ~= self then
 			return false, "inactive_view"
 		end
 	end
-	
+
 	-- Otherwise, animate
 	return true, "normal"
 end
@@ -906,37 +904,36 @@ function XPBarMixinBase:AnimateToValue(targetValue, immediate)
 		self._currentRatio = targetValue
 		return
 	end
-	
+
 	-- Create metadata for compatibility
 	local metadata = {
-		source = "legacy_AnimateToValue",
+		source = "legacy_AnimateToValue"
 	}
-	
+
 	self:AnimateToRatio(targetValue, metadata)
 end
 
 -- Simplified duration calculation (explicit formula)
 function XPBarMixinBase:CalculateAnimationDuration(delta, config)
 	local constants = ANIMATION_CONSTANTS
-	
+
 	-- Linear scaling: 0.001 delta = MIN, 1.0 delta = MAX
-	local duration = constants.MIN_ANIMATION_DURATION + 
-	                (delta * (constants.MAX_ANIMATION_DURATION - constants.MIN_ANIMATION_DURATION))
-	
+	local duration =
+		constants.MIN_ANIMATION_DURATION + (delta * (constants.MAX_ANIMATION_DURATION - constants.MIN_ANIMATION_DURATION))
+
 	-- Apply user preference multiplier (from settings)
-	local speedPref = config.speed or 1.0  -- 0.5 = half speed, 2.0 = double speed
+	local speedPref = config.speed or 1.0 -- 0.5 = half speed, 2.0 = double speed
 	duration = duration / speedPref
-	
+
 	-- Clamp to bounds
-	return math.max(constants.ENFORCED_MIN_DURATION, 
-	               math.min(constants.MAX_ANIMATION_DURATION, duration))
+	return math.max(constants.ENFORCED_MIN_DURATION, math.min(constants.MAX_ANIMATION_DURATION, duration))
 end
 
--- Animation completion hook (Phase 3: Clean up context)
+-- Animation completion hook
 function XPBarMixinBase:OnAnimationComplete(contextOrMetadata)
-	-- Phase 3: Clear context when animation completes
+	-- Clear context when animation completes
 	self.animation.context = nil
-	
+
 	-- Hook for style-specific effects (e.g., Vertical bar falling animation)
 	if self.OnBarAnimationComplete then
 		self:OnBarAnimationComplete(contextOrMetadata)
@@ -961,7 +958,7 @@ end
 -- Apply easing function to animation progress
 function XPBarMixinBase:ApplyEasing(t)
 	local config = self:GetAnimationConfig()
-	
+
 	if config.easing == "linear" then
 		return t
 	elseif config.easing == "easeOut" then
@@ -975,25 +972,25 @@ function XPBarMixinBase:ApplyEasing(t)
 			return 1 - math.pow(-2 * t + 2, 2) / 2
 		end
 	end
-	
+
 	return t -- fallback to linear
 end
 
 -- Trigger flash effect on XP gain
 function XPBarMixinBase:TriggerXPGainFlash(isRested)
 	local config = self:GetAnimationConfig()
-	
+
 	if not config.flashOnGain then
 		return
 	end
-	
+
 	local constants = ANIMATION_CONSTANTS
-	
+
 	self.animation.flashingXPGain = true
 	self.animation.flashStartTime = GetTime()
 	self.animation.flashDuration = constants.GAIN_FLASH_HALF_PERIOD_SECONDS * 2
 	self.animation.isRestedGain = isRested
-	
+
 	-- Register with the global animation driver so flash ticks are driven
 	if Addon and Addon._AnimationDriver then
 		Addon._AnimationDriver:AddBar(self)
@@ -1029,10 +1026,14 @@ function XPBarMixinBase:SetFlashAlpha(alpha)
 			local r, g, b, a = 1, 1, 1, alpha
 			if isRested and XPBarColors and XPBarColors.GetUserColor then
 				local c = XPBarColors:GetUserColor(Color.Rested)
-				if c then r, g, b = c.r, c.g, c.b end
+				if c then
+					r, g, b = c.r, c.g, c.b
+				end
 			elseif XPBarColors and XPBarColors.GetUserColor then
 				local c = XPBarColors:GetUserColor(Color.XpBar)
-				if c then r, g, b = c.r, c.g, c.b end
+				if c then
+					r, g, b = c.r, c.g, c.b
+				end
 			end
 			self.GainFlash:SetColorTexture(r, g, b, a)
 		end
@@ -1048,7 +1049,7 @@ function XPBarMixinBase:UpdateFlashEffect(now, elapsed)
 	local state = self.animation
 	local constants = ANIMATION_CONSTANTS
 	local elapsed_since_start = now - state.flashStartTime
-	
+
 	if elapsed_since_start >= state.flashDuration then
 		-- Flash complete
 		state.flashingXPGain = false
@@ -1112,18 +1113,22 @@ function XPBarMixinBase:Show()
 		self._fullUpdateScheduled = true
 
 		if self._fullUpdateTimer then
-			pcall(function() self._fullUpdateTimer:Cancel() end)
+			self._fullUpdateTimer:Cancel()
 			self._fullUpdateTimer = nil
 		end
-		self._fullUpdateTimer = C_Timer.NewTimer(0, function()
-			self._fullUpdateScheduled = nil
-			if not self or not self.FullUpdate then
+		self._fullUpdateTimer =
+			C_Timer.NewTimer(
+			0,
+			function()
+				self._fullUpdateScheduled = nil
+				if not self or not self.FullUpdate then
+					self._fullUpdateTimer = nil
+					return
+				end
+				self:FullUpdate()
 				self._fullUpdateTimer = nil
-				return
 			end
-			self:FullUpdate()
-			self._fullUpdateTimer = nil
-		end)
+		)
 	end
 end
 
@@ -1155,7 +1160,7 @@ function XPBarMixinBase:UpdateTextVisibility()
 	if parent and parent.WireTextElements then
 		parent:WireTextElements()
 	end
-	
+
 	-- Get configuration from SavedVariables (or defaults)
 	local db = Addon.db or {}
 
@@ -1252,11 +1257,11 @@ function XPBarMixinBase:UpdatePercentText()
 	if showQuestPercent and Addon.XPBar then
 		-- GetQuestXP() returns: totalQuestXP, completeQuestXP, incompleteQuestXP
 		local totalXP, completeXP, incompleteXP = Addon.XPBar:GetQuestXP()
-		
+
 		-- Respect overlay settings to determine which quest XP to include
 		local showComplete = db.showCompleteQuestOverlay ~= false -- Default true
 		local showIncomplete = db.showIncompleteQuestOverlay == true -- Default false
-		
+
 		questXP = 0
 		if showComplete then
 			questXP = questXP + (completeXP or 0)
@@ -1282,7 +1287,7 @@ function XPBarMixinBase:UpdateRateText()
 
 	local db = Addon.db or {}
 	local abbreviate = db.abbreviateNumbers ~= false
-	
+
 	-- Check which rate stats to show based on individual settings
 	local showXPPerHour = db.showXPPerHourText == true
 	local showTimeToLevel = db.showTimeToLevelText == true
@@ -1301,6 +1306,7 @@ function XPBarMixinBase:UpdateRateText()
 
 			-- Priority 1: Use session data if we have meaningful time (at least 10 seconds)
 			if sessionTime >= 10 and gainedXP > 0 then
+				-- Priority 2: Fallback to current level data if available
 				hasSessionData = true
 				xpPerHour = math.floor((gainedXP / sessionTime) * 3600)
 
@@ -1309,7 +1315,6 @@ function XPBarMixinBase:UpdateRateText()
 				if xpPerHour > 0 and remainingXP > 0 then
 					timeToLevel = math.floor((remainingXP / xpPerHour) * 3600)
 				end
-			-- Priority 2: Fallback to current level data if available
 			elseif session.realLevelTime and session.realLevelTime > 0 then
 				local levelTime = session.realLevelTime
 				-- Add elapsed time since last TIME_PLAYED_MSG for real-time updates
@@ -1317,13 +1322,13 @@ function XPBarMixinBase:UpdateRateText()
 					local elapsed = time() - session.lastTimePlayedRequest
 					levelTime = levelTime + elapsed
 				end
-				
+
 				-- Calculate XP/hour based on current level progress
 				local currentXP = self.state.currentXP
 				if levelTime > 0 and currentXP > 0 then
 					hasLevelData = true
 					xpPerHour = math.floor((currentXP / levelTime) * 3600)
-					
+
 					-- Calculate time to level based on current level rate
 					local remainingXP = self.state.maxXP - currentXP
 					if xpPerHour > 0 and remainingXP > 0 then
@@ -1336,7 +1341,7 @@ function XPBarMixinBase:UpdateRateText()
 
 	-- Build text based on what's enabled
 	local parts = {}
-	
+
 	if showXPPerHour then
 		if hasSessionData or hasLevelData then
 			local ratePart = XPBarTextFormatter:GetXPRateText(xpPerHour, abbreviate)
@@ -1344,9 +1349,9 @@ function XPBarMixinBase:UpdateRateText()
 				table.insert(parts, ratePart)
 			end
 		end
-		-- Don't show anything if we have no data yet
+	-- Don't show anything if we have no data yet
 	end
-	
+
 	if showTimeToLevel then
 		if (hasSessionData or hasLevelData) and timeToLevel > 0 then
 			local timePart = XPBarTextFormatter:GetTimeToLevelText(timeToLevel)
@@ -1354,7 +1359,7 @@ function XPBarMixinBase:UpdateRateText()
 				table.insert(parts, "Leveling in: " .. timePart)
 			end
 		end
-		-- Don't show anything if we have no data yet
+	-- Don't show anything if we have no data yet
 	end
 
 	local text = #parts > 0 and table.concat(parts, " - ") or ""
@@ -1410,7 +1415,7 @@ function XPBarMixinBase:UpdateSessionText()
 				table.insert(parts, sessionPart)
 			end
 		end
-		-- Don't show anything if session is 0s (just started)
+	-- Don't show anything if session is 0s (just started)
 	end
 
 	if showLevelTime then
@@ -1420,7 +1425,7 @@ function XPBarMixinBase:UpdateSessionText()
 				table.insert(parts, levelPart)
 			end
 		end
-		-- Don't show anything if we don't have level time data yet
+	-- Don't show anything if we don't have level time data yet
 	end
 
 	local text = #parts > 0 and table.concat(parts, " - ") or ""
@@ -1462,7 +1467,7 @@ end
 function XPBarMixinBase:OnEnter()
 	-- Pause animation on mouseover
 	self:PauseAnimation()
-    
+
 	if XPBarTooltip then
 		XPBarTooltip:Show(self, "ANCHOR_TOP")
 	else
@@ -1473,7 +1478,12 @@ function XPBarMixinBase:OnEnter()
 			local currentXP = UnitXP("player")
 			local maxXP = UnitXPMax("player")
 			local percent = (maxXP > 0) and math.floor((currentXP / maxXP) * 100) or 0
-			tooltip:SetText(string.format("XP: %s / %s (%d%%)", BreakUpLargeNumbers(currentXP), BreakUpLargeNumbers(maxXP), percent), 1, 1, 1)
+			tooltip:SetText(
+				string.format("XP: %s / %s (%d%%)", BreakUpLargeNumbers(currentXP), BreakUpLargeNumbers(maxXP), percent),
+				1,
+				1,
+				1
+			)
 			tooltip:Show()
 		end
 	end
@@ -1482,7 +1492,7 @@ end
 function XPBarMixinBase:OnLeave()
 	-- Resume animation (pause will expire automatically)
 	self:ResumeAnimation()
-    
+
 	if XPBarTooltip then
 		XPBarTooltip:Hide()
 	else
@@ -1503,7 +1513,7 @@ function XPBarMixinBase:InitializeQuestOverlays()
 		incompleteQuestXP = 0,
 		totalQuestXP = 0,
 		completeCount = 0,
-		incompleteCount = 0,
+		incompleteCount = 0
 	}
 end
 
@@ -1523,13 +1533,13 @@ end
 -- Get quest overlay configuration
 function XPBarMixinBase:GetQuestOverlayConfig()
 	local db = Addon.db or {}
-	
+
 	-- Get configuration from SavedVariables
 	-- showQuestXP is the master toggle for all quest-related features (overlays + text)
 	return {
-		enabled = db.showQuestXP ~= false,  -- Default: true (master toggle)
-		showComplete = db.showCompleteQuestOverlay ~= false,  -- Default: true
-		showIncomplete = db.showIncompleteQuestOverlay == true,  -- Default: false
+		enabled = db.showQuestXP ~= false, -- Default: true (master toggle)
+		showComplete = db.showCompleteQuestOverlay ~= false, -- Default: true
+		showIncomplete = db.showIncompleteQuestOverlay == true -- Default: false
 	}
 end
 
@@ -1543,18 +1553,18 @@ function XPBarMixinBase:CalculateBarState()
 	local maxXP = UnitXPMax("player")
 	local restedXP = GetXPExhaustion() or 0
 	local level = UnitLevel("player")
-	
+
 	-- Get quest XP from service
 	local config = self:GetQuestOverlayConfig()
 	local completeQuestXP = 0
 	local incompleteQuestXP = 0
-	
+
 	if config.enabled and Addon.XPBar then
 		local total, complete, incomplete = Addon.XPBar:GetQuestXP()
 		completeQuestXP = config.showComplete and complete or 0
 		incompleteQuestXP = config.showIncomplete and incomplete or 0
 	end
-	
+
 	-- Return pure state (no pixels, no percentages yet)
 	return {
 		currentXP = currentXP,
@@ -1562,34 +1572,34 @@ function XPBarMixinBase:CalculateBarState()
 		restedXP = restedXP,
 		level = level,
 		completeQuestXP = completeQuestXP,
-		incompleteQuestXP = incompleteQuestXP,
+		incompleteQuestXP = incompleteQuestXP
 	}
 end
 
 -- Layer 2: Calculate layout (percentages and pixels, still generic)
 function XPBarMixinBase:CalculateBarLayout(state)
 	local maxXP = state.maxXP
-	
+
 	if maxXP <= 0 then
-		return { visible = false }
+		return {visible = false}
 	end
-	
+
 	-- Calculate segments in order: current → quest complete → quest incomplete → rested
 	local remainingXP = math.max(0, maxXP - state.currentXP)
-	
+
 	-- Current XP (the filled portion)
 	local currentRatio = state.currentXP / maxXP
-	
+
 	-- Complete quest overlay (starts after current XP)
 	local completeXPClamped = math.min(state.completeQuestXP, remainingXP)
 	local completeRatio = completeXPClamped / maxXP
-	
+
 	-- Incomplete quest overlay (starts after complete quests)
 	remainingXP = math.max(0, remainingXP - completeXPClamped)
 	local incompleteXPClamped = math.min(state.incompleteQuestXP, remainingXP)
 	local incompleteRatio = incompleteXPClamped / maxXP
 	local incompleteOffsetXP = completeXPClamped
-	
+
 	-- Rested overlay (starts after quests)
 	remainingXP = math.max(0, remainingXP - incompleteXPClamped)
 	local restedXPClamped = math.min(state.restedXP, remainingXP)
@@ -1601,19 +1611,19 @@ function XPBarMixinBase:CalculateBarLayout(state)
 
 	-- Bar color: rested if restedXP > 0, else normal
 	-- Rested overlay: show only if restedXP < remainingXP
-	
+
 	-- Calculate pixel values
 	local currentPixels = math.floor(currentRatio * BAR_WIDTH)
-	
+
 	-- Build layout structure
-	-- Phase 4: Quest overlay visibility must respect config settings
+	-- Quest overlay visibility must respect config settings
 	local config = self:GetQuestOverlayConfig()
-	
+
 	return {
 		visible = true,
 		current = {
 			ratio = currentRatio,
-			pixels = currentPixels,
+			pixels = currentPixels
 		},
 		questComplete = (function()
 			local visible = config.showComplete and completeXPClamped > 0 and completeRatio >= 0.01 -- show only when >= 1%
@@ -1622,7 +1632,7 @@ function XPBarMixinBase:CalculateBarLayout(state)
 				ratio = completeRatio,
 				pixels = visible and math.max(1, math.floor(completeRatio * BAR_WIDTH)) or 0,
 				offsetXP = state.currentXP,
-				offsetPixels = currentPixels,
+				offsetPixels = currentPixels
 			}
 		end)(),
 		questIncomplete = (function()
@@ -1632,18 +1642,18 @@ function XPBarMixinBase:CalculateBarLayout(state)
 				ratio = incompleteRatio,
 				pixels = visible and math.max(1, math.floor(incompleteRatio * BAR_WIDTH)) or 0,
 				offsetXP = state.currentXP + incompleteOffsetXP,
-				offsetPixels = currentPixels + math.floor((incompleteOffsetXP / maxXP) * BAR_WIDTH),
+				offsetPixels = currentPixels + math.floor((incompleteOffsetXP / maxXP) * BAR_WIDTH)
 			}
 		end)(),
 		rested = {
-            visible = (state.restedXP > 0) and (state.restedXP < remainingXP),
+			visible = (state.restedXP > 0) and (state.restedXP < remainingXP),
 			ratio = restedRatio,
 			pixels = math.max(1, math.floor(restedRatio * BAR_WIDTH)),
 			offsetXP = state.currentXP + restedOffsetXP,
 			offsetPixels = currentPixels + math.floor((restedOffsetXP / maxXP) * BAR_WIDTH),
 			isFullyRested = isFullyRested,
-			showTick = restedRatio >= 0.01 and restedRatio <= 0.99,
-		},
+			showTick = restedRatio >= 0.01 and restedRatio <= 0.99
+		}
 	}
 end
 
@@ -1658,7 +1668,7 @@ function XPBarMixinBase:UpdateBarDisplay()
 	if container then
 		local atMaxLevel = self:IsPlayerAtMaxLevel()
 		local showAtMax = Addon.db.showBarAtMaxLevel ~= false
-		
+
 		-- Only HIDE if at max level and user doesn't want to see it
 		-- Never SHOW - that's the controller's job via SetBarStyle()
 		if atMaxLevel and not showAtMax then
@@ -1666,23 +1676,23 @@ function XPBarMixinBase:UpdateBarDisplay()
 			return
 		end
 	end
-	
+
 	-- Calculate what to show (state)
 	local state = self:CalculateBarState()
-	
+
 	-- Store state for other uses (text overlays, etc.)
 	self.state.currentXP = state.currentXP
 	self.state.maxXP = state.maxXP
 	self.state.restedXP = state.restedXP
 	self.state.level = state.level
 	self.state.isRested = (state.restedXP and state.restedXP > 0) or false
-	
+
 	-- Calculate how to layout (percentages and pixels)
 	local layout = self:CalculateBarLayout(state)
-	
+
 	-- Store layout-derived state
 	self.state.isFullyRested = layout.rested and layout.rested.isFullyRested or false
-	
+
 	-- Cache and apply layout to UI (bar-specific implementation)
 	self._lastLayout = layout
 	self:ApplyLayout(layout)
@@ -1707,23 +1717,30 @@ function XPBarMixinBase:ComputeOverlayDimensions(layout, barSize)
 	local maxXP = (self and self.state and self.state.maxXP) or (layout and layout.current and 1) or 1
 	if not layout or not layout.visible or maxXP <= 0 then
 		return {
-			completeSize = 0, completeOffset = 0,
-			incompleteSize = 0, incompleteOffset = 0,
-			restedSize = 0, restedOffset = 0,
+			completeSize = 0,
+			completeOffset = 0,
+			incompleteSize = 0,
+			incompleteOffset = 0,
+			restedSize = 0,
+			restedOffset = 0
 		}
 	end
 
 	local completeSize = layout.questComplete and math.max(1, math.floor(layout.questComplete.ratio * barSize)) or 0
 	local completeOffset = layout.questComplete and math.floor((layout.questComplete.offsetXP / maxXP) * barSize) or 0
 	local incompleteSize = layout.questIncomplete and math.max(1, math.floor(layout.questIncomplete.ratio * barSize)) or 0
-	local incompleteOffset = layout.questIncomplete and math.floor((layout.questIncomplete.offsetXP / maxXP) * barSize) or 0
+	local incompleteOffset =
+		layout.questIncomplete and math.floor((layout.questIncomplete.offsetXP / maxXP) * barSize) or 0
 	local restedSize = layout.rested and math.max(0, math.floor(layout.rested.ratio * barSize)) or 0
 	local restedOffset = layout.rested and math.floor((layout.rested.offsetXP / maxXP) * barSize) or 0
 
 	return {
-		completeSize = completeSize, completeOffset = completeOffset,
-		incompleteSize = incompleteSize, incompleteOffset = incompleteOffset,
-		restedSize = restedSize, restedOffset = restedOffset,
+		completeSize = completeSize,
+		completeOffset = completeOffset,
+		incompleteSize = incompleteSize,
+		incompleteOffset = incompleteOffset,
+		restedSize = restedSize,
+		restedOffset = restedOffset
 	}
 end
 
