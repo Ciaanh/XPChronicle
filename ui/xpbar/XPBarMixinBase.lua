@@ -3,14 +3,6 @@
 
 local Addon = XPBarEnhanced
 
--- Ensure debug logging is enabled for level 1
-if Addon then
-	Addon._debugLevel = 1
-end
-
--- Note: Color constants and XPBarColors compatibility layer
--- are now provided by core/Colors.lua
-
 -----------------------------------
 -- Shared Constants
 -----------------------------------
@@ -945,16 +937,6 @@ function XPBarMixinBase:GetCurrentRatio()
 	return self._currentRatio or 0
 end
 
--- DEPRECATED: Old animation methods removed
--- These stubs remain for error tracking if old code tries to call them
-function XPBarMixinBase:AnimateToValue_Legacy(targetValue, immediate)
-	error("AnimateToValue_Legacy is deprecated - use AnimateToRatio instead", 2)
-end
-
-function XPBarMixinBase:UpdateBarAnimation(now, elapsed)
-	error("UpdateBarAnimation is deprecated - animation now handled in OnAnimationUpdate", 2)
-end
-
 -- Apply easing function to animation progress
 function XPBarMixinBase:ApplyEasing(t)
 	local config = self:GetAnimationConfig()
@@ -1287,73 +1269,34 @@ function XPBarMixinBase:UpdateRateText()
 
 	local db = Addon.db or {}
 	local abbreviate = db.abbreviateNumbers ~= false
-
-	-- Check which rate stats to show based on individual settings
 	local showXPPerHour = db.showXPPerHourText == true
 	local showTimeToLevel = db.showTimeToLevelText == true
 
 	-- Get XP rate and time to level from session service
 	local xpPerHour = 0
 	local timeToLevel = 0
-	local hasSessionData = false
-	local hasLevelData = false
 
-	if Addon.Session then
-		local session = Addon.Session:GetCurrent()
-		if session then
-			local sessionTime = time() - (session.sessionStart or time())
-			local gainedXP = session.gainedXP or 0
+	if Addon.Session and Addon.Session.GetXPPerHour then
+		xpPerHour = Addon.Session:GetXPPerHour()
+	end
 
-			-- Priority 1: Use session data if we have meaningful time (at least 10 seconds)
-			if sessionTime >= 10 and gainedXP > 0 then
-				-- Priority 2: Fallback to current level data if available
-				hasSessionData = true
-				xpPerHour = math.floor((gainedXP / sessionTime) * 3600)
-
-				-- Calculate time to level
-				local remainingXP = self.state.maxXP - self.state.currentXP
-				if xpPerHour > 0 and remainingXP > 0 then
-					timeToLevel = math.floor((remainingXP / xpPerHour) * 3600)
-				end
-			elseif session.realLevelTime and session.realLevelTime > 0 then
-				local levelTime = session.realLevelTime
-				-- Add elapsed time since last TIME_PLAYED_MSG for real-time updates
-				if session.lastTimePlayedRequest and session.lastTimePlayedRequest > 0 then
-					local elapsed = time() - session.lastTimePlayedRequest
-					levelTime = levelTime + elapsed
-				end
-
-				-- Calculate XP/hour based on current level progress
-				local currentXP = self.state.currentXP
-				if levelTime > 0 and currentXP > 0 then
-					hasLevelData = true
-					xpPerHour = math.floor((currentXP / levelTime) * 3600)
-
-					-- Calculate time to level based on current level rate
-					local remainingXP = self.state.maxXP - currentXP
-					if xpPerHour > 0 and remainingXP > 0 then
-						timeToLevel = math.floor((remainingXP / xpPerHour) * 3600)
-					end
-				end
-			end
-		end
+	if Addon.Session and Addon.Session.GetTimeToLevel then
+		timeToLevel = Addon.Session:GetTimeToLevel()
 	end
 
 	-- Build text based on what's enabled
 	local parts = {}
 
 	if showXPPerHour then
-		if hasSessionData or hasLevelData then
-			local ratePart = XPBarTextFormatter:GetXPRateText(xpPerHour, abbreviate)
-			if ratePart and ratePart ~= "" and ratePart ~= "Calculating..." then
-				table.insert(parts, ratePart)
-			end
+		local ratePart = XPBarTextFormatter:GetXPRateText(xpPerHour, abbreviate)
+		if ratePart and ratePart ~= "" and ratePart ~= "Calculating..." then
+			table.insert(parts, ratePart)
 		end
 	-- Don't show anything if we have no data yet
 	end
 
 	if showTimeToLevel then
-		if (hasSessionData or hasLevelData) and timeToLevel > 0 then
+		if timeToLevel > 0 then
 			local timePart = XPBarTextFormatter:GetTimeToLevelText(timeToLevel)
 			if timePart and timePart ~= "" and timePart ~= "N/A" then
 				table.insert(parts, "Leveling in: " .. timePart)

@@ -287,7 +287,7 @@ function XPBar:ColorText(text, colorKey)
 end
 
 --------------------------------------------------------------------------------
--- Text Formatting (from XPBarTextFormatter.lua)
+-- Text Formatting
 --------------------------------------------------------------------------------
 
 function XPBar:AbbreviateNumber(num, decimals)

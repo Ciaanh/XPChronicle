@@ -229,11 +229,6 @@ function CircularXPBarMixin:OnLoad()
     end
 end
 
-function CircularXPBarMixin:OnEvent(event, ...)
-    -- Use base handler
-    self:HandleEvent(event, ...)
-end
-
 function CircularXPBarMixin:OnMouseUp(button)
     -- Stop dragging if active
     local container = self:GetParent()
@@ -394,59 +389,9 @@ function CircularXPBarMixin:RotateTexture(texture, rotation)
 
     -- Use the modern SetRotation API (available in retail WoW)
     -- This is the recommended method from Blizzard for rotating textures
-    -- See refs/BlizzardInterfaceCode/docs/TEXTURE_ROTATION.md for details
     if texture.SetRotation then
         texture:SetRotation(rotation)
-    else
-        -- Fallback for older clients: use SetTexCoord for 90° rotations only
-        -- For arbitrary angles, we'll skip rotation on legacy clients
-        local degrees = math.deg(rotation)
-        local normalized = (degrees % 360 + 360) % 360
-
-        if normalized < 45 or normalized >= 315 then
-            -- 0 degrees
-            texture:SetTexCoord(0, 0, 0, 1, 1, 0, 1, 1)
-        elseif normalized >= 45 and normalized < 135 then
-            -- 90 degrees
-            texture:SetTexCoord(0, 1, 1, 1, 0, 0, 1, 0)
-        elseif normalized >= 135 and normalized < 225 then
-            -- 180 degrees
-            texture:SetTexCoord(1, 1, 1, 0, 0, 1, 0, 0)
-        elseif normalized >= 225 and normalized < 315 then
-            -- 270 degrees
-            texture:SetTexCoord(1, 0, 0, 0, 1, 1, 0, 1)
-        end
     end
-end
-
-function CircularXPBarMixin:SetupCenterContent()
-    -- Create center PNG background
-    if not self.CenterBG then
-        self.CenterBG = self:CreateTexture(nil, "BACKGROUND", nil, 1)
-        self.CenterBG:SetAllPoints()
-        self.CenterBG:SetTexture("Interface\\AddOns\\XPBarEnhanced\\assets\\center.png")
-    end
-
-    -- Level text (large, center-top)
-    if not self.LevelText then
-        self.LevelText = self:CreateFontString(nil, "OVERLAY", "GameFontNormalHuge")
-    end
-    self.LevelText:SetPoint("CENTER", 0, 15)
-    self.LevelText:SetJustifyH("CENTER")
-
-    -- Percentage text (center)
-    if not self.PercentText then
-        self.PercentText = self:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-    end
-    self.PercentText:SetPoint("CENTER", 0, -5)
-    self.PercentText:SetJustifyH("CENTER")
-
-    -- XP per hour text (small, center-bottom)
-    if not self.XPPerHourText then
-        self.XPPerHourText = self:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    end
-    self.XPPerHourText:SetPoint("CENTER", 0, -25)
-    self.XPPerHourText:SetJustifyH("CENTER")
 end
 
 function CircularXPBarMixin:UpdateBarFill(currentXP, maxXP)
@@ -502,28 +447,7 @@ function CircularXPBarMixin:AnimateArcFill()
     )
 end
 
-function CircularXPBarMixin:OnHide()
-    -- Cancel any running per-frame arc animation
-    if type(self.GetScript) == "function" and self:GetScript("OnUpdate") then
-        self:SetScript("OnUpdate", nil)
-    end
-    self.isAnimating = false
-
-    -- Call base cleanup to cancel timers and unsubscribe events
-    if XPBarMixinBase and XPBarMixinBase.OnHide then
-        XPBarMixinBase.OnHide(self)
-    end
-end
-
--- Override the base GainFlash functionality to prevent square flash overlay
-function CircularXPBarMixin:TriggerXPGainFlash(isRested)
-end
-
--- Override the base LevelUpFlash functionality to prevent square flash overlay
-function CircularXPBarMixin:TriggerLevelUpFlash(isRested)
-    self:PlayGlowPulse()
-end
-
+-- helper: circular-specific rendering (doesn't exist in base)
 function CircularXPBarMixin:SetArcProgress(progress)
     -- Calculate how many segments to show
     local segmentsToShow = math.floor(progress * RING_SEGMENTS + 0.5)
@@ -589,14 +513,6 @@ function CircularXPBarMixin:UpdateRestedArc(currentXP, maxXP)
 end
 
 function CircularXPBarMixin:PlayGlowPulse()
-    -- Pulse the ring brightness briefly
-    local originalAlpha = {}
-    for i = 1, RING_SEGMENTS do
-        if self.segments[i]:IsShown() then
-            originalAlpha[i] = self.segments[i]:GetAlpha()
-        end
-    end
-
     -- Cancel any existing glow animation
     if self._glowAnimating then
         if self:GetScript("OnUpdate") then
@@ -634,13 +550,6 @@ function CircularXPBarMixin:PlayGlowPulse()
                     local progress = elapsed / fadeInDuration
                     local alpha = progress * maxAlpha
                     frame.GlowOverlay:SetAlpha(alpha)
-
-                    -- Also brighten segments
-                    for i = 1, RING_SEGMENTS do
-                        if frame.segments[i]:IsShown() then
-                            frame.segments[i]:SetAlpha(1)
-                        end
-                    end
                 elseif elapsed < fadeInDuration + holdDuration then
                     -- Hold phase
                     frame.GlowOverlay:SetAlpha(maxAlpha)
@@ -649,24 +558,10 @@ function CircularXPBarMixin:PlayGlowPulse()
                     local fadeProgress = (elapsed - fadeInDuration - holdDuration) / fadeOutDuration
                     local alpha = maxAlpha * (1 - fadeProgress)
                     frame.GlowOverlay:SetAlpha(alpha)
-
-                    -- Restore segment alpha
-                    for i = 1, RING_SEGMENTS do
-                        if frame.segments[i]:IsShown() and originalAlpha[i] then
-                            frame.segments[i]:SetAlpha(originalAlpha[i])
-                        end
-                    end
                 else
                     -- Animation complete
                     frame.GlowOverlay:Hide()
                     frame.GlowOverlay:SetAlpha(0)
-
-                    -- Ensure segments are restored
-                    for i = 1, RING_SEGMENTS do
-                        if frame.segments[i]:IsShown() and originalAlpha[i] then
-                            frame.segments[i]:SetAlpha(originalAlpha[i])
-                        end
-                    end
 
                     frame._glowAnimating = false
                     frame:SetScript("OnUpdate", nil)
@@ -674,43 +569,6 @@ function CircularXPBarMixin:PlayGlowPulse()
             end
         )
     end
-end
-
-function CircularXPBarMixin:UpdateAllText()
-    -- Level
-    local level = UnitLevel("player")
-    if self.LevelText then
-        self.LevelText:SetText(tostring(level))
-    end
-
-    -- Percentage
-    local currentXP = UnitXP("player")
-    local maxXP = UnitXPMax("player")
-    local percent = (currentXP / maxXP) * 100
-    self.PercentText:SetText(string.format("%.1f%%", percent))
-
-    -- XP per hour
-    if Addon.Session then
-        local stats = Addon.Session:GetStats()
-        if stats and stats.xpPerHour > 0 then
-            self.XPPerHourText:SetText(Addon.Utils.ShortNumber(stats.xpPerHour) .. "/hr")
-        else
-            self.XPPerHourText:SetText("")
-        end
-    end
-end
-
-function CircularXPBarMixin:UpdateTextVisibility()
-    -- Show/hide based on settings
-    local db = Addon.db
-    if not db then
-        return
-    end
-
-    -- Use canonical config keys from Config.lua
-    self.LevelText:SetShown(db.showLevelText == true)
-    self.PercentText:SetShown(db.showPercentage == true)
-    self.XPPerHourText:SetShown(db.showXPPerHourText == true)
 end
 
 function CircularXPBarMixin:ApplyBarColor()
@@ -723,71 +581,6 @@ function CircularXPBarMixin:ApplyBarColor()
         self:SetArcProgress(progress)
         self:UpdateRestedArc(currentXP, maxXP)
     end
-end
-
-function CircularXPBarMixin:ApplyLayout(layout)
-    -- For circular bar, we just need to ensure visibility
-    -- The actual rendering is done in UpdateBarFill
-    if not layout.visible then
-        return
-    end
-
-    local parent = self:GetParent()
-    -- Only show the container for the active view; avoid revealing inactive views
-    local activeView = Addon.XPBar and Addon.XPBar:GetActiveView()
-    if activeView == self and parent then
-        parent:Show()
-    end
-
-    -- Quest overlays not implemented yet for circular bar
-    -- Just update the main ring and rested arc
-    local currentXP = UnitXP("player")
-    local maxXP = UnitXPMax("player")
-
-    if maxXP > 0 then
-        self:UpdateBarFill(currentXP, maxXP)
-    end
-
-    -- Call UpdateQuestArc to render complete/incomplete segments
-    self:UpdateQuestArc(layout)
-end
-
--- Set display value (override for circular rendering)
--- Blizzard pattern: Bar-specific rendering implementation
-function CircularXPBarMixin:SetDisplayValue(ratio)
-    -- Update circular arc directly (doesn't use StatusBar widget)
-    self:SetArcProgress(ratio)
-    self.lastProgress = ratio
-    self.targetProgress = ratio
-
-    -- Update rested overlay (needs actual XP values)
-    local currentXP = UnitXP("player")
-    local maxXP = UnitXPMax("player")
-    if maxXP > 0 then
-        self:UpdateRestedArc(currentXP, maxXP)
-    end
-
-    -- Update quest overlay
-    local layout = self._lastLayout or self:CalculateBarLayout(self:CalculateBarState())
-    self:UpdateQuestArc(layout)
-end
-
-function CircularXPBarMixin:UpdateStatusBarValue(ratio)
-    -- Override base implementation since we don't use a StatusBar widget
-    -- Instead, update our custom circular display
-    local currentXP = UnitXP("player")
-    local maxXP = UnitXPMax("player")
-
-    if maxXP > 0 then
-        -- Direct update without animation (used during initialization)
-        self:SetArcProgress(ratio)
-        self.lastProgress = ratio
-        self.targetProgress = ratio
-        self:UpdateRestedArc(currentXP, maxXP)
-    end
-    -- Delegate quest overlay rendering to helper. Use cached layout when available
-    local layout = self._lastLayout or self:CalculateBarLayout(self:CalculateBarState())
-    self:UpdateQuestArc(layout)
 end
 
 -- Pure helper: compute which segment indices should be used for complete and incomplete quest overlays
@@ -911,6 +704,86 @@ function CircularXPBarMixin:UpdateQuestArc(layout)
     end
 end
 
+function CircularXPBarMixin:Initialize()
+    -- Initialize progress
+    self.lastProgress = UnitXP("player") / UnitXPMax("player")
+    self.targetProgress = self.lastProgress
+
+    -- Initial update
+    self:FullUpdate()
+end
+
+-- override: XPBarMixinBase:SetupCenterContent (circular-specific center elements)
+function CircularXPBarMixin:SetupCenterContent()
+    -- Create center PNG background
+    if not self.CenterBG then
+        self.CenterBG = self:CreateTexture(nil, "BACKGROUND", nil, 1)
+        self.CenterBG:SetAllPoints()
+        self.CenterBG:SetTexture("Interface\\AddOns\\XPBarEnhanced\\assets\\center.png")
+        self.CenterBG:SetAlpha(0.8)
+    end
+
+    -- Level text (large, center-top)
+    if not self.LevelText then
+        self.LevelText = self:CreateFontString(nil, "OVERLAY", "GameFontNormalHuge")
+    end
+    self.LevelText:SetPoint("CENTER", 0, 15)
+    self.LevelText:SetJustifyH("CENTER")
+
+    -- Percentage text (center)
+    if not self.PercentText then
+        self.PercentText = self:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    end
+    self.PercentText:SetPoint("CENTER", 0, -5)
+    self.PercentText:SetJustifyH("CENTER")
+
+    -- Time to level text (small, center-bottom)
+    if not self.RateText then
+        self.RateText = self:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    end
+    self.RateText:SetPoint("CENTER", 0, -25)
+    self.RateText:SetJustifyH("CENTER")
+end
+
+-- ============================================================================
+-- Overrides of XPBarMixinBase
+-- The functions below override behavior implemented in `XPBarMixinBase`.
+-- Keep these near the top of the implementation so reviewers can find them.
+-- ============================================================================
+
+-- override: XPBarMixinBase:HandleEvent
+function CircularXPBarMixin:OnEvent(event, ...)
+    -- Use base handler (but exposed here as the frame event entry point)
+    self:HandleEvent(event, ...)
+end
+
+-- override: XPBarMixinBase:OnHide
+function CircularXPBarMixin:OnHide()
+    -- Cancel any running per-frame arc animation
+    if type(self.GetScript) == "function" and self:GetScript("OnUpdate") then
+        self:SetScript("OnUpdate", nil)
+    end
+    self.isAnimating = false
+
+    -- Call base cleanup to cancel timers and unsubscribe events
+    if XPBarMixinBase and XPBarMixinBase.OnHide then
+        XPBarMixinBase.OnHide(self)
+    end
+end
+
+-- override: XPBarMixinBase:TriggerXPGainFlash
+-- Circular bar uses a ring-specific visual; suppress the base square flash.
+function CircularXPBarMixin:TriggerXPGainFlash(isRested)
+    -- Intentionally empty: circular bar uses subtle glow instead of full-area flash
+end
+
+-- override: XPBarMixinBase:TriggerLevelUpFlash
+function CircularXPBarMixin:TriggerLevelUpFlash(isRested)
+    -- Use ring glow pulse for level-up instead of the base square flash
+    self:PlayGlowPulse()
+end
+
+-- override: XPBarMixinBase:FullUpdate
 function CircularXPBarMixin:FullUpdate()
     -- Prevent re-entrant updates for the circular bar
     if self._isUpdating then
@@ -967,6 +840,7 @@ function CircularXPBarMixin:FullUpdate()
     self._isUpdating = nil
 end
 
+-- override: XPBarMixinBase:UpdateBarDisplay
 function CircularXPBarMixin:UpdateBarDisplay()
     -- Override base to prevent hiding UIParent
     if not self.IsPlayerAtMaxLevel or not self.CalculateBarState or not self.CalculateBarLayout then
@@ -1010,24 +884,154 @@ function CircularXPBarMixin:UpdateBarDisplay()
     self:ApplyLayout(layout)
 end
 
-function CircularXPBarMixin:OnShow()
-    -- Ensure events are registered when shown
-    if not self._eventsRegistered and self.RegisterCommonEvents then
-        self:RegisterCommonEvents()
+-- -- override: XPBarMixinBase:OnShow
+-- function CircularXPBarMixin:OnShow()
+--     -- Ensure events are registered when shown
+--     if not self._eventsRegistered and self.RegisterCommonEvents then
+--         self:RegisterCommonEvents()
+--     end
+
+--     if not self._isUpdating then
+--         self:FullUpdate()
+--     end
+-- end
+
+-- override: XPBarMixinBase:UpdateAllText
+function CircularXPBarMixin:UpdateAllText()
+    self:UpdateLevelText()
+    -- self:UpdateXPText()
+    self:UpdatePercentText()
+    self:UpdateRateText()
+    -- self:UpdateSessionText()
+    -- self:UpdateQuestSummaryText()
+end
+
+-- override: XPBarMixinBase:UpdateTextVisibility
+function CircularXPBarMixin:UpdateTextVisibility()
+    local db = Addon.db
+    if not db then
+        return
     end
 
-    if not self._isUpdating then
-        self:FullUpdate()
+    self.LevelText:SetShown(db.showLevelText == true)
+    self.PercentText:SetShown(db.showPercentage == true)
+    self.RateText:SetShown(db.showRateText == true)
+end
+
+-- override: XPBarMixinBase:UpdateLevelText
+function CircularXPBarMixin:UpdateLevelText()
+    if not self.LevelText or not self.LevelText:IsShown() then
+        return
+    end
+
+    local level = self.state.level or UnitLevel("player")
+    self.LevelText:SetText(level)
+end
+
+-- override: XPBarMixinBase:UpdatePercentText
+function CircularXPBarMixin:UpdatePercentText()
+    local db = Addon.db or {}
+    local currentXP = UnitXP("player")
+    local maxXP = UnitXPMax("player")
+
+    if self.PercentText then
+        local decimals = db.percentDecimals or 1
+        self.PercentText:SetText(XPBarTextFormatter:GetPercentText(currentXP, maxXP, decimals))
     end
 end
 
-function CircularXPBarMixin:Initialize()
-    -- Initialize progress
-    self.lastProgress = UnitXP("player") / UnitXPMax("player")
-    self.targetProgress = self.lastProgress
+-- override: XPBarMixinBase:UpdateRateText
+function CircularXPBarMixin:UpdateRateText()
+    if not XPBarTextFormatter then
+        return
+    end
 
-    -- Initial update
-    self:FullUpdate()
+    if self.RateText then
+        local db = Addon.db or {}
+
+        local showTimeToLevel = db.showRateText == true
+
+        if not showTimeToLevel then
+            return
+        end
+
+        local timeToLevel = 0
+        if Addon.Session and Addon.Session.GetTimeToLevel then
+            timeToLevel = Addon.Session:GetTimeToLevel()
+        end
+
+        if timeToLevel > 0 and showTimeToLevel then
+            self.RateText:SetText(XPBarTextFormatter:GetRateText(timeToLevel))
+        else
+            self.RateText:SetText("")
+        end
+    end
+end
+
+-- override: XPBarMixinBase:ApplyLayout
+function CircularXPBarMixin:ApplyLayout(layout)
+    -- For circular bar, we just need to ensure visibility
+    -- The actual rendering is done in UpdateBarFill
+    if not layout.visible then
+        return
+    end
+
+    local parent = self:GetParent()
+    -- Only show the container for the active view; avoid revealing inactive views
+    local activeView = Addon.XPBar and Addon.XPBar:GetActiveView()
+    if activeView == self and parent then
+        parent:Show()
+    end
+
+    -- Quest overlays not implemented yet for circular bar
+    -- Just update the main ring and rested arc
+    local currentXP = UnitXP("player")
+    local maxXP = UnitXPMax("player")
+
+    if maxXP > 0 then
+        self:UpdateBarFill(currentXP, maxXP)
+    end
+
+    -- Call UpdateQuestArc to render complete/incomplete segments
+    self:UpdateQuestArc(layout)
+end
+
+-- override: XPBarMixinBase:SetDisplayValue
+function CircularXPBarMixin:SetDisplayValue(ratio)
+    -- Update circular arc directly (doesn't use StatusBar widget)
+    self:SetArcProgress(ratio)
+    self.lastProgress = ratio
+    self.targetProgress = ratio
+
+    -- Update rested overlay (needs actual XP values)
+    local currentXP = UnitXP("player")
+    local maxXP = UnitXPMax("player")
+    if maxXP > 0 then
+        self:UpdateRestedArc(currentXP, maxXP)
+    end
+
+    -- Update quest overlay
+    local layout = self._lastLayout or self:CalculateBarLayout(self:CalculateBarState())
+    self:UpdateQuestArc(layout)
+end
+
+-- override: XPBarMixinBase:UpdateStatusBarValue
+function CircularXPBarMixin:UpdateStatusBarValue(ratio)
+    -- Override base implementation since we don't use a StatusBar widget
+    -- Instead, update our custom circular display
+    local currentXP = UnitXP("player")
+    local maxXP = UnitXPMax("player")
+
+    if maxXP > 0 then
+        -- Direct update without animation (used during initialization)
+        self:SetArcProgress(ratio)
+        self.lastProgress = ratio
+        self.targetProgress = ratio
+        self:UpdateRestedArc(currentXP, maxXP)
+    end
+    -- Delegate quest overlay rendering to helper. Use cached layout when available
+    local layout = self._lastLayout or self:CalculateBarLayout(self:CalculateBarState())
+    self:UpdateQuestArc(layout)
 end
 
 -- Export

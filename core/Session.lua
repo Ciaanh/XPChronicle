@@ -33,10 +33,10 @@ function Session:GetCurrent()
     if not Database then
         return nil
     end
-    
+
     local session = Database:GetSessionData()
     ensureSessionDefaults(session)
-    
+
     return session
 end
 
@@ -49,17 +49,17 @@ function Session:OnEnteringWorld(isInitialLogin, isReloadingUI)
     if not session then
         return
     end
-    
+
     if isInitialLogin then
         session.sessionStart = time()
         session.gainedXP = 0
     end
-    
+
     if isInitialLogin or isReloadingUI then
         session.lastXP = UnitXP("player")
         session.maxXP = UnitXPMax("player")
     end
-    
+
     -- Request time played if time text options are enabled
     if Addon.db.showLevelTimeText or Addon.db.showSessionTimeText then
         self:RequestTimePlayed()
@@ -71,29 +71,29 @@ function Session:OnXPUpdate()
     if not session then
         return
     end
-    
+
     local currentXP = UnitXP("player") or 0
     local maxXP = UnitXPMax("player") or 0
     local lastXP = session.lastXP or currentXP
     local gained = currentXP - lastXP
-    
+
     -- Handle level-up case (XP resets to 0)
     if gained < 0 then
         gained = (session.maxXP or maxXP) - lastXP + currentXP
     end
-    
+
     -- Ensure non-negative gain
     if gained < 0 then
         gained = 0
     end
-    
+
     -- Update session
     session.gainedXP = (session.gainedXP or 0) + gained
     session.sessionXP = session.gainedXP
     session.lastXP = currentXP
     session.maxXP = maxXP
     session.lastUpdate = time()
-    
+
     -- Notify StatsView
     self:NotifySessionUpdated()
 end
@@ -103,10 +103,10 @@ function Session:OnLevelUp(newLevel)
     if not session then
         return
     end
-    
+
     -- Reset level time
     session.realLevelTime = 0
-    
+
     -- Update current level state
     session.lastXP = UnitXP("player")
     session.maxXP = UnitXPMax("player")
@@ -117,20 +117,22 @@ function Session:OnTimePlayed(totalTime, levelTime)
     if not session then
         return
     end
-    
+
     session.realTotalTime = totalTime or session.realTotalTime or 0
     session.realLevelTime = levelTime or session.realLevelTime or 0
     session.lastTimePlayedRequest = time()
     Addon.state.requestingTimePlayed = false
-    
+
     -- Clear the ticker
     self:ClearTimePlayedRequest()
 end
 
 function Session:RefreshSessionTimes()
     local session = self:GetCurrent()
-    if not session then return end
-    
+    if not session then
+        return
+    end
+
     session.lastUpdate = time()
 end
 
@@ -150,15 +152,19 @@ function Session:RequestTimePlayed()
     if Addon.state.requestingTimePlayed then
         return
     end
-    
+
     self:ClearTimePlayedRequest()
     Addon.state.requestingTimePlayed = true
-    
+
     -- Use timer to avoid instant spam
     if C_Timer and C_Timer.NewTimer then
-        timePlayedTicker = C_Timer.NewTimer(0.5, function()
-            RequestTimePlayed()
-        end)
+        timePlayedTicker =
+            C_Timer.NewTimer(
+            0.5,
+            function()
+                RequestTimePlayed()
+            end
+        )
     else
         RequestTimePlayed()
     end
@@ -166,6 +172,63 @@ end
 
 -------------------------------------------------------------------
 -- SESSION STATS (for backward compatibility)
+-------------------------------------------------------------------
+-- TIME TO LEVEL HELPER
+-------------------------------------------------------------------
+
+---Compute time to level based on session XP rate and remaining XP
+function Session:GetTimeToLevel()
+    local currentXP = UnitXP("player")
+    local maxXP = UnitXPMax("player")
+
+    if not maxXP or maxXP <= 0 then
+        return 0
+    end
+
+    -- Use centralized XP/hour calculation
+    local xpPerHour = 0
+    if self and self.GetXPPerHour then
+        xpPerHour = self:GetXPPerHour() or 0
+    end
+
+    local remainingXP = (maxXP or 0) - (currentXP or 0)
+    if xpPerHour > 0 and remainingXP > 0 then
+        return math.floor((remainingXP / xpPerHour) * 3600)
+    end
+
+    return 0
+end
+
+---Return XP per hour based on session or level-time fallback
+function Session:GetXPPerHour()
+    local session = self:GetCurrent()
+    if not session then
+        return 0
+    end
+
+    local duration = time() - (session.sessionStart or time())
+    local gainedXP = session.gainedXP or 0
+
+    -- Prefer session-derived rate when session is meaningful
+    if duration >= 10 and gainedXP > 0 then
+        return math.floor((gainedXP / duration) * 3600)
+    end
+
+    -- Fallback: estimate from realLevelTime if available
+    if session.realLevelTime and session.realLevelTime > 0 then
+        local levelTime = session.realLevelTime
+        if session.lastTimePlayedRequest and session.lastTimePlayedRequest > 0 then
+            local elapsed = time() - session.lastTimePlayedRequest
+            levelTime = levelTime + elapsed
+        end
+        local currentXP = UnitXP("player") or 0
+        if levelTime > 0 and currentXP > 0 then
+            return math.floor((currentXP / levelTime) * 3600)
+        end
+    end
+
+    return 0
+end
 -------------------------------------------------------------------
 
 ---Return a normalized stats table for the current session
@@ -176,26 +239,26 @@ function Session:GetStats()
             duration = 0,
             xpGained = 0,
             xpPerHour = 0,
-            startTime = time(),
+            startTime = time()
         }
     end
-    
+
     -- Calculate session duration
     local duration = time() - (session.sessionStart or time())
-    
+
     -- Calculate XP per hour
     local xpPerHour = 0
     if duration > 0 then
         xpPerHour = (session.gainedXP or 0) / (duration / 3600)
     end
-    
+
     return {
         duration = duration,
         xpGained = session.gainedXP or 0,
         xpPerHour = xpPerHour,
         startTime = session.sessionStart or time(),
         realTotalTime = session.realTotalTime or 0,
-        realLevelTime = session.realLevelTime or 0,
+        realLevelTime = session.realLevelTime or 0
     }
 end
 
