@@ -11,40 +11,7 @@ local BAR_WIDTH, BAR_HEIGHT = XPBarMixinBase.GetBarDimensions()
 local ExhaustionTickMixin = {}
 
 function ExhaustionTickMixin:OnEnter()
-	local exhaustionStateID, exhaustionStateName, exhaustionStateMultiplier = GetRestState()
-	if not exhaustionStateID then
-		return
-	end
 	
-	local bar = self:GetParent()
-	local currentXP = UnitXP("player")
-	local maxXP = UnitXPMax("player")
-	local percentXP = math.ceil((currentXP / maxXP) * 100)
-	
-	local tooltip = GameTooltip
-	GameTooltip_SetDefaultAnchor(tooltip, UIParent)
-	
-	-- Use Blizzard's global constants if available, fallback to manual text
-	if GameTooltip_SetTitle and XP_TEXT then
-		GameTooltip_SetTitle(tooltip, XP_TEXT:format(BreakUpLargeNumbers(currentXP), BreakUpLargeNumbers(maxXP), percentXP))
-	else
-		tooltip:SetText(string.format("XP: %s / %s (%d%%)", BreakUpLargeNumbers(currentXP), BreakUpLargeNumbers(maxXP), percentXP), 1.0, 1.0, 1.0)
-	end
-	
-	-- Add exhaustion state info
-	if GameTooltip_AddHighlightLine and EXHAUST_TOOLTIP1 then
-		GameTooltip_AddHighlightLine(tooltip, EXHAUST_TOOLTIP1:format(exhaustionStateName, exhaustionStateMultiplier * 100))
-	elseif exhaustionStateName then
-		tooltip:AddLine(string.format("Bonus: %s (%d%% XP gain)", exhaustionStateName, exhaustionStateMultiplier * 100), 1, 1, 1, true)
-	end
-	
-	if not IsResting() and (exhaustionStateID == 4 or exhaustionStateID == 5) then
-		if GameTooltip_AddHighlightLine and EXHAUST_TOOLTIP2 then
-			GameTooltip_AddHighlightLine(tooltip, EXHAUST_TOOLTIP2)
-		end
-	end
-	
-	tooltip:Show()
 end
 
 -----------------------------------
@@ -485,6 +452,7 @@ end
 -----------------------------------
 -- Mouse Click Handler
 -----------------------------------
+-- override: XPBarMixinBase:OnMouseUp
 function LegacyXPBarMixin:OnMouseUp(button)
 	-- Alt + Click: Open options panel
 	if IsAltKeyDown() then

@@ -1,12 +1,7 @@
 local Addon = XPBarEnhanced
 Addon.UI = Addon.UI or {}
-Addon.UI.Mixins = Addon.UI.Mixins or {}
 
-local UIComponents = Addon.UI.Components or {}
-local FrameUtils = UIComponents.FrameUtils
-
-local MixinTable = {}
-Addon.UI.Mixins.PositionStoreMixin = MixinTable
+local PositionStoreMixin = {}
 
 local function resolveDefaults(defaults)
     if type(defaults) == "function" then
@@ -15,13 +10,13 @@ local function resolveDefaults(defaults)
     return defaults
 end
 
-function MixinTable:InitPositionStorage(getter, setter, defaultsProvider)
+function PositionStoreMixin:InitPositionStorage(getter, setter, defaultsProvider)
     self._xpcPositionGetter = getter
     self._xpcPositionSetter = setter
     self._xpcPositionDefaults = defaultsProvider
 end
 
-function MixinTable:GetOrCreatePositionStore()
+function PositionStoreMixin:GetOrCreatePositionStore()
     if not self._xpcPositionGetter then
         return nil
     end
@@ -35,11 +30,11 @@ function MixinTable:GetOrCreatePositionStore()
     return store
 end
 
-function MixinTable:GetPositionDefaults()
+function PositionStoreMixin:GetPositionDefaults()
     return resolveDefaults(self._xpcPositionDefaults) or {}
 end
 
-function MixinTable:ApplyStoredPosition()
+function PositionStoreMixin:ApplyStoredPosition()
     local store = self:GetOrCreatePositionStore() or {}
     local defaults = self:GetPositionDefaults()
 
@@ -58,7 +53,7 @@ function MixinTable:ApplyStoredPosition()
     self:SetPoint(point, relative, relativePoint, x, y)
 end
 
-function MixinTable:SaveStoredPosition()
+function PositionStoreMixin:SaveStoredPosition()
     local store = self:GetOrCreatePositionStore()
     if not store then
         return
@@ -76,4 +71,7 @@ function MixinTable:SaveStoredPosition()
     end
 end
 
-return MixinTable
+-- Export mixin to Addon namespace (namespaced) and global table for XML compatibility
+Addon.Mixins = Addon.Mixins or {}
+Addon.Mixins.PositionStoreMixin = PositionStoreMixin
+_G.PositionStoreMixin = PositionStoreMixin

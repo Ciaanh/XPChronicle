@@ -5,7 +5,8 @@ local Addon = XPBarEnhanced
 
 -- OverlayFrame (if present) is wired into the Bar by the container
 -- Bar field declared in core/Types.lua
-local CircularXPBarContainerMixin = {}
+-- local CircularXPBarContainerMixin = {}
+local CircularXPBarContainerMixin = CreateFromMixins(DraggableFrameMixin, PositionStoreMixin)
 
 function CircularXPBarContainerMixin:OnLoad()
     -- Keep container hidden until controller shows it explicitly
@@ -46,52 +47,28 @@ function CircularXPBarContainerMixin:OnLoad()
     self:SetClampedToScreen(true)
     self:EnableMouse(true)
 
-    local PositionStoreMixin = Addon.UI and Addon.UI.Mixins and Addon.UI.Mixins.PositionStoreMixin
-    local DraggableFrameMixin = Addon.UI and Addon.UI.Mixins and Addon.UI.Mixins.DraggableFrameMixin
-    if PositionStoreMixin and DraggableFrameMixin then
-        Mixin(self, PositionStoreMixin, DraggableFrameMixin)
-        self:InitPositionStorage(
-            function()
-                if not Addon.db then
-                    return nil
-                end
-                if Addon.db.barPositions and Addon.db.barPositions.circular then
-                    return Addon.db.barPositions.circular
-                end
-                return Addon.db.barPosition
-            end,
-            function(pos)
-                if not Addon.db then
-                    return
-                end
-                Addon.db.barPositions = Addon.db.barPositions or {}
-                Addon.db.barPositions.circular = pos
-            end,
-            function()
-                return Addon.defaults and Addon.defaults.barPosition
+    self:InitPositionStorage(
+        function()
+            if not Addon.db then
+                return nil
             end
-        )
-        self:EnableDrag({button = "LeftButton", requireModifier = "SHIFT"})
-    else
-        if self._dragRetryTimer then
-            self._dragRetryTimer:Cancel()
-            self._dragRetryTimer = nil
+            if Addon.db.barPositions and Addon.db.barPositions.circular then
+                return Addon.db.barPositions.circular
+            end
+            return Addon.db.barPosition
+        end,
+        function(pos)
+            if not Addon.db then
+                return
+            end
+            Addon.db.barPositions = Addon.db.barPositions or {}
+            Addon.db.barPositions.circular = pos
+        end,
+        function()
+            return Addon.defaults and Addon.defaults.barPosition
         end
-        self._dragRetryTimer =
-            C_Timer.NewTimer(
-            1,
-            function()
-                if not self or not self:IsShown() then
-                    self._dragRetryTimer = nil
-                    return
-                end
-                if self.RetryDraggingSetup then
-                    self:RetryDraggingSetup()
-                end
-                self._dragRetryTimer = nil
-            end
-        )
-    end
+    )
+    self:EnableDrag({button = "LeftButton", requireModifier = "SHIFT"})
 end
 
 function CircularXPBarContainerMixin:WireTextElements()
@@ -229,48 +206,6 @@ function CircularXPBarMixin:OnLoad()
     end
 end
 
-function CircularXPBarMixin:OnMouseUp(button)
-    -- Stop dragging if active
-    local container = self:GetParent()
-    if container and container.isDragging then
-        container:StopMovingOrSizing()
-        container.isDragging = nil
-        if container.SaveStoredPosition then
-            container:SaveStoredPosition()
-        end
-        return
-    end
-
-    -- Handle clicks (Alt+Click for options, Ctrl+Click for stats)
-    if IsAltKeyDown() then
-        if Addon.Options and Addon.Options.Open then
-            Addon.Options:Open()
-        end
-        return
-    elseif IsControlKeyDown() then
-        if Addon.Stats then
-            if Addon.Stats.Toggle then
-                Addon.Stats:Toggle()
-            elseif Addon.Stats.ToggleWindow then
-                Addon.Stats:ToggleWindow()
-            end
-        end
-        return
-    end
-end
-
-function CircularXPBarMixin:OnMouseDown(button)
-    -- Forward shift+drag to parent container
-    local container = self:GetParent()
-    if container and IsShiftKeyDown() and button == "LeftButton" then
-        if container:IsMovable() and container.isDragging == nil then
-            container:StartMoving()
-            container.isDragging = true
-        end
-        return
-    end
-end
-
 function CircularXPBarMixin:CreateRingSegments()
     -- Create XP segments
     for i = 1, RING_SEGMENTS do
@@ -330,7 +265,11 @@ function CircularXPBarMixin:CreateRingSegments()
 end
 
 function CircularXPBarMixin:PositionSegments()
-    local centerX, centerY = self:GetWidth() / 2, self:GetHeight() / 2
+    local clockwise = -1
+    local counterClockwise = 1
+
+    local direction = clockwise
+
     local placementRadius = CIRCULAR_BAR_STYLE.RING_RADIUS_PX
 
     -- Localize heavy math functions for the inner loop
@@ -349,8 +288,8 @@ function CircularXPBarMixin:PositionSegments()
 
         -- Offsets relative to frame center (use CENTER anchor)
         local xOff = math_cos(angle) * placementRadius
-        local yOff = -math_sin(angle) * placementRadius
-        local rotation = -angle + startAngle
+        local yOff = math_sin(angle) * placementRadius * direction
+        local rotation = (direction * angle) + startAngle
 
         -- Position XP segment
         local segment = self.segments[i]

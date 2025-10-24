@@ -12,7 +12,7 @@ BAR_HEIGHT = 30 -- Override for Flat bar height
 
 -- InitPositionStorage signature declared centrally in core/Types.lua
 
-local FlatXPBarContainerMixin = {}
+local FlatXPBarContainerMixin = CreateFromMixins(DraggableFrameMixin, PositionStoreMixin)
 
 function FlatXPBarContainerMixin:OnLoad()
 	local Addon = XPBarEnhanced
@@ -39,54 +39,26 @@ function FlatXPBarContainerMixin:OnLoad()
 	self:SetClampedToScreen(true)
 	self:EnableMouse(true)
 
-	-- Get mixins and apply them
-	local PositionStoreMixin = Addon.UI and Addon.UI.Mixins and Addon.UI.Mixins.PositionStoreMixin
-	local DraggableFrameMixin = Addon.UI and Addon.UI.Mixins and Addon.UI.Mixins.DraggableFrameMixin
-
-	if PositionStoreMixin and DraggableFrameMixin then
-		Mixin(self, PositionStoreMixin, DraggableFrameMixin)
-		self:InitPositionStorage(
-			function()
-				return Addon.db and Addon.db.barPosition
-			end,
-			function(pos)
-				if Addon.db then
-					Addon.db.barPosition = pos
-				end
-			end,
-			function()
-				return Addon.defaults and Addon.defaults.barPosition
+	self:InitPositionStorage(
+		function()
+			return Addon.db and Addon.db.barPosition
+		end,
+		function(pos)
+			if Addon.db then
+				Addon.db.barPosition = pos
 			end
-		)
-
-		self:EnableDrag(
-			{
-				button = "LeftButton",
-				requireModifier = "SHIFT"
-			}
-		)
-	else
-		-- Schedule a retry after PLAYER_LOGIN (cancelable)
-		if self._dragRetryTimer then
-			self._dragRetryTimer:Cancel()
-
-			self._dragRetryTimer = nil
+		end,
+		function()
+			return Addon.defaults and Addon.defaults.barPosition
 		end
-		self._dragRetryTimer =
-			C_Timer.NewTimer(
-			1,
-			function()
-				if not self or not self:IsShown() then
-					self._dragRetryTimer = nil
-					return
-				end
-				if self.RetryDraggingSetup then
-					self:RetryDraggingSetup()
-				end
-				self._dragRetryTimer = nil
-			end
-		)
-	end
+	)
+
+	self:EnableDrag(
+		{
+			button = "LeftButton",
+			requireModifier = "SHIFT"
+		}
+	)
 end
 
 function FlatXPBarContainerMixin:WireTextElements()
@@ -266,46 +238,6 @@ function FlatXPBarMixin:OnHide()
 		self.StatusBar._xpbar_origSetValue = nil
 		self.StatusBar._xpbar_owner = nil
 		self.StatusBar._xpbar_pendingExternal = nil
-	end
-end
-
--- Forward drag events to container for Shift+drag functionality
-function FlatXPBarMixin:OnMouseDown(button)
-	local container = self:GetParent()
-	if container and IsShiftKeyDown() and button == "LeftButton" then
-		-- Forward drag to container
-		if container:IsMovable() and container.isDragging == nil then
-			container:StartMoving()
-			container.isDragging = true
-		end
-		return
-	end
-end
-
-function FlatXPBarMixin:OnMouseUp(button)
-	local container = self:GetParent()
-
-	-- Stop drag if active
-	if container and container.isDragging then
-		container:StopMovingOrSizing()
-		container.isDragging = nil
-		-- Save position
-		if container.SaveStoredPosition then
-			container:SaveStoredPosition()
-		end
-		return
-	end
-
-	-- Alt + Click: Open options panel
-	if IsAltKeyDown() then
-		Addon.Config:OpenOptions()
-		return
-	end
-
-	-- Ctrl + Click: Toggle stats window
-	if IsControlKeyDown() then
-		Addon.Stats:Toggle()
-		return
 	end
 end
 

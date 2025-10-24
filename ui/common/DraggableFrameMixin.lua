@@ -45,4 +45,7 @@ function DraggableFrameMixin:EnableDrag(options)
     self._xpbeDragButton = (options and options.button) or "LeftButton"
 end
 
-return DraggableFrameMixin
+-- Export mixin to Addon namespace (namespaced) and global table for XML compatibility
+Addon.Mixins = Addon.Mixins or {}
+Addon.Mixins.DraggableFrameMixin = DraggableFrameMixin
+_G.DraggableFrameMixin = DraggableFrameMixin

@@ -290,7 +290,6 @@ function XPBarMixinBase:HandleEvent(event, ...)
 end
 
 -- Full update of all XP values
-
 function XPBarMixinBase:FullUpdate()
 	-- Prevent re-entrant FullUpdate calls
 	if self._isUpdating then
@@ -558,10 +557,47 @@ function XPBarMixinBase:OnLevelUp(newLevel)
 	self:UpdateAllText()
 end
 
+function XPBarMixinBase:OnMouseUp(button)
+	local container = self:GetParent()
+
+	-- Stop drag if active
+	if container and container.isDragging then
+		container:StopMovingOrSizing()
+		container.isDragging = nil
+		if container.SaveStoredPosition then
+			container:SaveStoredPosition()
+		end
+		return
+	end
+
+	-- Alt + Click: Open options panel
+	if IsAltKeyDown() then
+		Addon.Config:OpenOptions()
+		return
+	end
+
+	-- Ctrl + Click: Toggle stats window
+	if IsControlKeyDown() then
+		Addon.Stats:Toggle()
+		return
+	end
+end
+
+function XPBarMixinBase:OnMouseDown(button)
+    -- Forward shift+drag to parent container
+    local container = self:GetParent()
+    if container and IsShiftKeyDown() and button == "LeftButton" then
+        if container:IsMovable() and container.isDragging == nil then
+            container:StartMoving()
+            container.isDragging = true
+        end
+        return
+    end
+end
+
 -----------------------------------
 -- Level-Up Celebration Animation
 -----------------------------------
-
 function XPBarMixinBase:PlayLevelUpCelebration(newLevel)
 	local db = Addon.db or {}
 

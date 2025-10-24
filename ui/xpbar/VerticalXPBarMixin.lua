@@ -6,7 +6,7 @@ local Addon = XPBarEnhanced
 local VerticalXPBarMixin = CreateFromMixins(XPBarMixinBase)
 
 -- Bar field declared in core/Types.lua
-local VerticalXPBarContainerMixin = {}
+local VerticalXPBarContainerMixin = CreateFromMixins(DraggableFrameMixin, PositionStoreMixin)
 
 function VerticalXPBarContainerMixin:OnLoad()
     -- Keep container hidden until controller shows it explicitly
@@ -29,53 +29,38 @@ function VerticalXPBarContainerMixin:OnLoad()
     self:SetClampedToScreen(true)
     self:EnableMouse(true)
 
-    local PositionStoreMixin = Addon.UI and Addon.UI.Mixins and Addon.UI.Mixins.PositionStoreMixin
-    local DraggableFrameMixin = Addon.UI and Addon.UI.Mixins and Addon.UI.Mixins.DraggableFrameMixin
-    if PositionStoreMixin and DraggableFrameMixin then
-        Mixin(self, PositionStoreMixin, DraggableFrameMixin)
-        self:InitPositionStorage(
-            function()
-                if not Addon.db then return nil end
-                if Addon.db.barPositions and Addon.db.barPositions.vertical then
-                    return Addon.db.barPositions.vertical
-                end
-                -- fallback for older single-position setting
-                return Addon.db.barPosition
-            end,
-            function(pos)
-                if not Addon.db then return end
-                Addon.db.barPositions = Addon.db.barPositions or {}
-                Addon.db.barPositions.vertical = pos
-            end,
-            function()
-                if Addon.defaults and Addon.defaults.barPositions and Addon.defaults.barPositions.vertical then
-                    return Addon.defaults.barPositions.vertical
-                end
-                return Addon.defaults and Addon.defaults.barPosition
+    self:InitPositionStorage(
+        function()
+            if not Addon.db then
+                return nil
             end
-        )
-        self:EnableDrag({ button = "LeftButton", requireModifier = "SHIFT" })
-    else
-        -- Retry after login if mixins aren't available yet (cancelable)
-        if self._dragRetryTimer then
-            self._dragRetryTimer:Cancel()
-            self._dragRetryTimer = nil
-        end
-        self._dragRetryTimer = C_Timer.NewTimer(1, function()
-            if not self or not self:IsShown() then
-                self._dragRetryTimer = nil
+            if Addon.db.barPositions and Addon.db.barPositions.vertical then
+                return Addon.db.barPositions.vertical
+            end
+            -- fallback for older single-position setting
+            return Addon.db.barPosition
+        end,
+        function(pos)
+            if not Addon.db then
                 return
             end
-            if self.RetryDraggingSetup then
-                self:RetryDraggingSetup()
+            Addon.db.barPositions = Addon.db.barPositions or {}
+            Addon.db.barPositions.vertical = pos
+        end,
+        function()
+            if Addon.defaults and Addon.defaults.barPositions and Addon.defaults.barPositions.vertical then
+                return Addon.defaults.barPositions.vertical
             end
-            self._dragRetryTimer = nil
-        end)
-    end
+            return Addon.defaults and Addon.defaults.barPosition
+        end
+    )
+    self:EnableDrag({button = "LeftButton", requireModifier = "SHIFT"})
 end
 
 function VerticalXPBarContainerMixin:WireTextElements()
-    if not self.Bar then return end
+    if not self.Bar then
+        return
+    end
     -- If the bar has an OverlayFrame (from XML) wire its fontstrings
     if self.Bar.OverlayFrame then
         self.Bar.LevelText = self.Bar.OverlayFrame.LevelText
@@ -91,7 +76,7 @@ end
 
 function VerticalXPBarContainerMixin:OnHide()
     if self._dragRetryTimer then
-    self._dragRetryTimer:Cancel()
+        self._dragRetryTimer:Cancel()
         self._dragRetryTimer = nil
     end
 end
@@ -103,14 +88,18 @@ function VerticalXPBarContainerMixin:RetryDraggingSetup()
         Mixin(self, PositionStoreMixin, DraggableFrameMixin)
         self:InitPositionStorage(
             function()
-                if not Addon.db then return nil end
+                if not Addon.db then
+                    return nil
+                end
                 if Addon.db.barPositions and Addon.db.barPositions.vertical then
                     return Addon.db.barPositions.vertical
                 end
                 return Addon.db.barPosition
             end,
             function(pos)
-                if not Addon.db then return end
+                if not Addon.db then
+                    return
+                end
                 Addon.db.barPositions = Addon.db.barPositions or {}
                 Addon.db.barPositions.vertical = pos
             end,
@@ -121,7 +110,7 @@ function VerticalXPBarContainerMixin:RetryDraggingSetup()
                 return Addon.defaults and Addon.defaults.barPosition
             end
         )
-        self:EnableDrag({ button = "LeftButton", requireModifier = "SHIFT" })
+        self:EnableDrag({button = "LeftButton", requireModifier = "SHIFT"})
     end
 end
 
@@ -132,7 +121,7 @@ function VerticalXPBarContainerMixin:SetLocked(locked)
     else
         self:SetMovable(true)
         if self.EnableDrag then
-            self:EnableDrag({ button = "LeftButton", requireModifier = "SHIFT" })
+            self:EnableDrag({button = "LeftButton", requireModifier = "SHIFT"})
             self.isDraggable = true
         end
     end
@@ -142,10 +131,10 @@ end
 -- instance fields: FilledTexture, RestedOverlay (created at runtime)
 -- VerticalXPBarMixin already defined above as a local; avoid duplicate assignment
 -- Constants
-local FALL_DURATION = 0.4  -- Duration of falling animation in seconds
-local BOUNCE_HEIGHT = 5    -- Pixels to bounce up on impact
+local FALL_DURATION = 0.4 -- Duration of falling animation in seconds
+local BOUNCE_HEIGHT = 5 -- Pixels to bounce up on impact
 local BOUNCE_DURATION = 0.1 -- Duration of bounce animations
-local PARTICLE_COUNT = 8   -- Number of particles on impact
+local PARTICLE_COUNT = 8 -- Number of particles on impact
 
 -- Sublevels for draw ordering (vertical bar specific)
 local VERTICAL_SUBLEVEL_FILL = 0
@@ -164,24 +153,24 @@ function VerticalXPBarMixin:OnLoad()
         print("VerticalXPBar ERROR: XPBarEnhanced not loaded!")
         return
     end
-    
+
     -- Call base initialization
     if not self.InitializeState then
         print("VerticalXPBar ERROR: InitializeState missing!")
         return
     end
     self:InitializeState()
-    
+
     -- Vertical bar specific setup
     self.orientation = "VERTICAL"
     -- Identify style for debugging
     self._barStyle = "Vertical"
     self.fillDirection = "BOTTOM_TO_TOP"
-    
+
     -- Animation state
     self.isFalling = false
     self.lastXP = 0
-    
+
     -- Create particle pool for impact effects
     self.particlePool = {}
     for i = 1, PARTICLE_COUNT do
@@ -192,10 +181,10 @@ function VerticalXPBarMixin:OnLoad()
         particle:Hide()
         table.insert(self.particlePool, particle)
     end
-    
+
     -- Setup textures
     self:SetupTextures()
-    
+
     -- Register common events
     if self.RegisterCommonEvents then
         self:RegisterCommonEvents()
@@ -205,59 +194,17 @@ end
 -- Set display value (override for vertical StatusBar rendering)
 -- Blizzard pattern: Bar-specific rendering implementation
 function VerticalXPBarMixin:SetDisplayValue(ratio)
-	if not self.StatusBar then
-		return
-	end
-	
-	-- Delegate to base UpdateStatusBarValue (already expects ratio)
-	self:UpdateStatusBarValue(ratio)
+    if not self.StatusBar then
+        return
+    end
+
+    -- Delegate to base UpdateStatusBarValue (already expects ratio)
+    self:UpdateStatusBarValue(ratio)
 end
 
 function VerticalXPBarMixin:OnEvent(event, ...)
     -- Use base handler
     self:HandleEvent(event, ...)
-end
-
-function VerticalXPBarMixin:OnMouseUp(button)
-    -- Stop dragging if active
-    local container = self:GetParent()
-    if container and container.isDragging then
-        container:StopMovingOrSizing()
-        container.isDragging = nil
-        if container.SaveStoredPosition then
-            container:SaveStoredPosition()
-        end
-        return
-    end
-
-    -- Handle clicks (Alt+Click for options, Ctrl+Click for stats)
-    if IsAltKeyDown() then
-        if Addon.Options and Addon.Options.Open then
-            Addon.Options:Open()
-        end
-        return
-    elseif IsControlKeyDown() then
-        if Addon.Stats then
-            if Addon.Stats.Toggle then
-                Addon.Stats:Toggle()
-            elseif Addon.Stats.ToggleWindow then
-                Addon.Stats:ToggleWindow()
-            end
-        end
-        return
-    end
-end
-
-function VerticalXPBarMixin:OnMouseDown(button)
-    -- Forward shift+drag to parent container
-    local container = self:GetParent()
-    if container and IsShiftKeyDown() and button == "LeftButton" then
-        if container:IsMovable() and container.isDragging == nil then
-            container:StartMoving()
-            container.isDragging = true
-        end
-        return
-    end
 end
 
 function VerticalXPBarMixin:SetupTextures()
@@ -267,7 +214,7 @@ function VerticalXPBarMixin:SetupTextures()
     end
     self.Background:SetAllPoints()
     self.Background:SetColorTexture(0, 0, 0, 0.5)
-    
+
     -- Filled texture (current XP - grows from bottom)
     if not self.FilledTexture then
         self.FilledTexture = self:CreateTexture(nil, "ARTWORK")
@@ -275,14 +222,14 @@ function VerticalXPBarMixin:SetupTextures()
     self.FilledTexture:SetPoint("BOTTOMLEFT")
     self.FilledTexture:SetPoint("BOTTOMRIGHT")
     self.FilledTexture:SetTexture("Interface\\Buttons\\WHITE8X8")
-    
+
     -- Falling texture (animated new XP)
     if not self.FallingTexture then
         self.FallingTexture = self:CreateTexture(nil, "ARTWORK", nil, VERTICAL_SUBLEVEL_FALLING)
     end
     self.FallingTexture:SetTexture("Interface\\Buttons\\WHITE8X8")
     self.FallingTexture:Hide()
-    
+
     -- Rested overlay (behind quest overlays)
     if not self.RestedOverlay then
         self.RestedOverlay = self:CreateTexture(nil, "ARTWORK", nil, VERTICAL_SUBLEVEL_REST)
@@ -293,7 +240,7 @@ function VerticalXPBarMixin:SetupTextures()
     self.RestedOverlay:SetTexture("Interface\\Buttons\\WHITE8X8")
     self.RestedOverlay:SetBlendMode("ADD")
     self.RestedOverlay:SetAlpha(0.3)
-    
+
     -- Quest overlays: complete and incomplete (vertical orientation uses heights)
     -- Quest overlays must render above rested overlay
     if not self.QuestOverlayComplete then
@@ -313,8 +260,7 @@ function VerticalXPBarMixin:SetupTextures()
     self.QuestOverlayIncomplete:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", 0, 0)
     self.QuestOverlayIncomplete:SetTexture("Interface\\Buttons\\WHITE8X8")
     self.QuestOverlayIncomplete:Hide()
-    
-    
+
     -- Text elements
     self:SetupTextElements()
 end
@@ -326,14 +272,14 @@ function VerticalXPBarMixin:SetupTextElements()
     end
     self.LevelText:SetPoint("TOP", 0, -10)
     self.LevelText:SetJustifyH("CENTER")
-    
+
     -- Percentage text (center)
     if not self.PercentText then
         self.PercentText = self:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
     end
     self.PercentText:SetPoint("CENTER", 0, 0)
     self.PercentText:SetJustifyH("CENTER")
-    
+
     -- XP/hour text (bottom)
     if not self.XPPerHourText then
         self.XPPerHourText = self:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
@@ -346,10 +292,10 @@ function VerticalXPBarMixin:UpdateBarFill(currentXP, maxXP)
     if not currentXP or not maxXP or maxXP == 0 then
         return
     end
-    
+
     local barHeight = self:GetHeight()
     local percentage = currentXP / maxXP
-    
+
     -- Check if we gained XP (animate falling)
     if currentXP > self.lastXP and not self.isFalling then
         self:AnimateFallingXP(self.lastXP, currentXP, maxXP)
@@ -357,33 +303,35 @@ function VerticalXPBarMixin:UpdateBarFill(currentXP, maxXP)
         -- Direct update (no animation)
         local fillHeight = barHeight * percentage
         self.FilledTexture:SetHeight(fillHeight)
-        
+
         -- Apply color
         local color = Addon.Colors:Get("xpBar")
         self.FilledTexture:SetColorTexture(color.r, color.g, color.b, color.a or 1)
     end
-    
+
     self.lastXP = currentXP
-    
+
     -- Update rested overlay
     self:UpdateRestedOverlay(currentXP, maxXP)
 end
 
 ---Animate a falling XP segment from oldValue to newValue
 function VerticalXPBarMixin:AnimateFallingXP(oldValue, newValue, maxValue)
-    if self.isFalling then return end
-    
+    if self.isFalling then
+        return
+    end
+
     self.isFalling = true
     local barHeight = self:GetHeight()
     local gainedXP = newValue - oldValue
     local segmentHeight = (gainedXP / maxValue) * barHeight
-    
+
     -- Position falling segment at top
     self.FallingTexture:SetWidth(self:GetWidth())
     self.FallingTexture:SetHeight(segmentHeight)
     self.FallingTexture:ClearAllPoints()
     self.FallingTexture:SetPoint("TOPLEFT", self, "TOPLEFT", 0, 0)
-    
+
     -- Set color (brighter version of XP bar color)
     local color = Addon.Colors:Get("xpBar")
     self.FallingTexture:SetColorTexture(
@@ -393,11 +341,11 @@ function VerticalXPBarMixin:AnimateFallingXP(oldValue, newValue, maxValue)
         1
     )
     self.FallingTexture:Show()
-    
+
     -- Calculate target position (top of current fill)
     local currentFillHeight = (oldValue / maxValue) * barHeight
     local targetY = -(barHeight - currentFillHeight - segmentHeight)
-    
+
     -- Animate fall using centralized animation task registry (better cleanup and perf).
     -- Uses easing/duration choices guided by `refs/BlizzardInterfaceCode` and
     -- draws on patterns in `refs/Animated addons` for particle movement.
@@ -413,40 +361,43 @@ function VerticalXPBarMixin:AnimateFallingXP(oldValue, newValue, maxValue)
     if type(self.GetScript) == "function" and self:GetScript("OnUpdate") then
         self:SetScript("OnUpdate", nil)
     end
-    self:SetScript("OnUpdate", function(frame, elapsed)
-        local elapsedTime = getTime() - startTime
-        local progress = math_min(elapsedTime / FALL_DURATION, 1)
-        local easedProgress = ease(progress)
-        local currentY = startY + (targetY - startY) * easedProgress
-        frame.FallingTexture:ClearAllPoints()
-        frame.FallingTexture:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, currentY)
-        if progress >= 1 then
-            frame:SetScript("OnUpdate", nil)
-            frame:OnFallComplete(oldValue, newValue, maxValue)
+    self:SetScript(
+        "OnUpdate",
+        function(frame, elapsed)
+            local elapsedTime = getTime() - startTime
+            local progress = math_min(elapsedTime / FALL_DURATION, 1)
+            local easedProgress = ease(progress)
+            local currentY = startY + (targetY - startY) * easedProgress
+            frame.FallingTexture:ClearAllPoints()
+            frame.FallingTexture:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, currentY)
+            if progress >= 1 then
+                frame:SetScript("OnUpdate", nil)
+                frame:OnFallComplete(oldValue, newValue, maxValue)
+            end
         end
-    end)
+    )
 end
 
 function VerticalXPBarMixin:OnFallComplete(oldValue, newValue, maxValue)
     -- Hide falling texture
     self.FallingTexture:Hide()
-    
+
     -- Update main fill to new value
     local barHeight = self:GetHeight()
     local percentage = newValue / maxValue
     local fillHeight = barHeight * percentage
     self.FilledTexture:SetHeight(fillHeight)
-    
+
     -- Apply color
     local color = Addon.Colors:Get("xpBar")
     self.FilledTexture:SetColorTexture(color.r, color.g, color.b, color.a or 1)
-    
+
     -- Play impact effects
     self:PlayImpactEffect()
-    
+
     -- Bounce animation
     self:PlayBounceAnimation()
-    
+
     self.isFalling = false
 end
 
@@ -457,7 +408,7 @@ function VerticalXPBarMixin:PlayImpactEffect()
     local barHeight = self:GetHeight()
     local fillHeight = self.FilledTexture:GetHeight()
     local impactY = barHeight - fillHeight
-    
+
     -- Localize math functions for inner loop
     local pi2 = math.pi * 2
     local math_cos = math.cos
@@ -483,56 +434,70 @@ function VerticalXPBarMixin:PlayImpactEffect()
         -- Animate each particle using the fallback per-particle ticker
         local startTime = GetTime()
         local startX, startY = 0, fillHeight
-        local ticker = C_Timer.NewTicker(0.016, function(t)
-            local elapsed = GetTime() - startTime
-            if elapsed > 0.5 then
-                particle:Hide()
-                t:Cancel()
-                return
+        local ticker =
+            C_Timer.NewTicker(
+            0.016,
+            function(t)
+                local elapsed = GetTime() - startTime
+                if elapsed > 0.5 then
+                    particle:Hide()
+                    t:Cancel()
+                    return
+                end
+                local x = startX + dx * elapsed
+                local y = startY + dy * elapsed - (200 * elapsed * elapsed)
+                local alpha = 1 - (elapsed / 0.5)
+                particle:ClearAllPoints()
+                particle:SetPoint("CENTER", self, "BOTTOM", x, y)
+                particle:SetAlpha(alpha)
             end
-            local x = startX + dx * elapsed
-            local y = startY + dy * elapsed - (200 * elapsed * elapsed)
-            local alpha = 1 - (elapsed / 0.5)
-            particle:ClearAllPoints()
-            particle:SetPoint("CENTER", self, "BOTTOM", x, y)
-            particle:SetAlpha(alpha)
-        end)
+        )
         particle._fallbackTicker = ticker
     end
-    if profiler and profiler._enabled then profiler:Stop("Vertical.PlayImpactEffect") end
+    if profiler and profiler._enabled then
+        profiler:Stop("Vertical.PlayImpactEffect")
+    end
 end
 
 function VerticalXPBarMixin:PlayBounceAnimation()
     -- Quick bounce up and settle down
     local originalHeight = self.FilledTexture:GetHeight()
-    
+
     -- Bounce up (cancelable)
     if self._bounceUpTimer then
         self._bounceUpTimer:Cancel()
         self._bounceUpTimer = nil
     end
-    self._bounceUpTimer = C_Timer.NewTimer(0, function()
-        if not self or not self:IsShown() then
+    self._bounceUpTimer =
+        C_Timer.NewTimer(
+        0,
+        function()
+            if not self or not self:IsShown() then
+                self._bounceUpTimer = nil
+                return
+            end
+            self.FilledTexture:SetHeight(originalHeight + BOUNCE_HEIGHT)
             self._bounceUpTimer = nil
-            return
         end
-        self.FilledTexture:SetHeight(originalHeight + BOUNCE_HEIGHT)
-        self._bounceUpTimer = nil
-    end)
+    )
 
     -- Settle back (cancelable)
     if self._bounceDownTimer then
         self._bounceDownTimer:Cancel()
         self._bounceDownTimer = nil
     end
-    self._bounceDownTimer = C_Timer.NewTimer(BOUNCE_DURATION, function()
-        if not self or not self:IsShown() then
+    self._bounceDownTimer =
+        C_Timer.NewTimer(
+        BOUNCE_DURATION,
+        function()
+            if not self or not self:IsShown() then
+                self._bounceDownTimer = nil
+                return
+            end
+            self.FilledTexture:SetHeight(originalHeight)
             self._bounceDownTimer = nil
-            return
         end
-        self.FilledTexture:SetHeight(originalHeight)
-        self._bounceDownTimer = nil
-    end)
+    )
 end
 
 function VerticalXPBarMixin:UpdateRestedOverlay(currentXP, maxXP)
@@ -540,7 +505,9 @@ function VerticalXPBarMixin:UpdateRestedOverlay(currentXP, maxXP)
     -- rested overlay should show only the delta after current XP and any quest overlays
     local restedXP = GetXPExhaustion() or 0
     if not maxXP or maxXP <= 0 then
-        if self.RestedOverlay then self.RestedOverlay:Hide() end
+        if self.RestedOverlay then
+            self.RestedOverlay:Hide()
+        end
         return
     end
 
@@ -558,7 +525,10 @@ function VerticalXPBarMixin:UpdateRestedOverlay(currentXP, maxXP)
             self.RestedOverlay:SetPoint("BOTTOMLEFT", self, "BOTTOMLEFT", 0, offsetHeight)
             self.RestedOverlay:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", 0, offsetHeight)
             self.RestedOverlay:SetHeight(restedHeight)
-            local color = Addon.Colors and Addon.Colors:Get(Addon.Colors.Key.XpBarRested) or Addon.Colors and Addon.Colors:Get("xpBarRested") or { r = 0.3, g = 0.6, b = 1.0 }
+            local color =
+                Addon.Colors and Addon.Colors:Get(Addon.Colors.Key.XpBarRested) or
+                Addon.Colors and Addon.Colors:Get("xpBarRested") or
+                {r = 0.3, g = 0.6, b = 1.0}
             self.RestedOverlay:SetColorTexture(color.r, color.g, color.b, 0.3)
             self.RestedOverlay:Show()
         end
@@ -592,7 +562,7 @@ function VerticalXPBarMixin:UpdateRested()
             self.RestedOverlay:SetPoint("BOTTOMLEFT", self, "BOTTOMLEFT", 0, offsetHeight)
             self.RestedOverlay:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", 0, offsetHeight)
             self.RestedOverlay:SetHeight(restedHeight)
-            local color = Addon.Colors and Addon.Colors:Get(Addon.Colors.Key.XpBarRested) or { r = 0.3, g = 0.6, b = 1.0 }
+            local color = Addon.Colors and Addon.Colors:Get(Addon.Colors.Key.XpBarRested) or {r = 0.3, g = 0.6, b = 1.0}
             self.RestedOverlay:SetColorTexture(color.r, color.g, color.b, 0.3)
             self.RestedOverlay:Show()
         end
@@ -608,9 +578,12 @@ function VerticalXPBarMixin:ComputeOverlayHeights(layout, barHeight)
     barHeight = barHeight or (self and self.GetHeight and self:GetHeight()) or 100
     local dims = self:ComputeOverlayDimensions(layout, barHeight)
     return {
-        completeHeight = dims.completeSize, completeOffset = dims.completeOffset,
-        incompleteHeight = dims.incompleteSize, incompleteOffset = dims.incompleteOffset,
-        restedHeight = dims.restedSize, restedOffset = dims.restedOffset,
+        completeHeight = dims.completeSize,
+        completeOffset = dims.completeOffset,
+        incompleteHeight = dims.incompleteSize,
+        incompleteOffset = dims.incompleteOffset,
+        restedHeight = dims.restedSize,
+        restedOffset = dims.restedOffset
     }
 end
 
@@ -620,12 +593,12 @@ function VerticalXPBarMixin:UpdateAllText()
     if self.LevelText then
         self.LevelText:SetText(tostring(level))
     end
-    
+
     local currentXP = UnitXP("player")
     local maxXP = UnitXPMax("player")
     local percent = (currentXP / maxXP) * 100
     self.PercentText:SetText(string.format("%.1f%%", percent))
-    
+
     -- XP per hour
     if Addon.Session then
         local stats = Addon.Session:GetStats()
@@ -640,8 +613,10 @@ end
 function VerticalXPBarMixin:UpdateTextVisibility()
     -- Show/hide based on settings
     local db = Addon.db
-    if not db then return end
-    
+    if not db then
+        return
+    end
+
     -- Use canonical config keys from Config.lua
     self.LevelText:SetShown(db.showLevelText == true)
     self.PercentText:SetShown(db.showPercentage == true)
@@ -654,7 +629,7 @@ function VerticalXPBarMixin:ApplyBarColor()
         local color = Addon.Colors:Get("xpBar")
         self.FilledTexture:SetColorTexture(color.r, color.g, color.b, color.a or 1)
     end
-    
+
     if self.RestedOverlay:IsShown() then
         local color = Addon.Colors:Get("xpBarRested")
         self.RestedOverlay:SetColorTexture(color.r, color.g, color.b, 0.3)
@@ -667,7 +642,7 @@ function VerticalXPBarMixin:ApplyLayout(layout)
     if not layout.visible then
         return
     end
-    
+
     local parent = self:GetParent()
     -- Only show the container for the active view; avoid revealing inactive views
     local activeView = Addon.XPBar and Addon.XPBar:GetActiveView()
@@ -692,7 +667,8 @@ function VerticalXPBarMixin:ApplyLayout(layout)
                 self.QuestOverlayComplete:SetPoint("BOTTOMLEFT", self, "BOTTOMLEFT", 0, heights.completeOffset)
                 self.QuestOverlayComplete:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", 0, heights.completeOffset)
                 self.QuestOverlayComplete:SetHeight(heights.completeHeight)
-                local color = Addon.Colors and Addon.Colors:Get(Addon.Colors.Key.QuestComplete) or { r = 1.0, g = 0.59, b = 0.0 }
+                local color =
+                    Addon.Colors and Addon.Colors:Get(Addon.Colors.Key.QuestComplete) or {r = 1.0, g = 0.59, b = 0.0}
                 self.QuestOverlayComplete:SetColorTexture(color.r, color.g, color.b, 0.85)
                 self.QuestOverlayComplete:Show()
             else
@@ -708,7 +684,8 @@ function VerticalXPBarMixin:ApplyLayout(layout)
                 self.QuestOverlayIncomplete:SetPoint("BOTTOMLEFT", self, "BOTTOMLEFT", 0, heights.incompleteOffset)
                 self.QuestOverlayIncomplete:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", 0, heights.incompleteOffset)
                 self.QuestOverlayIncomplete:SetHeight(heights.incompleteHeight)
-                local color = Addon.Colors and Addon.Colors:Get(Addon.Colors.Key.QuestIncomplete) or { r = 1.0, g = 1.0, b = 0.0 }
+                local color =
+                    Addon.Colors and Addon.Colors:Get(Addon.Colors.Key.QuestIncomplete) or {r = 1.0, g = 1.0, b = 0.0}
                 self.QuestOverlayIncomplete:SetColorTexture(color.r, color.g, color.b, 0.85)
                 self.QuestOverlayIncomplete:Show()
             else
@@ -725,7 +702,8 @@ function VerticalXPBarMixin:ApplyLayout(layout)
                 self.RestedOverlay:SetPoint("BOTTOMLEFT", self, "BOTTOMLEFT", 0, heights.restedOffset)
                 self.RestedOverlay:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", 0, heights.restedOffset)
                 self.RestedOverlay:SetHeight(heights.restedHeight)
-                local color = Addon.Colors and Addon.Colors:Get(Addon.Colors.Key.XpBarRested) or { r = 0.3, g = 0.6, b = 1.0 }
+                local color =
+                    Addon.Colors and Addon.Colors:Get(Addon.Colors.Key.XpBarRested) or {r = 0.3, g = 0.6, b = 1.0}
                 self.RestedOverlay:SetColorTexture(color.r, color.g, color.b, 0.3)
                 self.RestedOverlay:Show()
             else
@@ -740,20 +718,20 @@ function VerticalXPBarMixin:UpdateStatusBarValue(ratio)
     -- Instead, update our custom vertical display
     local currentXP = UnitXP("player")
     local maxXP = UnitXPMax("player")
-    
+
     if maxXP > 0 then
         -- Direct update without animation (used during initialization)
         local barHeight = self:GetHeight()
         local fillHeight = barHeight * ratio
-        
+
         if self.FilledTexture then
             self.FilledTexture:SetHeight(fillHeight)
-            
+
             -- Apply color
             local color = Addon.Colors:Get("xpBar")
             self.FilledTexture:SetColorTexture(color.r, color.g, color.b, color.a or 1)
         end
-        
+
         self.lastXP = currentXP
         self:UpdateRestedOverlay(currentXP, maxXP)
     end
@@ -773,9 +751,12 @@ function VerticalXPBarMixin:FullUpdate()
     end
     self.Border:SetAllPoints()
     -- Try atlas first (less distortion), fallback to texture
-    local ok = pcall(function()
-        self.Border:SetAtlas("UI-HUD-ExperienceBar-Frame", true)
-    end)
+    local ok =
+        pcall(
+        function()
+            self.Border:SetAtlas("UI-HUD-ExperienceBar-Frame", true)
+        end
+    )
     if not ok then
         self.Border:SetTexture("Interface\\Tooltips\\UI-Tooltip-Border")
         self.Border:SetTexCoord(0.08, 0.92, 0.08, 0.92)
@@ -820,13 +801,13 @@ function VerticalXPBarMixin:UpdateBarDisplay()
     end
 
     self.state.maxLevel = self:GetEffectiveMaxLevel()
-    
+
     -- Check if at max level and should hide
     local atMaxLevel = self:IsPlayerAtMaxLevel()
     local showAtMax = Addon.db and Addon.db.showBarAtMaxLevel ~= false
-    
+
     if atMaxLevel and not showAtMax then
-        self:Hide()  -- Hide SELF, not parent
+        self:Hide() -- Hide SELF, not parent
         self._isUpdating = nil
         return
     end
@@ -837,20 +818,20 @@ function VerticalXPBarMixin:UpdateBarDisplay()
     if activeView == self and parent then
         parent:Show()
     end
-    
+
     -- Calculate what to show (state)
     local state = self:CalculateBarState()
-    
+
     -- Store state
     self.state.currentXP = state.currentXP
     self.state.maxXP = state.maxXP
     self.state.restedXP = state.restedXP
     self.state.level = state.level
     self.state.isRested = (state.restedXP and state.restedXP > 0) or false
-    
+
     -- Calculate layout
     local layout = self:CalculateBarLayout(state)
-    
+
     -- Apply to UI
     self:ApplyLayout(layout)
 end
@@ -914,7 +895,7 @@ end
 function VerticalXPBarMixin:Initialize()
     -- Initialize last XP value
     self.lastXP = UnitXP("player")
-    
+
     -- Initial update
     self:FullUpdate()
 end
