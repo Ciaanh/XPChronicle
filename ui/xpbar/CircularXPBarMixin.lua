@@ -713,7 +713,6 @@ function CircularXPBarMixin:Initialize()
     self:FullUpdate()
 end
 
--- override: XPBarMixinBase:SetupCenterContent (circular-specific center elements)
 function CircularXPBarMixin:SetupCenterContent()
     -- Create center PNG background
     if not self.CenterBG then
@@ -899,11 +898,8 @@ end
 -- override: XPBarMixinBase:UpdateAllText
 function CircularXPBarMixin:UpdateAllText()
     self:UpdateLevelText()
-    -- self:UpdateXPText()
     self:UpdatePercentText()
     self:UpdateRateText()
-    -- self:UpdateSessionText()
-    -- self:UpdateQuestSummaryText()
 end
 
 -- override: XPBarMixinBase:UpdateTextVisibility
@@ -915,7 +911,7 @@ function CircularXPBarMixin:UpdateTextVisibility()
 
     self.LevelText:SetShown(db.showLevelText == true)
     self.PercentText:SetShown(db.showPercentage == true)
-    self.RateText:SetShown(db.showRateText == true)
+    self.RateText:SetShown(db.showTimeToLevelText == true)
 end
 
 -- override: XPBarMixinBase:UpdateLevelText
@@ -949,9 +945,10 @@ function CircularXPBarMixin:UpdateRateText()
     if self.RateText then
         local db = Addon.db or {}
 
-        local showTimeToLevel = db.showRateText == true
+        local showTimeToLevel = db.showTimeToLevelText == true
 
         if not showTimeToLevel then
+            self.RateText:SetText("")
             return
         end
 
@@ -960,10 +957,10 @@ function CircularXPBarMixin:UpdateRateText()
             timeToLevel = Addon.Session:GetTimeToLevel()
         end
 
-        if timeToLevel > 0 and showTimeToLevel then
-            self.RateText:SetText(XPBarTextFormatter:GetRateText(timeToLevel))
+        if timeToLevel > 0 then
+            self.RateText:SetText(XPBarTextFormatter:GetTimeToLevelText(timeToLevel))
         else
-            self.RateText:SetText("")
+            self.RateText:SetText("tt")
         end
     end
 end
