@@ -330,8 +330,6 @@ function CircularXPBarMixin:CreateRingSegments()
 end
 
 function CircularXPBarMixin:PositionSegments()
-    -- local profiler = Addon.Profiler
-    -- if profiler and profiler._enabled then profiler:Start("Circular.PositionSegments") end
     local centerX, centerY = self:GetWidth() / 2, self:GetHeight() / 2
     local placementRadius = CIRCULAR_BAR_STYLE.RING_RADIUS_PX
 
@@ -339,45 +337,42 @@ function CircularXPBarMixin:PositionSegments()
     local math_cos = math.cos
     local math_sin = math.sin
     local math_pi = math.pi
-    for i = 1, RING_SEGMENTS do
-        -- Angle in radians (start from top, go clockwise)
-        -- 0 degrees = top (12 o'clock) = -90 degrees in standard coordinates
-        local angle = ((i - 1) / RING_SEGMENTS) * (2 * math_pi) - (math_pi / 2)
 
-        -- Calculate position
-        local x = centerX + math_cos(angle) * placementRadius
-        local y = centerY + math_sin(angle) * placementRadius
+    -- In World of Warcraft, the coordinate system for textures starts at top-left,
+    -- with positive X to the right and positive Y downwards.
+    -- Start at 6 o'clock (bottom) and increase angle -> clockwise in WoW (y positive = down)
+    local startAngle = math_pi / 2
+    local fullCircle = 2 * math_pi
+
+    for i = 1, RING_SEGMENTS do
+        local angle = startAngle + ((i - 1) / RING_SEGMENTS) * fullCircle
+
+        -- Offsets relative to frame center (use CENTER anchor)
+        local xOff = math_cos(angle) * placementRadius
+        local yOff = -math_sin(angle) * placementRadius
+        local rotation = -angle + startAngle
 
         -- Position XP segment
         local segment = self.segments[i]
         segment:ClearAllPoints()
-        segment:SetPoint("CENTER", self, "BOTTOMLEFT", x, y)
-        local rotation = angle + math.pi / 2
+        segment:SetPoint("CENTER", self, "CENTER", xOff, yOff)
         self:RotateTexture(segment, rotation)
-
-        -- Position PNG overlay for segment
-        if segment.overlay then
-            segment.overlay:ClearAllPoints()
-            segment.overlay:SetPoint("CENTER", self, "BOTTOMLEFT", x, y)
-            self:RotateTexture(segment.overlay, rotation)
-            segment.overlay:SetTexCoord(0, 1, 0, 0, 1, 1, 1, 0)
-        end
 
         -- Position rested segment
         local restedSegment = self.restedSegments[i]
         restedSegment:ClearAllPoints()
-        restedSegment:SetPoint("CENTER", self, "BOTTOMLEFT", x, y)
+        restedSegment:SetPoint("CENTER", self, "CENTER", xOff, yOff)
         self:RotateTexture(restedSegment, rotation)
 
         -- Position quest overlay segments
         local qc = self.questCompleteSegments[i]
         qc:ClearAllPoints()
-        qc:SetPoint("CENTER", self, "BOTTOMLEFT", x, y)
+        qc:SetPoint("CENTER", self, "CENTER", xOff, yOff)
         self:RotateTexture(qc, rotation)
 
         local qi = self.questIncompleteSegments[i]
         qi:ClearAllPoints()
-        qi:SetPoint("CENTER", self, "BOTTOMLEFT", x, y)
+        qi:SetPoint("CENTER", self, "CENTER", xOff, yOff)
         self:RotateTexture(qi, rotation)
     end
 end
@@ -882,18 +877,6 @@ function CircularXPBarMixin:UpdateBarDisplay()
     -- Apply to UI
     self:ApplyLayout(layout)
 end
-
--- -- override: XPBarMixinBase:OnShow
--- function CircularXPBarMixin:OnShow()
---     -- Ensure events are registered when shown
---     if not self._eventsRegistered and self.RegisterCommonEvents then
---         self:RegisterCommonEvents()
---     end
-
---     if not self._isUpdating then
---         self:FullUpdate()
---     end
--- end
 
 -- override: XPBarMixinBase:UpdateAllText
 function CircularXPBarMixin:UpdateAllText()
