@@ -744,23 +744,6 @@ function VerticalXPBarMixin:FullUpdate()
     end
     self._isUpdating = true
 
-    -- Override base to prevent hiding UIParent (since we have no container)
-    if not self.Border then
-        -- Use a small border atlas if available to avoid stretching artifacts
-        self.Border = self:CreateTexture(nil, "BORDER")
-    end
-    self.Border:SetAllPoints()
-    -- Try atlas first (less distortion), fallback to texture
-    local ok =
-        pcall(
-        function()
-            self.Border:SetAtlas("UI-HUD-ExperienceBar-Frame", true)
-        end
-    )
-    if not ok then
-        self.Border:SetTexture("Interface\\Tooltips\\UI-Tooltip-Border")
-        self.Border:SetTexCoord(0.08, 0.92, 0.08, 0.92)
-    end
     -- Only show the container for the active view
     local activeView = Addon.XPBar and Addon.XPBar:GetActiveView()
     if activeView == self and parent then
