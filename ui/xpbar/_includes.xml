@@ -3,15 +3,15 @@
     <!-- Common XP bar templates -->
     <Include file="XPBarCommon.xml"/>
 
-    <!-- Legacy XP bar (Blizzard-style with atlases) -->
-    <Include file="LegacyXPBar.xml"/>
+    <!-- Legacy XP bar (Blizzard-style) -->
+    <Include file="styles/LegacyXPBar.xml"/>
 
-    <!-- Flat XP bar (solid colors) -->
-    <Include file="FlatXPBar.xml"/>
+    <!-- Flat XP bar -->
+    <Include file="styles/FlatXPBar.xml"/>
 
     <!-- Vertical XP bar -->
-    <Include file="VerticalXPBar.xml"/>
+    <Include file="styles/VerticalXPBar.xml"/>
 
     <!-- Circular XP bar -->
-    <Include file="CircularXPBar.xml"/>
+    <Include file="styles/CircularXPBar.xml"/>
 </Ui>
