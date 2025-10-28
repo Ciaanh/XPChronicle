@@ -1,0 +1,111 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/">
+	
+	<!-- XP Bar Enhanced - FlatBar Template v2 -->
+	<!-- Complete frame structure for flat/linear XP bar -->
+	
+	<Frame name="FlatBarTemplate_v2" virtual="true">
+		<Size x="565" y="11"/>
+		
+		<!-- Main StatusBar (current XP) -->
+		<StatusBar parentKey="StatusBar" inherits="StatusBarTemplate">
+			<Size x="565" y="10"/>
+			<Anchors>
+				<Anchor point="TOPLEFT" x="0" y="-1"/>
+			</Anchors>
+			<BarTexture atlas="UI-HUD-ExperienceBar-Fill" alphaMode="BLEND"/>
+			<BarColor r="0.58" g="0.0" b="0.55" a="1.0"/>
+		</StatusBar>
+		
+		<!-- Border Frame -->
+		<Frame parentKey="BorderFrame">
+			<Size x="565" y="11"/>
+			<Anchors>
+				<Anchor point="TOPLEFT"/>
+			</Anchors>
+			
+			<Layers>
+				<!-- Left border -->
+				<Layer level="OVERLAY" textureSubLevel="2">
+					<Texture parentKey="BorderLeft" atlas="UI-HUD-ExperienceBar-EndCap">
+						<Size x="7" y="11"/>
+						<Anchors>
+							<Anchor point="LEFT" x="0" y="0"/>
+						</Anchors>
+					</Texture>
+				</Layer>
+				
+				<!-- Right border -->
+				<Layer level="OVERLAY" textureSubLevel="2">
+					<Texture parentKey="BorderRight" atlas="UI-HUD-ExperienceBar-EndCap" horizFlip="true">
+						<Size x="7" y="11"/>
+						<Anchors>
+							<Anchor point="RIGHT" x="0" y="0"/>
+						</Anchors>
+					</Texture>
+				</Layer>
+			</Layers>
+		</Frame>
+		
+		<!-- Text Overlays -->
+		<Layers>
+			<!-- XP text (left) -->
+			<Layer level="OVERLAY" textureSubLevel="3">
+				<FontString parentKey="XPText" inherits="GameFontNormal" justifyH="LEFT">
+					<Anchors>
+						<Anchor point="LEFT" relativeKey="$parent.StatusBar" x="5" y="0"/>
+					</Anchors>
+					<Shadow>
+						<Offset>
+							<AbsDimension x="1" y="-1"/>
+						</Offset>
+						<Color r="0" g="0" b="0" a="0.5"/>
+					</Shadow>
+				</FontString>
+			</Layer>
+			
+			<!-- Percent text (center) -->
+			<Layer level="OVERLAY" textureSubLevel="3">
+				<FontString parentKey="PercentText" inherits="GameFontNormal" justifyH="CENTER">
+					<Anchors>
+						<Anchor point="CENTER" relativeKey="$parent.StatusBar" x="0" y="0"/>
+					</Anchors>
+					<Shadow>
+						<Offset>
+							<AbsDimension x="1" y="-1"/>
+						</Offset>
+						<Color r="0" g="0" b="0" a="0.5"/>
+					</Shadow>
+				</FontString>
+			</Layer>
+			
+			<!-- Level text (right) -->
+			<Layer level="OVERLAY" textureSubLevel="3">
+				<FontString parentKey="LevelText" inherits="GameFontNormal" justifyH="RIGHT">
+					<Anchors>
+						<Anchor point="RIGHT" relativeKey="$parent.StatusBar" x="-5" y="0"/>
+					</Anchors>
+					<Shadow>
+						<Offset>
+							<AbsDimension x="1" y="-1"/>
+						</Offset>
+						<Color r="0" g="0" b="0" a="0.5"/>
+					</Shadow>
+				</FontString>
+			</Layer>
+		</Layers>
+		
+		<!-- Frame scripts -->
+		<Scripts>
+			<OnLoad method="OnLoad"/>
+			<OnShow method="OnShow"/>
+			<OnHide method="OnHide"/>
+			<OnEvent method="OnEvent"/>
+		</Scripts>
+		
+		<!-- Mouse interaction (if InteractionMixin enabled) -->
+		<Frames>
+			<!-- Empty for now, overlays created dynamically -->
+		</Frames>
+	</Frame>
+	
+</Ui>

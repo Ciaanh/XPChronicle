@@ -63,3 +63,17 @@ ui/xpbar/XPBarMixinBase.lua
 ui/stats/Stats.lua
 
 Frames.xml
+
+
+# v2 Architecture
+ui\xpbars\ContextBuilder.lua
+ui\xpbars\StyleBuilder.lua
+ui\xpbars\BaseMixin.lua
+ui\xpbars\mixins\AnimationMixin.lua
+ui\xpbars\mixins\InteractionMixin.lua
+ui\xpbars\mixins\TooltipMixin.lua
+ui\xpbars\mixins\PositionMixin.lua
+ui\xpbars\flatbar_v2\FlatBarStyleTemplate.lua
+ui\xpbars\flatbar_v2\FlatBarStyle.lua
+ui\xpbars\flatbar_v2\FlatBarTemplate.xml
+ui\xpbars\tests\test_v2.lua
