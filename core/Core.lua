@@ -21,11 +21,13 @@ Addon.Features = Addon.Features or {}
 Addon.UI = Addon.UI or {}
 
 -- State
-Addon.state = Addon.state or {
-    requestingTimePlayed = false,
-    xpGainDisabled = false,
-    defaultXPBarHidden = false,
-}
+Addon.state =
+    Addon.state or
+    {
+        requestingTimePlayed = false,
+        xpGainDisabled = false,
+        defaultXPBarHidden = false
+    }
 
 -- Database reference
 Addon.db = Addon.db or {}
@@ -40,23 +42,25 @@ local eventFrame = CreateFrame("Frame")
 local eventHandlers = {}
 
 function eventHandlers:OnAddonLoaded(name)
-    if name ~= ADDON_NAME then return end
-    
+    if name ~= ADDON_NAME then
+        return
+    end
+
     -- Initialize core systems
     if Addon.Database and Addon.Database.Initialize then
         Addon.Database:Initialize()
     end
-    
+
     if Addon.Config and Addon.Config.Initialize then
         Addon.Config:Initialize()
     end
-    
+
     -- Set database reference
     Addon.db = XPBarEnhancedDB or {}
-    
+
     -- Get XP gain disabled state
     Addon.state.xpGainDisabled = Addon.Database:IsXPGainDisabled()
-    
+
     -- Print loaded message
     if Addon.Utils and Addon.Utils.Print and Addon.L then
         Addon.Utils.Print(Addon.L["ADDON_LOADED"] or "Loaded!")
@@ -68,18 +72,18 @@ function eventHandlers:OnPlayerLogin()
     if Addon.Session and Addon.Session.Initialize then
         Addon.Session:Initialize()
     end
-    
+
     -- Initialize XP bar (simplified module)
     if Addon.XPBar and Addon.XPBar.Initialize then
         Addon.XPBar:Initialize()
     end
-    
+
     -- Initialize features
     local stats = Addon.Stats
     if stats and stats.Initialize then
         stats:Initialize()
     end
-    
+
     local options = Addon.Options
     if options and options.Initialize then
         options:Initialize()
@@ -91,7 +95,7 @@ function eventHandlers:OnPlayerEnteringWorld(isInitialLogin, isReloadingUI)
     if Addon.Session and Addon.Session.OnEnteringWorld then
         Addon.Session:OnEnteringWorld(isInitialLogin, isReloadingUI)
     end
-    
+
     -- XP Bar handling (simplified module)
     if Addon.XPBar and Addon.XPBar.OnEnteringWorld then
         Addon.XPBar:OnEnteringWorld(isInitialLogin, isReloadingUI)
@@ -103,12 +107,12 @@ function eventHandlers:OnPlayerXPUpdate()
     if Addon.Session and Addon.Session.OnXPUpdate then
         Addon.Session:OnXPUpdate()
     end
-    
+
     -- Update XP bar (simplified module)
     if Addon.XPBar and Addon.XPBar.OnXPUpdate then
         Addon.XPBar:OnXPUpdate()
     end
-    
+
     -- Update stats
     local stats = Addon.Stats
     if stats and stats.OnXPUpdate then
@@ -121,12 +125,12 @@ function eventHandlers:OnPlayerLevelUp(level)
     if Addon.Session and Addon.Session.OnLevelUp then
         Addon.Session:OnLevelUp(level)
     end
-    
+
     -- XP bar animation (simplified module)
     if Addon.XPBar and Addon.XPBar.OnLevelUp then
         Addon.XPBar:OnLevelUp(level)
     end
-    
+
     -- Stats update
     local stats = Addon.Stats
     if stats and stats.OnLevelUp then
@@ -151,7 +155,7 @@ function eventHandlers:OnTimePlayedMsg(totalTime, levelTime)
     if Addon.Session and Addon.Session.OnTimePlayed then
         Addon.Session:OnTimePlayed(totalTime, levelTime)
     end
-    
+
     -- Stats update
     local stats = Addon.Stats
     if stats and stats.OnTimePlayed then
@@ -191,19 +195,22 @@ local eventMap = {
     TIME_PLAYED_MSG = "OnTimePlayedMsg",
     ENABLE_XP_GAIN = "OnEnableXPGain",
     DISABLE_XP_GAIN = "OnDisableXPGain",
-    PLAYER_LOGOUT = "OnPlayerLogout",
+    PLAYER_LOGOUT = "OnPlayerLogout"
 }
 
 -- Event dispatcher
-eventFrame:SetScript("OnEvent", function(self, event, ...)
-    local handlerName = eventMap[event]
-    if handlerName and eventHandlers[handlerName] then
-        local success, err = pcall(eventHandlers[handlerName], eventHandlers, ...)
-        if not success and Addon.Logger and Addon.Logger.Error then
-            Addon.Logger:Error("Event handler failed for " .. event .. ": " .. tostring(err))
+eventFrame:SetScript(
+    "OnEvent",
+    function(self, event, ...)
+        local handlerName = eventMap[event]
+        if handlerName and eventHandlers[handlerName] then
+            local success, err = pcall(eventHandlers[handlerName], eventHandlers, ...)
+            if not success and Addon.Logger and Addon.Logger.Error then
+                Addon.Logger:Error("Event handler failed for " .. event .. ": " .. tostring(err))
+            end
         end
     end
-end)
+)
 
 -- Register all events
 for event in pairs(eventMap) do
@@ -267,7 +274,7 @@ end
 local function handleResetColors()
     if Addon.defaults and Addon.defaults.colors then
         Addon.db.colors = {}
-        
+
         -- Copy default colors
         for colorKey, colorValue in pairs(Addon.defaults.colors) do
             Addon.db.colors[colorKey] = {
@@ -277,7 +284,7 @@ local function handleResetColors()
                 a = colorValue.a
             }
         end
-        
+
         print("|cFF00FF00XP Bar Enhanced:|r Colors reset to defaults. Please /reload")
     else
         print("|cFFFF0000XP Bar Enhanced:|r Could not find default colors")
@@ -286,7 +293,7 @@ end
 
 local function handleStyle(style)
     style = string.lower(style or "")
-    
+
     if style == "" then
         -- Show current style
         local currentStyle = Addon.db.barStyle or "legacy"
@@ -294,7 +301,7 @@ local function handleStyle(style)
         print("Usage: /xpbe style <none|legacy|flat>")
         return
     end
-    
+
     if style == "none" or style == "legacy" or style == "flat" or style == "vertical" or style == "circular" then
         -- Use simplified XPBar module
         if Addon.XPBar and Addon.XPBar.SetBarStyle then
@@ -336,7 +343,7 @@ end
 local function handleSlashCommand(message)
     local command, arg = string.match(message or "", "^(%S*)%s*(.-)$")
     command = string.lower(command or "")
-    
+
     if command == "" or command == "help" then
         showHelp()
     elseif command == "stats" then
@@ -363,6 +370,43 @@ SLASH_XPBARENHANCED1 = "/xpbe"
 SLASH_XPBARENHANCED2 = "/xpbarenhanced"
 SLASH_XPBARENHANCED3 = "/xpbar"
 SlashCmdList["XPBARENHANCED"] = handleSlashCommand
+
+-- Ensure test commands are always declared here (centralized)
+SLASH_XPTEST1 = "/xptest"
+SlashCmdList["XPTEST"] = function(msg)
+    local cmd = (msg and msg:match("^(%S+)")) or "help"
+    cmd = cmd and cmd:lower()
+
+    if cmd == "help" then
+        print("|cff00ff00XPBarEnhanced v2 Test:|r")
+        print(" /xptest create   - create test bar (requires dev mode)")
+        print(" /xptest destroy  - destroy test bar (requires dev mode)")
+        print(" /xptest context  - print current context")
+        print(" /xptest flash    - trigger xp gain flash (if available)")
+        print(" /xptest help     - this help")
+        return
+    end
+
+    -- Prefer centralized test API on Addon if present
+    if Addon and Addon.Tests and type(Addon.Tests) == "table" then
+        if cmd == "create" and Addon.Tests.CreateTestBar then
+            Addon.Tests.CreateTestBar()
+            return
+        elseif cmd == "destroy" and Addon.Tests.DestroyTestBar then
+            Addon.Tests.DestroyTestBar()
+            return
+        elseif cmd == "context" and Addon.Tests.PrintContext then
+            Addon.Tests.PrintContext()
+            return
+        elseif cmd == "flash" and Addon.Tests.TriggerFlash then
+            Addon.Tests.TriggerFlash()
+            return
+        end
+    end
+
+    printUnknown(cmd)
+    return
+end
 
 -------------------------------------------------------------------
 -- Public API (for backward compatibility and external access)
