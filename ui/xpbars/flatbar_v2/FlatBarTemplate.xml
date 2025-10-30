@@ -1,111 +1,157 @@
-<Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/">
-	
+<Ui xmlns="http://www.blizzard.com/wow/ui/"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/">
 	<!-- XP Bar Enhanced - FlatBar Template v2 -->
-	<!-- Complete frame structure for flat/linear XP bar -->
-	
-	<Frame name="FlatBarTemplate_v2" virtual="true">
-		<Size x="565" y="11"/>
-		
-		<!-- Main StatusBar (current XP) -->
-		<StatusBar parentKey="StatusBar" inherits="StatusBarTemplate">
-			<Size x="565" y="10"/>
-			<Anchors>
-				<Anchor point="TOPLEFT" x="0" y="-1"/>
-			</Anchors>
-			<BarTexture atlas="UI-HUD-ExperienceBar-Fill" alphaMode="BLEND"/>
-			<BarColor r="0.58" g="0.0" b="0.55" a="1.0"/>
-		</StatusBar>
-		
-		<!-- Border Frame -->
-		<Frame parentKey="BorderFrame">
-			<Size x="565" y="11"/>
-			<Anchors>
-				<Anchor point="TOPLEFT"/>
-			</Anchors>
-			
-			<Layers>
-				<!-- Left border -->
-				<Layer level="OVERLAY" textureSubLevel="2">
-					<Texture parentKey="BorderLeft" atlas="UI-HUD-ExperienceBar-EndCap">
-						<Size x="7" y="11"/>
-						<Anchors>
-							<Anchor point="LEFT" x="0" y="0"/>
-						</Anchors>
-					</Texture>
-				</Layer>
-				
-				<!-- Right border -->
-				<Layer level="OVERLAY" textureSubLevel="2">
-					<Texture parentKey="BorderRight" atlas="UI-HUD-ExperienceBar-EndCap" horizFlip="true">
-						<Size x="7" y="11"/>
-						<Anchors>
-							<Anchor point="RIGHT" x="0" y="0"/>
-						</Anchors>
-					</Texture>
-				</Layer>
-			</Layers>
-		</Frame>
-		
-		<!-- Text Overlays -->
+	<!-- Follows project conventions from existing FlatXPBar.xml -->
+
+	<Script file="FlatBarStyle.lua"/>
+
+	<Frame name="FlatBarTemplate_v2" virtual="true" mixin="FlatBarXPBarMixin" frameStrata="LOW" enableMouse="true" fixedFrameStrata="true">
+		<Size x="565" y="30"/>
 		<Layers>
-			<!-- XP text (left) -->
-			<Layer level="OVERLAY" textureSubLevel="3">
-				<FontString parentKey="XPText" inherits="GameFontNormal" justifyH="LEFT">
-					<Anchors>
-						<Anchor point="LEFT" relativeKey="$parent.StatusBar" x="5" y="0"/>
-					</Anchors>
-					<Shadow>
-						<Offset>
-							<AbsDimension x="1" y="-1"/>
-						</Offset>
-						<Color r="0" g="0" b="0" a="0.5"/>
-					</Shadow>
-				</FontString>
+			<!-- Background layer -->
+			<Layer level="BACKGROUND">
+				<Texture parentKey="Background" setAllPoints="true">
+					<Color r="0" g="0" b="0" a="0.5"/>
+				</Texture>
 			</Layer>
-			
-			<!-- Percent text (center) -->
+
+			<!-- Flash effect overlay -->
 			<Layer level="OVERLAY" textureSubLevel="3">
-				<FontString parentKey="PercentText" inherits="GameFontNormal" justifyH="CENTER">
+				<Texture parentKey="GainFlash" hidden="true">
 					<Anchors>
-						<Anchor point="CENTER" relativeKey="$parent.StatusBar" x="0" y="0"/>
+						<Anchor point="TOPLEFT"/>
+						<Anchor point="BOTTOMRIGHT"/>
 					</Anchors>
-					<Shadow>
-						<Offset>
-							<AbsDimension x="1" y="-1"/>
-						</Offset>
-						<Color r="0" g="0" b="0" a="0.5"/>
-					</Shadow>
-				</FontString>
-			</Layer>
-			
-			<!-- Level text (right) -->
-			<Layer level="OVERLAY" textureSubLevel="3">
-				<FontString parentKey="LevelText" inherits="GameFontNormal" justifyH="RIGHT">
-					<Anchors>
-						<Anchor point="RIGHT" relativeKey="$parent.StatusBar" x="-5" y="0"/>
-					</Anchors>
-					<Shadow>
-						<Offset>
-							<AbsDimension x="1" y="-1"/>
-						</Offset>
-						<Color r="0" g="0" b="0" a="0.5"/>
-					</Shadow>
-				</FontString>
+				</Texture>
 			</Layer>
 		</Layers>
-		
-		<!-- Frame scripts -->
+		<Frames>
+			<!-- XP StatusBar (solid color, no texture atlas) -->
+			<StatusBar parentKey="StatusBar" minValue="0" maxValue="1" defaultValue="0">
+				<Size x="565" y="30"/>
+				<Anchors>
+					<Anchor point="BOTTOMLEFT" x="0" y="0"/>
+					<Anchor point="BOTTOMRIGHT" x="0" y="0"/>
+				</Anchors>
+				<!-- Initial color matches Config.lua defaults.colors.xpBar -->
+				<BarColor r="0.58" g="0.0" b="0.55"/>
+				<BarTexture file="Interface\Buttons\WHITE8X8"/>
+				<Layers>
+					<!-- Rested XP overlay - on top of StatusBar fill -->
+					<Layer level="ARTWORK" textureSubLevel="1">
+						<Texture parentKey="RestedOverlay" file="Interface\Buttons\WHITE8X8">
+							<Size x="0" y="30"/>
+							<Anchors>
+								<Anchor point="BOTTOMLEFT" x="0" y="0"/>
+							</Anchors>
+							<!-- Initial color matches Config.lua defaults.colors.rested -->
+							<Color r="0.07" g="0.58" b="0.95" a="0.5"/>
+						</Texture>
+					</Layer>
+
+					<!-- Quest overlay - complete quests - on top of rested -->
+					<Layer level="ARTWORK" textureSubLevel="2">
+						<Texture parentKey="QuestOverlayComplete" hidden="true" file="Interface\Buttons\WHITE8X8">
+							<Size x="0" y="30"/>
+							<Anchors>
+								<Anchor point="BOTTOMLEFT" x="0" y="0"/>
+							</Anchors>
+							<!-- Initial color matches Config.lua defaults.colors.questComplete -->
+							<Color r="1.0" g="0.65" b="0.0" a="0.85"/>
+						</Texture>
+					</Layer>
+
+					<!-- Quest overlay - incomplete quests -->
+					<Layer level="ARTWORK" textureSubLevel="3">
+						<Texture parentKey="QuestOverlayIncomplete" hidden="true" file="Interface\Buttons\WHITE8X8">
+							<Size x="0" y="30"/>
+							<Anchors>
+								<Anchor point="BOTTOMLEFT" x="0" y="0"/>
+							</Anchors>
+							<!-- Initial color matches Config.lua defaults.colors.questIncomplete -->
+							<Color r="0.5" g="1.0" b="0.2" a="0.85"/>
+						</Texture>
+					</Layer>
+				</Layers>
+			</StatusBar>
+
+			<!-- Overlay frame for text (separate from StatusBar for proper layering) -->
+			<Frame parentKey="TextContainer" frameStrata="MEDIUM" setAllPoints="true">
+				<Layers>
+					<Layer level="ARTWORK" textureSubLevel="5">
+						<!-- Level text - left side -->
+						<FontString parentKey="LevelText" inherits="TextStatusBarTextLarge" hidden="true">
+							<Anchors>
+								<Anchor point="LEFT" x="8" y="0"/>
+							</Anchors>
+							<Color r="1.0" g="1.0" b="1.0"/>
+							<Shadow>
+								<Offset x="2" y="-2"/>
+								<Color r="0" g="0" b="0" a="0.8"/>
+							</Shadow>
+						</FontString>
+
+						<!-- XP text - center -->
+						<FontString parentKey="XPText" inherits="TextStatusBarTextLarge" hidden="true">
+							<Anchors>
+								<Anchor point="CENTER" x="0" y="0"/>
+							</Anchors>
+							<Color r="1.0" g="1.0" b="1.0"/>
+							<Shadow>
+								<Offset x="2" y="-2"/>
+								<Color r="0" g="0" b="0" a="0.8"/>
+							</Shadow>
+						</FontString>
+
+						<!-- Percent text - right side -->
+						<FontString parentKey="PercentText" inherits="TextStatusBarTextLarge" hidden="true">
+							<Anchors>
+								<Anchor point="RIGHT" x="-8" y="0"/>
+							</Anchors>
+							<Color r="1.0" g="1.0" b="1.0"/>
+							<Shadow>
+								<Offset x="2" y="-2"/>
+								<Color r="0" g="0" b="0" a="0.8"/>
+							</Shadow>
+						</FontString>
+
+						<!-- Rate text (XP/hour + time to level) - below bar on left -->
+						<FontString parentKey="RateText" inherits="GameFontNormal" hidden="true">
+							<Anchors>
+								<Anchor point="TOPLEFT" relativePoint="BOTTOMLEFT" x="0" y="-2"/>
+							</Anchors>
+							<Color r="0.8" g="0.8" b="0.8"/>
+						</FontString>
+
+						<!-- Session text (session time + level time) - below bar on right -->
+						<FontString parentKey="SessionText" inherits="GameFontNormal" hidden="true">
+							<Anchors>
+								<Anchor point="TOPRIGHT" relativePoint="BOTTOMRIGHT" x="0" y="-2"/>
+							</Anchors>
+							<Color r="0.8" g="0.8" b="0.8"/>
+						</FontString>
+						
+						<!-- Quest summary text (quests + rested) - below bar center -->
+						<FontString parentKey="QuestSummaryText" inherits="GameFontNormal" hidden="true">
+							<Anchors>
+								<Anchor point="TOP" relativePoint="BOTTOM" x="0" y="-14"/>
+							</Anchors>
+							<Color r="0.8" g="0.8" b="0.8"/>
+						</FontString>
+					</Layer>
+				</Layers>
+			</Frame>
+		</Frames>
 		<Scripts>
 			<OnLoad method="OnLoad"/>
+			<OnEvent method="OnEvent"/>
 			<OnShow method="OnShow"/>
 			<OnHide method="OnHide"/>
-			<OnEvent method="OnEvent"/>
+			<OnEnter method="OnEnter"/>
+			<OnLeave method="OnLeave"/>
+			<OnMouseDown method="OnMouseDown"/>
+			<OnMouseUp method="OnMouseUp"/>
 		</Scripts>
-		
-		<!-- Mouse interaction (if InteractionMixin enabled) -->
-		<Frames>
-			<!-- Empty for now, overlays created dynamically -->
-		</Frames>
 	</Frame>
-	
+
 </Ui>

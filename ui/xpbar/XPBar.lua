@@ -566,7 +566,8 @@ end
 
 function XPBar:GetHintText(frame)
     local AddonL = Addon.L or {}
-    local baseHint = AddonL["TT_HINT_CONFIG"] or "Right-click to configure XP Bar"
+    -- Prefer descriptions that match current interactions: Shift+drag to move, Alt+Click to open options, Ctrl+Click to toggle stats
+    local baseHint = AddonL["TT_HINT_CONFIG"] or "Hold Shift and drag to move; Alt+Click to open options; Ctrl+Click to toggle stats"
 
     -- Show drag hint if the bar's container is draggable and movable
     local container = frame and frame.GetParent and frame:GetParent()

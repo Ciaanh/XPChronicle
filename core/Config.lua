@@ -549,6 +549,12 @@ function Config:SetColor(key, hex, silent)
         optionsView:UpdateColorControls()
     end
 
+    -- Force visual refresh of flat and legacy bars if present
+    local flatBar = _G and _G.FlatBar_v2
+    if flatBar and flatBar.Refresh then
+        flatBar:Refresh()
+    end
+
     return true, normalized
 end
 

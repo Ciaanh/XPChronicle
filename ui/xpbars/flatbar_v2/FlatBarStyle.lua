@@ -1,103 +1,56 @@
 -- XP Bar Enhanced - FlatBar Style v2
--- Composes mixins and registers the FlatBar style
+-- Minimal style file: XML owns visual creation via contract.
+-- Only provides config and registration. No overrides needed for standard flat layout.
 
 -------------------------------------------------------------------
 -- DEPENDENCIES
 -------------------------------------------------------------------
 
-local AddonName = ...
-local Addon = LibStub("AceAddon-3.0"):GetAddon("XPBarEnhanced")
+if not XPBarStyleBuilder or not XPBarMixinBase_v2 then
+	error(
+		"FlatBarStyle: v2 core (StyleBuilder/BaseMixin) not loaded. Ensure ui/xpbars core files are earlier in the .toc."
+	)
+end
 
 -------------------------------------------------------------------
--- STYLE REGISTRATION
+-- STYLE TEMPLATE
 -------------------------------------------------------------------
 
---- Default configuration for FlatBar style
+-- Minimal style template: don't duplicate aliasing; rely on BaseMixin
+local FlatBarStyleTemplate = {}
+
+-------------------------------------------------------------------
+-- DEFAULT CONFIG
+-------------------------------------------------------------------
+
 local DefaultConfig = {
-	-- Behavior flags
-	animation = {
-		enabled = true,
-		valueSmoothing = true,
-		xpGainFlash = true,
-		levelUpFlash = true,
-	},
-	interaction = {
-		enabled = true,
-	},
-	tooltip = {
-		enabled = true,
-		provider = nil, -- Uses default from TooltipMixin
-	},
-	position = {
-		mode = "STATIC", -- "STATIC" or "DRAGGABLE"
-		positionKey = "FlatBar_v2",
-	},
-	
-	-- Style-specific config
-	style = {
-		width = 565,
-		height = 11,
-		showQuestOverlays = true,
-	},
+	animation = {enabled = true, valueSmoothing = true, xpGainFlash = true, levelUpFlash = true},
+	interaction = {enabled = true},
+	tooltip = {enabled = true},
+	position = {mode = "DRAGGABLE", positionKey = "FlatBar_v2"},
+	style = {width = 565, height = 30, showQuestOverlays = true}
 }
 
---- Create and register the FlatBar style mixin
----@return table FlatBarXPBarMixin The composed mixin
-function XPBarEnhanced_CreateFlatBarStyle()
-	-- Get style template
-	local styleTemplate = FlatBarStyleTemplate
-	
-	-- Compose mixin using StyleBuilder
-	local mixin = XPBarStyleBuilder:Create(
-		XPBarMixinBase_v2,
-		styleTemplate,
-		DefaultConfig
-	)
-	
-	-- Store composed mixin globally for reuse
-	_G.FlatBarXPBarMixin = mixin
-	
-	return mixin
-end
+-------------------------------------------------------------------
+-- STYLE CREATION
+-------------------------------------------------------------------
 
---- Apply the FlatBar mixin to a frame
----@param frame table The frame to apply the mixin to
----@param config table|nil Optional configuration overrides
-function XPBarEnhanced_ApplyFlatBarStyle(frame, config)
-	if not _G.FlatBarXPBarMixin then
-		error("FlatBarXPBarMixin not created. Call XPBarEnhanced_CreateFlatBarStyle first.")
-		return
-	end
-	
-	-- Merge config with defaults
-	local finalConfig = CopyTable(DefaultConfig)
-	if config then
-		for k, v in pairs(config) do
-			if type(v) == "table" and finalConfig[k] then
-				finalConfig[k] = Mixin(finalConfig[k], v)
-			else
-				finalConfig[k] = v
-			end
-		end
-	end
-	
-	-- Apply mixin to frame
-	Mixin(frame, _G.FlatBarXPBarMixin)
-	
-	-- Store config on frame
-	frame.__xpbar_config = finalConfig
-	
-	-- Call OnLoad if available
-	if frame.OnLoad then
-		frame:OnLoad()
-	end
-	
+-- Create composed mixin (Base + Behaviors + Style)
+FlatBarXPBarMixin = XPBarStyleBuilder:Create(XPBarMixinBase_v2, FlatBarStyleTemplate, DefaultConfig)
+XPBarStyleBuilder:RegisterStyle("flat", FlatBarXPBarMixin)
+
+-------------------------------------------------------------------
+-- PROGRAMMATIC HELPER
+-------------------------------------------------------------------
+
+--- Create FlatBar frame programmatically.
+function XPBarEnhanced_CreateFlatBarFrame()
+	local styleKey = "flat"
+
+	local frame = XPBarStyleBuilder:CreateFrameForStyle(styleKey, DefaultConfig, "FlatBarTemplate_v2")
+	frame:Show()
+
+_G.FlatBar_v2 = frame  -- Global reference
+
 	return frame
 end
-
--------------------------------------------------------------------
--- AUTOMATIC REGISTRATION
--------------------------------------------------------------------
-
--- Create the mixin on file load
-XPBarEnhanced_CreateFlatBarStyle()

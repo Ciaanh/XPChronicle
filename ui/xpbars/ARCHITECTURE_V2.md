@@ -43,7 +43,7 @@ Summary
   - `flatbar_v2/FlatBarStyleTemplate.lua` — style template (visual methods only)
   - `flatbar_v2/FlatBarStyle.lua` — calls StyleBuilder to create `FlatBarXPBarMixin`
   - `flatbar_v2/FlatBarTemplate.xml` — XML frame template
-  - `tests/test_v2.lua` — dev harness (gated by config flag)
+  - `tests/test_v2.lua` — dev test harness
 
 Goals
 
@@ -155,7 +155,7 @@ function FlatBarStyleTemplate:UpdateVisuals() ... end
 local config = {
   animation = { enabled = true, valueSmoothing = 0.2 },
   interaction = { enabled = true },
-  tooltip = { enabled = true, provider = MyTooltipProvider },
+  tooltip = { enabled = true },
   position = { mode = "DRAGGABLE", positionKey = "FlatBarXP" }, -- or "STATIC"
 }
 
@@ -167,7 +167,7 @@ FlatBarXPBarMixin = XPBarStyleBuilder:Create(XPBarMixinBase_v2, FlatBarStyleTemp
 Primary responsibilities:
 
 - Expose global `XPBarMixinBase_v2 = {}`.
-- Provide the public API surface: `SetValue`, `GetValue`, `SetMax`, `GetMax`, `SetColor`, `GetColor`, `Refresh`.
+- Provide the public API surface: `SetValue`, `GetValue`, `SetMax`, `GetMax`, `SetColor`, `Refresh`.
 - **Event registration and orchestration**: Register events and dispatch to `TriggerXXX` methods.
 - **Use ContextBuilder** to build immutable context objects (does NOT duplicate context building logic).
 - Provide default lifecycle methods: `OnLoad`, `OnShow`, `OnHide` stubs/hook points.
@@ -242,7 +242,7 @@ Event orchestration pattern (Trigger/Action separation):
   - `TriggerXPChanged(context)` — orchestrates XP change response
     - Calls: `UpdateCurrentXPBar(context)`, `UpdateRestedOverlay(context)`, `UpdateQuestCompleteOverlay(context)`, `UpdateQuestIncompleteOverlay(context)`, `UpdateExhaustionTick(context)`, `PlayXPGainAnimation(context)`, `FlashXPGain(context)`
   - `TriggerLevelUp(context)` — orchestrates level-up response
-    - Calls: `UpdateCurrentXPBar(context)`, `UpdateMaxXP(context)`, `UpdateRestedOverlay(context)`, `PlayLevelUpAnimation(context)`, `FlashLevelUp(context)`
+    - Calls: `UpdateCurrentXPBar(context)`, `UpdateRestedOverlay(context)`, `PlayLevelUpAnimation(context)`, `FlashLevelUp(context)`
   - `TriggerRestedChanged(context)` — orchestrates rested state change
     - Calls: `UpdateRestedOverlay(context)`, `UpdateExhaustionTick(context)`, `UpdateVisuals()`
   - `TriggerQuestChanged(context)` — orchestrates quest overlay updates
@@ -250,7 +250,6 @@ Event orchestration pattern (Trigger/Action separation):
 
 - **Action methods** (CAN be overridden by styles for custom behavior):
   - `UpdateCurrentXPBar(context, barName)` — update main bar value from context (default barName: "StatusBar")
-  - `UpdateMaxXP(context)` — update bar max from context
   - `UpdateRestedOverlay(context, overlayName)` — update rested overlay position/size/visibility (default: "RestedLevel")
   - `UpdateQuestCompleteOverlay(context, overlayName)` — update completed quest overlay (default: "QuestOverlayComplete")
   - `UpdateQuestIncompleteOverlay(context, overlayName)` — update incomplete quest overlay (default: "QuestOverlayIncomplete")
@@ -371,7 +370,7 @@ Behavior details:
 Responsibilities:
 
 - Tooltip management: show GameTooltip on mouse enter, hide on leave.
-- Tooltip content provider: configurable via `config.tooltip.provider` or style override.
+- Tooltip content provider: configurable via style override.
 - Provide `OnLoad()` to register as a behavior mixin (no events registered here).
 
 Behavior details:
@@ -724,7 +723,6 @@ Event registration rules (strict):
 
 - The base installs an `OnEvent` dispatcher which maps these events to the following generic methods on the bar:
   - `UpdateCurrentXP()` — default: read `GetXP()` and `UnitXPMax("player")`, call `SetMax`/`SetValue`, then `UpdateVisuals()`.
-  - `UpdateMaxXP()` — default: read and set max; trigger `UpdateVisuals()`.
   - `UpdateRested()` — default: read `GetXPExhaustion()` and set `self.__rested` then `UpdateVisuals()`.
   - `Refresh()` — a general refresh hook called on `PLAYER_ENTERING_WORLD`.
 
@@ -844,7 +842,7 @@ Phase 1 — Implementation (isolated, non-invasive):
   - `ui/xpbars/flatbar_v2/README.md` — style-specific documentation
 
 - Add test harness:
-  - `ui/xpbars/tests/test_v2.lua` — dev harness gated behind `XPChronicleConfig.enableDevV2` flag so it doesn't run in production.
+  - `ui/xpbars/tests/test_v2.lua` — dev harness.
 
 - Keep all new files under `ui/xpbars` only.
 
@@ -907,7 +905,7 @@ local flatV2Config = {
     backgroundColor = { r = 0.03, g = 0.03, b = 0.03, a = 0.9 },
   },
   animation = { enabled = true, valueSmoothing = 0.2 },
-  interaction = { enabled = true, draggable = true, positionKey = "XPBar_Main_v2", tooltipProvider = function(self) -- Populate tooltip end },
+  interaction = { enabled = true, draggable = true, positionKey = "XPBar_Main_v2" -- Populate tooltip end },
   initialValue = nil, -- nil := read from game state
   initialMax = nil,
 }
@@ -942,7 +940,7 @@ API surface exported by a bar instance (after Setup):
 
 `bar:SetMax(n)`, `bar:GetMax()`
 
-`bar:UpdateCurrentXP()`, `bar:UpdateMaxXP()`, `bar:UpdateRested()`
+`bar:UpdateCurrentXP()`, `bar:UpdateRested()`
 
 `bar:MakeDraggable(bool)` — `DraggableMixin`
 

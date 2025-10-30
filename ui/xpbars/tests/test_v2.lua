@@ -1,251 +1,148 @@
 -- XP Bar Enhanced - v2 Test Harness
--- Development testing environment for v2 architecture
+-- Minimal, safe test harness that registers Addon.Tests and uses the StyleBuilder factory.
+-- Slash command handling is centralized in core/Core.lua which will call Addon.Tests.* when dev mode is enabled.
 
--------------------------------------------------------------------
--- DEPENDENCIES
--------------------------------------------------------------------
+local Addon = XPBarEnhanced
+Addon.Tests = Addon.Tests or {}
 
-local AddonName = ...
-local Addon = LibStub("AceAddon-3.0"):GetAddon("XPBarEnhanced")
-
--------------------------------------------------------------------
--- TEST HARNESS GATE
--------------------------------------------------------------------
-
--- Only load test harness if development flag is enabled
-if not XPChronicleConfig or not XPChronicleConfig.enableDevV2 then
-	return
+-- Lightweight logger helpers (fall back to print)
+local function logInfo(msg)
+	if Addon and Addon.Logger and Addon.Logger.Info then
+		Addon.Logger:Info(msg)
+	else
+		print(msg)
+	end
 end
-
-Addon.Logger:Info("Loading v2 test harness (enableDevV2 = true)")
-
--------------------------------------------------------------------
--- TEST FRAME CREATION
--------------------------------------------------------------------
+local function logWarn(msg)
+	if Addon and Addon.Logger and Addon.Logger.Warn then
+		Addon.Logger:Warn(msg)
+	else
+		print(msg)
+	end
+end
+local function logError(msg)
+	if Addon and Addon.Logger and Addon.Logger.Error then
+		Addon.Logger:Error(msg)
+	else
+		print(msg)
+	end
+end
 
 local TestFrame = nil
+local STYLE_KEY = "flat"
+local TEMPLATE_NAME = "FlatBarTemplate_v2"
 
---- Create test bar instance
-local function CreateTestBar()
-	if TestFrame then
-		Addon.Logger:Warn("Test bar already exists. Use /xptest reset to recreate.")
-		return TestFrame
+local function create_frame_from_factory(config)
+	config = config or {}
+	if XPBarStyleBuilder and XPBarStyleBuilder.CreateFrameForStyle then
+		return XPBarStyleBuilder:CreateFrameForStyle(STYLE_KEY, config, TEMPLATE_NAME)
+	elseif type(XPBarEnhanced_CreateFlatBarFrame) == "function" then
+		return XPBarEnhanced_CreateFlatBarFrame(config)
+	else
+		logError("v2 test harness: no factory available to create frame")
+		return nil
 	end
-	
-	-- Create frame from template
-	TestFrame = CreateFrame("Frame", "XPBarEnhanced_TestBar_v2", UIParent, "FlatBarTemplate_v2")
-	
-	-- Apply FlatBar style
-	XPBarEnhanced_ApplyFlatBarStyle(TestFrame, {
-		position = {
-			mode = "DRAGGABLE",
-			positionKey = "TestBar_v2",
-		},
-		animation = {
-			enabled = true,
-			valueSmoothing = true,
-			xpGainFlash = true,
-			levelUpFlash = true,
-		},
-		interaction = {
-			enabled = true,
-		},
-		tooltip = {
-			enabled = true,
-			provider = nil, -- Use default
-		},
-		style = {
-			width = 565,
-			height = 11,
-			showQuestOverlays = true,
-		},
-	})
-	
-	-- Enable mouse for interaction
-	TestFrame:EnableMouse(true)
-	TestFrame:SetMouseClickEnabled(true)
-	
-	-- Show frame
-	TestFrame:Show()
-	
-	Addon.Logger:Info("Test bar created and shown")
-	return TestFrame
 end
 
---- Destroy test bar
-local function DestroyTestBar()
-	if not TestFrame then
-		Addon.Logger:Warn("No test bar to destroy")
+-- CreateTestBar: create and initialize a single test frame (idempotent)
+local function CreateTestBar(config)
+	local frame
+	if XPBarEnhanced_CreateFlatBarFrame then
+		frame = XPBarEnhanced_CreateFlatBarFrame()
+	elseif XPBarStyleBuilder and XPBarStyleBuilder.CreateFrameForStyle then
+		-- Fallback: create directly from style builder
+		frame = XPBarStyleBuilder:CreateFrameForStyle("flat", nil, "FlatBarTemplate_v2")
+	end
+
+	if not frame then
 		return
 	end
-	
-	-- Hide and cleanup
+
+	-- Store frame reference
+	TestFrame = frame
+
+	-- Ensure frame is shown
+	frame:Show()
+
+	-- Force initial visuals if context builder exists
+	if frame.UpdateVisuals and XPBarContextBuilder and XPBarContextBuilder.BuildXPChangeContext then
+		local ctx = XPBarContextBuilder:BuildXPChangeContext()
+		frame:UpdateVisuals(ctx)
+	end
+
+	return frame
+end
+
+-- DestroyTestBar: best-effort cleanup
+local function DestroyTestBar()
+	if not TestFrame then
+		logWarn("No test bar to destroy")
+		return
+	end
+
+	if TestFrame.UnregisterAllEvents then
+		pcall(TestFrame.UnregisterAllEvents, TestFrame)
+	end
+	if TestFrame.OnUnload then
+		pcall(TestFrame.OnUnload, TestFrame)
+	end
 	TestFrame:Hide()
-	TestFrame:UnregisterAllEvents()
 	TestFrame = nil
-	
-	Addon.Logger:Info("Test bar destroyed")
+	logInfo("v2 test bar destroyed")
 end
 
---- Reset test bar
-local function ResetTestBar()
-	DestroyTestBar()
-	C_Timer.After(0.5, function()
-		CreateTestBar()
-	end)
+-- PrintContext: output a sample context built by ContextBuilder (if available)
+local function PrintContext()
+	if not XPBarContextBuilder then
+		logError("XPBarContextBuilder not available")
+		return
+	end
+
+	local build = XPBarContextBuilder.BuildXPChangeContext or XPBarContextBuilder.BuildContext or XPBarContextBuilder.Build
+	if not build then
+		logError("ContextBuilder API not found")
+		return
+	end
+
+	local ok, ctx = pcall(build, "PLAYER_XP_UPDATE")
+	if not ok or not ctx then
+		logError("Failed to build context")
+		return
+	end
+
+	print("|cff00ff00v2 Context:|r")
+	print((" Level: %d"):format(ctx.level or 0))
+	print((" XP: %d / %d (%.1f%%)"):format(ctx.currentXP or 0, ctx.xpMax or ctx.maxXP or 0, (ctx.percentComplete or 0)))
+	print((" Rested: %d (%.1f%%)"):format(ctx.restedXP or 0, (ctx.restedPercent or 0)))
 end
 
--------------------------------------------------------------------
--- TEST COMMANDS
--------------------------------------------------------------------
-
---- Slash command handler
-SLASH_XPTEST1 = "/xptest"
-SlashCmdList["XPTEST"] = function(msg)
-	local args = {strsplit(" ", msg)}
-	local cmd = args[1] and args[1]:lower() or "help"
-	
-	if cmd == "help" then
-		print("|cff00ff00XP Bar Enhanced v2 Test Commands:|r")
-		print("  /xptest create - Create test bar")
-		print("  /xptest destroy - Destroy test bar")
-		print("  /xptest reset - Reset test bar")
-		print("  /xptest show - Show test bar")
-		print("  /xptest hide - Hide test bar")
-		print("  /xptest refresh - Refresh test bar")
-		print("  /xptest context - Print current context")
-		print("  /xptest session - Print session stats")
-		print("  /xptest flash - Test flash animation")
-		print("  /xptest levelup - Simulate level up")
-		print("  /xptest drag - Toggle draggable mode")
-		print("  /xptest help - Show this help")
-		
-	elseif cmd == "create" then
+-- TriggerFlash: attempt to play xp gain flash animation on the test frame
+local function TriggerFlash(amount)
+	if not TestFrame then
+		logWarn("No test frame; creating one")
 		CreateTestBar()
-		print("|cff00ff00Test bar created|r")
-		
-	elseif cmd == "destroy" then
-		DestroyTestBar()
-		print("|cff00ff00Test bar destroyed|r")
-		
-	elseif cmd == "reset" then
-		ResetTestBar()
-		print("|cff00ff00Test bar reset|r")
-		
-	elseif cmd == "show" then
-		if TestFrame then
-			TestFrame:Show()
-			print("|cff00ff00Test bar shown|r")
-		else
-			print("|cffff0000No test bar to show. Use /xptest create first.|r")
-		end
-		
-	elseif cmd == "hide" then
-		if TestFrame then
-			TestFrame:Hide()
-			print("|cff00ff00Test bar hidden|r")
-		else
-			print("|cffff0000No test bar to hide|r")
-		end
-		
-	elseif cmd == "refresh" then
-		if TestFrame and TestFrame.Refresh then
-			TestFrame:Refresh()
-			print("|cff00ff00Test bar refreshed|r")
-		else
-			print("|cffff0000No test bar to refresh|r")
-		end
-		
-	elseif cmd == "context" then
-		local context = XPBarContextBuilder:BuildXPChangeContext()
-		print("|cff00ff00Current Context:|r")
-		print(string.format("  Level: %d", context.level))
-		print(string.format("  XP: %d / %d (%.1f%%)", context.currentXP, context.maxXP, context.percentComplete))
-		print(string.format("  Remaining: %d", context.xpRemaining))
-		print(string.format("  Rested: %d (%.1f%%)", context.restedXP, context.restedPercent))
-		print(string.format("  Quest XP: %d", context.questXP))
-		if context.sessionStats then
-			print(string.format("  Session XP: %d", context.sessionStats.sessionXP))
-			print(string.format("  XP/hour: %d", context.sessionStats.xpPerHour))
-			print(string.format("  Time to level: %s", context.sessionStats.timeToLevel))
-		end
-		
-	elseif cmd == "session" then
-		local sessionStats = XPBarContextBuilder:BuildSessionStats()
-		print("|cff00ff00Session Stats:|r")
-		print(string.format("  Session XP: %d", sessionStats.sessionXP))
-		print(string.format("  XP/hour: %d", sessionStats.xpPerHour))
-		print(string.format("  Time to level: %s", sessionStats.timeToLevel))
-		print(string.format("  Session active: %s", sessionStats.isActive and "Yes" or "No"))
-		
-	elseif cmd == "flash" then
-		if TestFrame and TestFrame.FlashXPGain then
-			TestFrame:FlashXPGain(1000)
-			print("|cff00ff00XP gain flash triggered|r")
-		else
-			print("|cffff0000No test bar or flash method not available|r")
-		end
-		
-	elseif cmd == "levelup" then
-		if TestFrame and TestFrame.FlashLevelUp then
-			TestFrame:FlashLevelUp()
-			print("|cff00ff00Level up flash triggered|r")
-		else
-			print("|cffff0000No test bar or flash method not available|r")
-		end
-		
-	elseif cmd == "drag" then
 		if not TestFrame then
-			print("|cffff0000No test bar to toggle dragging|r")
+			logError("Cannot trigger flash without a test frame")
 			return
 		end
-		
-		local config = TestFrame.__xpbar_config
-		if config.position.mode == "STATIC" then
-			config.position.mode = "DRAGGABLE"
-			if TestFrame.EnableDragging then
-				TestFrame:EnableDragging()
-			end
-			print("|cff00ff00Draggable mode enabled|r")
-		else
-			config.position.mode = "STATIC"
-			if TestFrame.SetMovable then
-				TestFrame:SetMovable(false)
-				TestFrame:EnableMouse(true)
-				TestFrame:SetMouseClickEnabled(true)
-			end
-			print("|cff00ff00Static mode enabled|r")
-		end
-		
-		if TestFrame.ResetPosition then
-			TestFrame:ResetPosition()
-		end
-		
-	else
-		print("|cffff0000Unknown command: " .. cmd .. "|r")
-		print("Use /xptest help for available commands")
 	end
+
+	if TestFrame.FlashXPGain then
+		pcall(TestFrame.FlashXPGain, TestFrame, amount or 1000)
+		logInfo("Triggered FlashXPGain")
+		return
+	end
+	if TestFrame.PlayXPGainAnimation then
+		pcall(TestFrame.PlayXPGainAnimation, TestFrame, amount or 1000)
+		logInfo("Triggered PlayXPGainAnimation")
+		return
+	end
+
+	logWarn("No flash animation API found on test frame")
 end
 
--------------------------------------------------------------------
--- AUTO-INITIALIZATION
--------------------------------------------------------------------
-
--- Automatically create test bar on login
-local function InitTestHarness()
-	Addon.Logger:Info("Initializing v2 test harness")
-	
-	-- Wait for all systems to load
-	C_Timer.After(2, function()
-		CreateTestBar()
-		print("|cff00ff00XP Bar Enhanced v2 test harness loaded|r")
-		print("Use |cffff00ff/xptest help|r for test commands")
-	end)
-end
-
--- Register initialization
-if Addon.IsInitialized then
-	InitTestHarness()
-else
-	Addon:RegisterCallback("OnInitialized", InitTestHarness)
-end
+-- Export API for core/Core.lua and other consumers
+Addon.Tests.CreateTestBar = CreateTestBar
+Addon.Tests.DestroyTestBar = DestroyTestBar
+Addon.Tests.PrintContext = PrintContext
+Addon.Tests.TriggerFlash = TriggerFlash

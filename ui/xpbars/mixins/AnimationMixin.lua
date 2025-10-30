@@ -57,7 +57,29 @@ function AnimationMixin:SmoothValueTransition(targetValue, duration)
 	self.__animation.targetValue = targetValue
 	self.__animation.currentValue = self:GetValue()
 	
-	local smoothDuration = duration or animConfig.valueSmoothing or 0.2
+	-- Normalize valueSmoothing (accept boolean true/false or a numeric duration)
+	local function GetSmoothDuration(self)
+		local animCfg = nil
+		if self then
+			animCfg = (self.__xpbar_config and self.__xpbar_config.animation) or (self.config and self.config.animation) or {}
+		end
+		local vs = animCfg and animCfg.valueSmoothing
+		-- Legacy config used boolean; true -> default duration, false -> disabled
+		if type(vs) == "boolean" then
+			vs = vs and 0.25 or 0
+		elseif type(vs) ~= "number" then
+			-- When nil or other types, use default
+			vs = 0.25
+		end
+		-- Ensure numeric and non-negative
+		if vs <= 0 then
+			-- treat non-positive as disabled (instant)
+			vs = 0
+		end
+		return vs
+	end
+
+	local smoothDuration = GetSmoothDuration(self)
 	local startTime = GetTime()
 	local startValue = self.__animation.currentValue
 	local delta = targetValue - startValue
@@ -82,6 +104,101 @@ function AnimationMixin:SmoothValueTransition(targetValue, duration)
 			end
 		end
 	end)
+end
+
+-- Replace old SmoothValueTransition with context-first implementation
+function XPBarAnimationMixin:SmoothValueTransition(context, duration)
+    if not context then
+        error("SmoothValueTransition requires an explicit immutable context")
+    end
+
+    -- derive max and target ratio from context (explicit)
+    local maxv = context.xpMax or 1
+    local targetRatio = (context.currentXP or 0) / (maxv > 0 and maxv or 1)
+
+    -- derive start ratio from context (prefer explicit previous/current delta)
+    local startXP = nil
+    if context.previousXP ~= nil then
+        startXP = context.previousXP
+    elseif context.currentXP and context.xpGained then
+        startXP = context.currentXP - context.xpGained
+    end
+    startXP = startXP or 0
+    local startRatio = startXP / (maxv > 0 and maxv or 1)
+
+    -- Normalize smoothing duration from config (boolean or number)
+    local animCfg = (self.__xpbar_config and self.__xpbar_config.animation) or {}
+    local vs = animCfg.valueSmoothing
+    if type(vs) == "boolean" then
+        vs = vs and 0.25 or 0
+    elseif type(vs) ~= "number" then
+        vs = 0.25
+    end
+    local smoothDuration = duration or vs
+
+    -- If smoothing is disabled or zero duration, set instantly
+    if not smoothDuration or smoothDuration <= 0 then
+        if self.StatusBar and self.StatusBar.SetValue then
+            self.StatusBar:SetValue(targetRatio)
+        end
+        return
+    end
+
+    -- Setup animation state
+    self.__animation = {
+        targetValue = targetRatio,
+        startValue = startRatio,
+        startTime = GetTime(),
+        duration = smoothDuration
+    }
+
+    -- Ensure we have an OnUpdate ticker to drive the smooth animation
+    if not self.__animationTicker then
+        self.__animationTicker = self:CreateAnimationTicker()
+    end
+end
+
+-- Helper to create/update ticker (non-intrusive; existing code may reuse this)
+function XPBarAnimationMixin:CreateAnimationTicker()
+    -- create a frame OnUpdate handler attached to this frame (non-leaking)
+    local owner = self
+    local frame = owner.__animationTickerFrame
+    if not frame then
+        frame = CreateFrame("Frame", nil, owner)
+        owner.__animationTickerFrame = frame
+    end
+
+    frame:SetScript("OnUpdate", function(_, elapsed)
+        local anim = owner.__animation
+        if not anim then
+            frame:SetScript("OnUpdate", nil)
+            owner.__animationTicker = nil
+            return
+        end
+
+        local now = GetTime()
+        local t = (now - anim.startTime) / (anim.duration > 0 and anim.duration or 1)
+        if t >= 1 then
+            -- end animation
+            if owner.StatusBar and owner.StatusBar.SetValue then
+                owner.StatusBar:SetValue(anim.targetValue)
+            end
+            owner.__animation = nil
+            frame:SetScript("OnUpdate", nil)
+            owner.__animationTicker = nil
+            return
+        end
+
+        -- smoothstep / linear interpolation (use simple ease-out)
+        local progress = t
+        -- linear interpolation
+        local value = anim.startValue + (anim.targetValue - anim.startValue) * progress
+        if owner.StatusBar and owner.StatusBar.SetValue then
+            owner.StatusBar:SetValue(value)
+        end
+    end)
+
+    return frame
 end
 
 -------------------------------------------------------------------
@@ -187,11 +304,27 @@ end
 --- Play XP gain animation (optional override point)
 ---@param context table Context from ContextBuilder
 function AnimationMixin:PlayXPGainAnimation(context)
-	-- Smooth value transition to new XP
-	if context.xpMax and context.xpMax > 0 then
-		local targetRatio = (context.currentXP or 0) / context.xpMax
-		self:SmoothValueTransition(targetRatio)
-	end
+    -- require explicit context
+    if not context then
+        error("PlayXPGainAnimation requires an explicit immutable context")
+    end
+
+    -- Only animate when xpGained present and positive
+    if not context.xpGained or context.xpGained <= 0 then
+        return
+    end
+
+    -- Use config duration if provided by animation settings, else nil to use normalized default
+    local cfg = (self.__xpbar_config and self.__xpbar_config.animation) or {}
+    local duration = cfg and cfg.valueSmoothingDuration -- optional numeric override
+
+    -- Start smooth transition using explicit context
+    self:SmoothValueTransition(context, duration)
+
+    -- existing gain/flash behavior (keep original flash handling if present)
+    if self.PlayGainFlash and cfg and cfg.xpGainFlash then
+        -- keep original flash trigger logic here if necessary
+    end
 end
 
 --- Play level-up animation (optional override point)

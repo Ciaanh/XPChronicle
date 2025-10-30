@@ -24,7 +24,18 @@ function InteractionMixin:OnMouseDown(button)
 		return
 	end
 	
-	-- Default: no action on mouse down
+	-- Handle Shift + Left click for dragging (if in DRAGGABLE mode)
+	if button == "LeftButton" and IsShiftKeyDown() then
+		if self.GetPositionMode then
+			local positionMode = self:GetPositionMode()
+			if positionMode == "DRAGGABLE" and self:IsMovable() then
+				self:StartMoving()
+				self.__isDragging = true
+				return
+			end
+		end
+	end
+	
 	-- Styles can override this method for custom behavior
 end
 
@@ -38,35 +49,74 @@ function InteractionMixin:OnMouseUp(button)
 		return
 	end
 	
-	-- Default click action: toggle stats view (if available)
+	-- Stop dragging if active (and don't process any click actions)
+	if self.__isDragging then
+		self:StopMovingOrSizing()
+		self.__isDragging = nil
+		if self.SavePosition then
+			self:SavePosition()
+		end
+		return
+	end
+	
+	-- If Shift is still held down, don't process clicks (user was trying to drag)
+	if IsShiftKeyDown() then
+		return
+	end
+	
+	-- Alt + Click: Open options
+	if IsAltKeyDown() then
+		self:OnAltClick(button)
+		return
+	end
+	
+	-- Ctrl + Click: Toggle stats
+	if IsControlKeyDown() then
+		self:OnCtrlClick(button)
+		return
+	end
+	
+	-- Regular click (no modifiers)
 	if button == "LeftButton" then
 		self:OnLeftClick()
-	elseif button == "RightButton" then
-		self:OnRightClick()
+	end
+end
+
+--- OnAltClick - Handle Alt + Click (open options)
+function InteractionMixin:OnAltClick(button)
+	local addon = XPBarEnhanced
+	if addon and addon.Config and addon.Config.OpenOptions then
+		addon.Config:OpenOptions()
+	elseif Settings and Settings.OpenToCategory then
+		Settings.OpenToCategory("XP Bar Enhanced")
+	end
+end
+
+--- OnCtrlClick - Handle Ctrl + Click (toggle stats)
+function InteractionMixin:OnCtrlClick(button)
+	local addon = XPBarEnhanced
+	if addon and addon.Stats and addon.Stats.Toggle then
+		addon.Stats:Toggle()
 	end
 end
 
 --- OnLeftClick - Handle left mouse click
 function InteractionMixin:OnLeftClick()
 	-- Default: toggle stats frame if available
-	local addon = XPBarEnhanced
-	if addon and addon.UI and addon.UI.Views and addon.UI.Views.Stats then
-		local statsView = addon.UI.Views.Stats
-		if statsView.Toggle then
-			statsView:Toggle()
-		end
-	end
+	-- local addon = XPBarEnhanced
+	-- if addon and addon.UI and addon.UI.Views and addon.UI.Views.Stats then
+	-- 	local statsView = addon.UI.Views.Stats
+	-- 	if statsView.Toggle then
+	-- 		statsView:Toggle()
+	-- 	end
+	-- end
 end
 
 --- OnRightClick - Handle right mouse click
 function InteractionMixin:OnRightClick()
-	-- Default: open options if available
-	local addon = XPBarEnhanced
-	if addon and addon.OpenOptions then
-		addon:OpenOptions()
-	elseif Settings and Settings.OpenToCategory then
-		Settings.OpenToCategory("XP Bar Enhanced")
-	end
+	-- Right-click intentionally disabled to match legacy interaction parity.
+	-- Keep this method present so styles can override if they really need it,
+	-- but do nothing by default to avoid unexpected context menu behavior.
 end
 
 -------------------------------------------------------------------

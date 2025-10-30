@@ -1,6 +1,8 @@
 -- XP Bar Enhanced - Position Mixin (v2)
 -- Behavior mixin for positioning: STATIC (anchored to Blizzard bar) or DRAGGABLE (user-movable with persistence)
 
+local Addon = XPBarEnhanced
+
 -------------------------------------------------------------------
 -- GLOBAL POSITION MIXIN
 -------------------------------------------------------------------
@@ -15,8 +17,8 @@ local PositionMixin = XPBarPositionMixin
 -------------------------------------------------------------------
 
 local POSITION_MODE = {
-	STATIC = "STATIC",       -- Anchored to Blizzard MainMenuExpBar
-	DRAGGABLE = "DRAGGABLE", -- User-movable with saved position
+	STATIC = "STATIC", -- Anchored to Blizzard MainMenuExpBar
+	DRAGGABLE = "DRAGGABLE" -- User-movable with saved position
 }
 
 -------------------------------------------------------------------
@@ -27,17 +29,26 @@ local POSITION_MODE = {
 function PositionMixin:InitializePosition()
 	local config = self.__xpbar_config or {}
 	local positionConfig = config.position or {}
-	
+	local styleConfig = config.style or {}
+
+	-- Apply size from style config if provided
+	if styleConfig.width and styleConfig.height then
+		self:SetSize(styleConfig.width, styleConfig.height)
+	end
+
 	-- Determine mode (default: STATIC)
 	local mode = positionConfig.mode or POSITION_MODE.STATIC
 	self.__position_mode = mode
 	self.__position_key = positionConfig.positionKey or "XPBar_v2_Default"
-	
+
 	-- Apply position based on mode
 	if mode == POSITION_MODE.STATIC then
 		self:ApplyStaticPosition()
 	elseif mode == POSITION_MODE.DRAGGABLE then
-		self:EnableDragging(true)
+		-- Make frame movable (InteractionMixin handles the actual drag via Shift+click)
+		self:SetMovable(true)
+		self:EnableMouse(true)
+		-- Restore saved position
 		self:RestorePosition()
 	end
 end
@@ -56,7 +67,7 @@ function PositionMixin:ApplyStaticPosition()
 		self:SetPoint("TOPRIGHT", container, "TOPRIGHT", 0, 0)
 		return
 	end
-	
+
 	-- Fallback: anchor to MainMenuExpBar if available
 	local expBar = _G.MainMenuExpBar
 	if expBar then
@@ -65,7 +76,7 @@ function PositionMixin:ApplyStaticPosition()
 		self:SetPoint("TOPRIGHT", expBar, "TOPRIGHT", 0, 0)
 		return
 	end
-	
+
 	-- Last resort: anchor to bottom of screen
 	self:ClearAllPoints()
 	self:SetPoint("BOTTOM", UIParent, "BOTTOM", 0, 0)
@@ -82,13 +93,19 @@ function PositionMixin:EnableDragging(enabled)
 		self:SetMovable(true)
 		self:EnableMouse(true)
 		self:RegisterForDrag("LeftButton")
-		self:SetScript("OnDragStart", function(frame)
-			frame:StartMoving()
-		end)
-		self:SetScript("OnDragStop", function(frame)
-			frame:StopMovingOrSizing()
-			frame:SavePosition()
-		end)
+		self:SetScript(
+			"OnDragStart",
+			function(frame)
+				frame:StartMoving()
+			end
+		)
+		self:SetScript(
+			"OnDragStop",
+			function(frame)
+				frame:StopMovingOrSizing()
+				frame:SavePosition()
+			end
+		)
 	else
 		self:SetMovable(false)
 		self:RegisterForDrag()
@@ -99,55 +116,54 @@ end
 
 --- Save current position to SavedVariables
 function PositionMixin:SavePosition()
-	-- Ensure XPChronicleDB exists
-	if not XPChronicleDB then
-		XPChronicleDB = {}
+	if not Addon.db.barPositions then
+		Addon.db.barPositions = {}
 	end
-	if not XPChronicleDB.barPositions then
-		XPChronicleDB.barPositions = {}
-	end
-	
+
 	-- Get first anchor point
 	local point, relativeTo, relativePoint, x, y = self:GetPoint(1)
 	if not point then
 		return
 	end
-	
+
 	-- Save position
-	XPChronicleDB.barPositions[self.__position_key] = {
+	Addon.db.barPositions[self.__position_key] = {
 		point = point,
 		relativeTo = "UIParent", -- Always save relative to UIParent for consistency
 		relativePoint = relativePoint,
 		x = x,
-		y = y,
+		y = y
 	}
 end
 
 --- Restore saved position from SavedVariables
 function PositionMixin:RestorePosition()
 	-- Check if saved position exists
-	if not XPChronicleDB or not XPChronicleDB.barPositions then
+	if not Addon.db or not Addon.db.barPositions then
 		-- No saved positions, use default
 		self:SetDefaultDraggablePosition()
 		return
 	end
-	
-	local savedPos = XPChronicleDB.barPositions[self.__position_key]
+
+	local savedPos = Addon.db.barPositions[self.__position_key]
 	if not savedPos or not savedPos.point then
 		-- No saved position for this key, use default
 		self:SetDefaultDraggablePosition()
 		return
 	end
-	
+
+	-- print(
+	-- 	"PositionMixin: Restoring position for key '" ..
+	-- 		tostring(self.__position_key) ..
+	-- 			"' - point: " ..
+	-- 				tostring(savedPos.point) ..
+	-- 					", relativePoint: " ..
+	-- 						tostring(savedPos.relativePoint) .. ", x: " .. tostring(savedPos.x) .. ", y: " .. tostring(savedPos.y)
+	-- )
+
 	-- Restore saved position
 	self:ClearAllPoints()
-	self:SetPoint(
-		savedPos.point,
-		UIParent,
-		savedPos.relativePoint or "TOPLEFT",
-		savedPos.x or 0,
-		savedPos.y or 0
-	)
+	self:SetPoint(savedPos.point, UIParent, savedPos.relativePoint or "TOPLEFT", savedPos.x or 0, savedPos.y or 0)
 end
 
 --- Set default position for draggable bars
@@ -159,8 +175,8 @@ end
 
 --- Clear saved position
 function PositionMixin:ClearSavedPosition()
-	if XPChronicleDB and XPChronicleDB.barPositions then
-		XPChronicleDB.barPositions[self.__position_key] = nil
+	if Addon.db and Addon.db.barPositions then
+		Addon.db.barPositions[self.__position_key] = nil
 	end
 end
 
