@@ -95,6 +95,14 @@ function StyleBuilder:BuildBehaviorList(config)
 		table.insert(behaviors, XPBarPositionMixin)
 	end
 
+	if XPBarVisualsMixin then
+		table.insert(behaviors, XPBarVisualsMixin)
+	end
+
+	if XPBarTextMixin then
+		table.insert(behaviors, XPBarTextMixin)
+	end
+
 	return behaviors
 end
 

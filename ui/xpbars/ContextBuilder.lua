@@ -85,6 +85,16 @@ end
 
 -- Helper to build base context table
 function ContextBuilder.BuildBaseContext(event, source, coreState, extras)
+	-- Helper to resolve boolean config with precedence: per-frame config -> global Addon.db -> default
+	local function cfgBool(db, key, default)
+		if db and db[key] ~= nil then
+			return db[key] == true
+		end
+		return default == true
+	end
+
+	local db = Addon and Addon.db or {}
+
 	local ctx = {
 		event = event,
 		timestamp = time(),
@@ -95,8 +105,23 @@ function ContextBuilder.BuildBaseContext(event, source, coreState, extras)
 		level = coreState.level,
 		restedXP = coreState.restedXP,
 		isRested = coreState.isRested,
-		isFullyRested = coreState.isFullyRested
+		isFullyRested = coreState.isFullyRested,
+
+		-- Centralized display flags (per-frame config overrides global settings)
+		showXPText = cfgBool( db, "showXPText", true),
+		showLevelText = cfgBool( db, "showLevelText", true),
+		showPercentage = cfgBool( db, "showPercentage", true),
+		showQuestXP = cfgBool( db, "showQuestXP", true),
+		showCompleteQuestOverlay = cfgBool( db, "showCompleteQuestOverlay", true),
+		showIncompleteQuestOverlay = cfgBool( db, "showIncompleteQuestOverlay", false),
+		showRestedOverlay = cfgBool( db, "showRestedOverlay", true),
+		showExhaustionTick = cfgBool( db, "showExhaustionTick", true),
+		showSessionTimeText = cfgBool( db, "showSessionTimeText", true),
+		showLevelTimeText = cfgBool( db, "showLevelTimeText", true),
+		showXPPerHourText = cfgBool( db, "showXPPerHourText", true),
+		showTimeToLevelText = cfgBool( db, "showTimeToLevelText", true)
 	}
+
 	if extras and type(extras) == "table" then
 		for k, v in pairs(extras) do
 			ctx[k] = v

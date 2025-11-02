@@ -69,6 +69,8 @@ Frames.xml
 ui\xpbars\ContextBuilder.lua
 ui\xpbars\StyleBuilder.lua
 ui\xpbars\BaseMixin.lua
+ui\xpbars\mixins\VisualsMixin.lua
+ui\xpbars\mixins\TextMixin.lua
 ui\xpbars\mixins\AnimationMixin.lua
 ui\xpbars\mixins\InteractionMixin.lua
 ui\xpbars\mixins\TooltipMixin.lua
