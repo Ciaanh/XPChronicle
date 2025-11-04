@@ -69,6 +69,26 @@ end
 function StyleBuilder:BuildBehaviorList(config)
 	local behaviors = {}
 
+	-- Layout mixin (always first - pure calculations, no dependencies)
+	if XPBarLayoutMixin then
+		table.insert(behaviors, XPBarLayoutMixin)
+	end
+
+	-- Paint mixin (colors/textures, no layout dependencies)
+	if XPBarPaintMixin then
+		table.insert(behaviors, XPBarPaintMixin)
+	end
+
+	-- Visuals mixin (aggregator coordinating Layout + Paint)
+	if XPBarVisualsMixin then
+		table.insert(behaviors, XPBarVisualsMixin)
+	end
+
+	-- Text mixin (text content and visibility)
+	if XPBarTextMixin then
+		table.insert(behaviors, XPBarTextMixin)
+	end
+
 	-- Animation mixin (optional, default enabled)
 	if config.animation ~= false then
 		if XPBarAnimationMixin then
@@ -93,14 +113,6 @@ function StyleBuilder:BuildBehaviorList(config)
 	-- Position mixin (always included, mode determined by config)
 	if XPBarPositionMixin then
 		table.insert(behaviors, XPBarPositionMixin)
-	end
-
-	if XPBarVisualsMixin then
-		table.insert(behaviors, XPBarVisualsMixin)
-	end
-
-	if XPBarTextMixin then
-		table.insert(behaviors, XPBarTextMixin)
 	end
 
 	return behaviors
