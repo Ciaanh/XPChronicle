@@ -29,6 +29,7 @@ local function logError(msg)
 end
 
 local TestFrame = nil
+local TestObserverId = nil -- Observer pattern registration ID
 local STYLE_KEY = "flat"
 local TEMPLATE_NAME = "FlatBarTemplate_v2"
 
@@ -60,6 +61,17 @@ local function CreateTestBar(config)
 
 	-- Store frame reference
 	TestFrame = frame
+	
+	-- Register as global for easy access
+	_G.FlatBar_v2 = frame
+
+	-- Register with observer pattern (allows multiple bars to coexist)
+	if Addon and Addon.XPBar and Addon.XPBar.RegisterObserver then
+		TestObserverId = Addon.XPBar:RegisterObserver(frame, "flat_v2_test")
+		logInfo(string.format("V2 test bar registered as observer: %s", TestObserverId))
+	else
+		logWarn("V2 test bar: XPBar observer pattern not available")
+	end
 
 	-- Ensure frame is shown
 	frame:Show()
@@ -80,6 +92,13 @@ local function DestroyTestBar()
 		return
 	end
 
+	-- Unregister from observer pattern
+	if Addon and Addon.XPBar and Addon.XPBar.UnregisterObserver and TestObserverId then
+		Addon.XPBar:UnregisterObserver(TestObserverId)
+		logInfo(string.format("V2 test bar unregistered observer: %s", TestObserverId))
+		TestObserverId = nil
+	end
+
 	if TestFrame.UnregisterAllEvents then
 		pcall(TestFrame.UnregisterAllEvents, TestFrame)
 	end
@@ -87,6 +106,7 @@ local function DestroyTestBar()
 		pcall(TestFrame.OnUnload, TestFrame)
 	end
 	TestFrame:Hide()
+	_G.FlatBar_v2 = nil
 	TestFrame = nil
 	logInfo("v2 test bar destroyed")
 end

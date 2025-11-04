@@ -106,20 +106,19 @@ function ContextBuilder.BuildBaseContext(event, source, coreState, extras)
 		restedXP = coreState.restedXP,
 		isRested = coreState.isRested,
 		isFullyRested = coreState.isFullyRested,
-
 		-- Centralized display flags (per-frame config overrides global settings)
-		showXPText = cfgBool( db, "showXPText", true),
-		showLevelText = cfgBool( db, "showLevelText", true),
-		showPercentage = cfgBool( db, "showPercentage", true),
-		showQuestXP = cfgBool( db, "showQuestXP", true),
-		showCompleteQuestOverlay = cfgBool( db, "showCompleteQuestOverlay", true),
-		showIncompleteQuestOverlay = cfgBool( db, "showIncompleteQuestOverlay", false),
-		showRestedOverlay = cfgBool( db, "showRestedOverlay", true),
-		showExhaustionTick = cfgBool( db, "showExhaustionTick", true),
-		showSessionTimeText = cfgBool( db, "showSessionTimeText", true),
-		showLevelTimeText = cfgBool( db, "showLevelTimeText", true),
-		showXPPerHourText = cfgBool( db, "showXPPerHourText", true),
-		showTimeToLevelText = cfgBool( db, "showTimeToLevelText", true)
+		showXPText = cfgBool(db, "showXPText", true),
+		showLevelText = cfgBool(db, "showLevelText", true),
+		showPercentage = cfgBool(db, "showPercentage", true),
+		showQuestXP = cfgBool(db, "showQuestXP", true),
+		showCompleteQuestOverlay = cfgBool(db, "showCompleteQuestOverlay", true),
+		showIncompleteQuestOverlay = cfgBool(db, "showIncompleteQuestOverlay", true),
+		showRestedOverlay = cfgBool(db, "showRestedOverlay", true),
+		showExhaustionTick = cfgBool(db, "showExhaustionTick", true),
+		showSessionTimeText = cfgBool(db, "showSessionTimeText", true),
+		showLevelTimeText = cfgBool(db, "showLevelTimeText", true),
+		showXPPerHourText = cfgBool(db, "showXPPerHourText", true),
+		showTimeToLevelText = cfgBool(db, "showTimeToLevelText", true)
 	}
 
 	if extras and type(extras) == "table" then

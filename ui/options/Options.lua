@@ -1397,14 +1397,9 @@ function Options:OnOptionChanged(key)
     elseif key == "showQuestXP" or key == "showQuestPercent" or key == "questOverlaysEnabled"
         or key == "showCompleteQuestOverlay" or key == "showIncompleteQuestOverlay" then
         -- Update quest-related display (overlays and text)
-        -- Full bar update will recalculate layout and apply all overlays
-        if Addon.XPBar then
-            if Addon.XPBar.UpdateBarDisplay then
-                Addon.XPBar:UpdateBarDisplay()
-            end
-            if Addon.XPBar.UpdateTextDisplay then
-                Addon.XPBar:UpdateTextDisplay()
-            end
+        -- Broadcast to all bars (V1 + V2 observers)
+        if Addon.XPBar and Addon.XPBar.Update then
+            Addon.XPBar:Update()
         end
     end
     

@@ -14,29 +14,31 @@ local Addon = XPBarEnhanced
 function XPBarTextMixin:UpdateTextVisibility(context)
 	local db = Addon.db or {}
 
-	-- On-bar text elements: prefer explicit context flags when provided
+	-- On-bar text elements: prefer explicit context flags when provided, default to true if not set
 	if self.LevelText then
-		local show = (context and context.showLevelText ~= nil) and context.showLevelText or (db.showLevelText == true)
+		local show = (context and context.showLevelText ~= nil) and context.showLevelText or (db.showLevelText ~= false)
 		self.LevelText:SetShown(show)
 	end
 	if self.XPText then
-		local show = (context and context.showXPText ~= nil) and context.showXPText or (db.showXPText == true)
+		local show = (context and context.showXPText ~= nil) and context.showXPText or (db.showXPText ~= false)
 		self.XPText:SetShown(show)
 	end
 	if self.PercentText then
-		local show = (context and context.showPercentage ~= nil) and context.showPercentage or (db.showPercentage == true)
+		local show = (context and context.showPercentage ~= nil) and context.showPercentage or (db.showPercentage ~= false)
 		self.PercentText:SetShown(show)
 	end
 
-	-- Below-bar text elements
+	-- Below-bar text elements: default to true if not explicitly set to false
 	if self.RateText then
-		local showRate = (context and ((context.showXPPerHourText == true) or (context.showTimeToLevelText == true))) or
-			((db.showXPPerHourText == true) or (db.showTimeToLevelText == true))
+		local showXPPerHour = (context and context.showXPPerHourText ~= nil) and context.showXPPerHourText or (db.showXPPerHourText ~= false)
+		local showTimeToLevel = (context and context.showTimeToLevelText ~= nil) and context.showTimeToLevelText or (db.showTimeToLevelText ~= false)
+		local showRate = showXPPerHour or showTimeToLevel
 		self.RateText:SetShown(showRate)
 	end
 	if self.SessionText then
-		local showSession = (context and ((context.showLevelTimeText == true) or (context.showSessionTimeText == true))) or
-			((db.showLevelTimeText == true) or (db.showSessionTimeText == true))
+		local showLevelTime = (context and context.showLevelTimeText ~= nil) and context.showLevelTimeText or (db.showLevelTimeText ~= false)
+		local showSessionTime = (context and context.showSessionTimeText ~= nil) and context.showSessionTimeText or (db.showSessionTimeText ~= false)
+		local showSession = showLevelTime or showSessionTime
 		self.SessionText:SetShown(showSession)
 	end
 	if self.QuestSummaryText then
@@ -61,6 +63,9 @@ function XPBarTextMixin:UpdateTexts(context)
 	if not XPBarTextFormatter then
 		error("UpdateTexts requires XPBarTextFormatter to be loaded")
 	end
+
+	-- Update visibility first (in case config changed)
+	self:UpdateTextVisibility(context)
 
 	-- XP on-bar: handled by dedicated methods
 	self:UpdateXPText(context)
@@ -172,9 +177,9 @@ function XPBarTextMixin:UpdateRateText(context)
 
 	local db = Addon.db or {}
 	local abbreviate = db.abbreviateNumbers ~= false
-	-- Prefer context-level toggles when present
-	local showXPPerHour = (context and context.showXPPerHourText ~= nil) and context.showXPPerHourText or (db.showXPPerHourText == true)
-	local showTimeToLevel = (context and context.showTimeToLevelText ~= nil) and context.showTimeToLevelText or (db.showTimeToLevelText == true)
+	-- Prefer context-level toggles when present, default to true if not explicitly disabled
+	local showXPPerHour = (context and context.showXPPerHourText ~= nil) and context.showXPPerHourText or (db.showXPPerHourText ~= false)
+	local showTimeToLevel = (context and context.showTimeToLevelText ~= nil) and context.showTimeToLevelText or (db.showTimeToLevelText ~= false)
 
 	-- Prefer context values when provided
 	local xpPerHour = context and context.xpPerHour or nil
@@ -207,8 +212,12 @@ function XPBarTextMixin:UpdateRateText(context)
 		end
 	end
 
+	-- Set text content (may be empty initially)
 	local text = #parts > 0 and table.concat(parts, " - ") or ""
 	self.RateText:SetText(text)
+	
+	-- Don't hide the element here - visibility is controlled by UpdateTextVisibility
+	-- This allows the element to show placeholder space even when empty
 end
 
 --- Update session text (session time + level time)
@@ -229,9 +238,9 @@ function XPBarTextMixin:UpdateSessionText(context)
 	local sessionSeconds = 0
 	local levelSeconds = 0
 
-	-- Check which times to show based on individual settings; prefer context flags when present
-	local showSessionTime = (context and context.showSessionTimeText ~= nil) and context.showSessionTimeText or (db.showSessionTimeText == true)
-	local showLevelTime = (context and context.showLevelTimeText ~= nil) and context.showLevelTimeText or (db.showLevelTimeText == true)
+	-- Check which times to show based on individual settings; prefer context flags when present, default to true
+	local showSessionTime = (context and context.showSessionTimeText ~= nil) and context.showSessionTimeText or (db.showSessionTimeText ~= false)
+	local showLevelTime = (context and context.showLevelTimeText ~= nil) and context.showLevelTimeText or (db.showLevelTimeText ~= false)
 
 	-- Prefer context values if present
 	if context then
@@ -283,8 +292,12 @@ function XPBarTextMixin:UpdateSessionText(context)
 		end
 	end
 
+	-- Set text content (may be empty initially)
 	local text = #parts > 0 and table.concat(parts, " - ") or ""
 	self.SessionText:SetText(text)
+	
+	-- Don't hide the element here - visibility is controlled by UpdateTextVisibility
+	-- This allows the element to show placeholder space even when empty
 end
 
 --- Update quest summary text (quests + rested)

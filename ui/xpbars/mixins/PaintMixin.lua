@@ -132,15 +132,31 @@ function XPBarPaintMixin:BuildVisuals()
 	self.ExhaustionTick = self.ExhaustionTick or (self.StatusBar and self.StatusBar.ExhaustionTick)
 	self.GainFlash = self.GainFlash or (self.StatusBar and self.StatusBar.GainFlash)
 	
-	-- Alias text children (if style uses a TextContainer)
-	if not self.XPText and self.TextContainer and self.TextContainer.XPText then
-		self.XPText = self.TextContainer.XPText
+	-- Alias ON-BAR text children
+	local onBarTextContainer = self.OverlayFrameTextContainer
+	if onBarTextContainer then
+		if not self.XPText and onBarTextContainer.XPText then
+			self.XPText = onBarTextContainer.XPText
+		end
+		if not self.PercentText and onBarTextContainer.PercentText then
+			self.PercentText = onBarTextContainer.PercentText
+		end
+		if not self.LevelText and onBarTextContainer.LevelText then
+			self.LevelText = onBarTextContainer.LevelText
+		end
 	end
-	if not self.PercentText and self.TextContainer and self.TextContainer.PercentText then
-		self.PercentText = self.TextContainer.PercentText
-	end
-	if not self.LevelText and self.TextContainer and self.TextContainer.LevelText then
-		self.LevelText = self.TextContainer.LevelText
+	
+	-- Alias BELOW-BAR text children (if style uses BelowBarTextContainer)
+	if self.BelowBarTextContainer then
+		if not self.RateText and self.BelowBarTextContainer.RateText then
+			self.RateText = self.BelowBarTextContainer.RateText
+		end
+		if not self.SessionText and self.BelowBarTextContainer.SessionText then
+			self.SessionText = self.BelowBarTextContainer.SessionText
+		end
+		if not self.QuestSummaryText and self.BelowBarTextContainer.QuestSummaryText then
+			self.QuestSummaryText = self.BelowBarTextContainer.QuestSummaryText
+		end
 	end
 	
 	-- Log missing optional overlays (development visibility)
@@ -168,6 +184,15 @@ function XPBarPaintMixin:BuildVisuals()
 		end
 		if not self.LevelText then
 			Addon.Logger:Debug("BuildVisuals: LevelText missing (expected in TextContainer)")
+		end
+		if not self.RateText then
+			Addon.Logger:Debug("BuildVisuals: RateText missing (expected in BelowBarTextContainer)")
+		end
+		if not self.SessionText then
+			Addon.Logger:Debug("BuildVisuals: SessionText missing (expected in BelowBarTextContainer)")
+		end
+		if not self.QuestSummaryText then
+			Addon.Logger:Debug("BuildVisuals: QuestSummaryText missing (expected in BelowBarTextContainer)")
 		end
 	end
 	

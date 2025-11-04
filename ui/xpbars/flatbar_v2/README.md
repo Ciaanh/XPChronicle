@@ -40,7 +40,7 @@ Every style MUST provide an XML template that creates all UI elements. BaseMixin
 
 ### Recommended Elements for Full Feature Set- **BaseMixin provides defaults** for standard linear layouts with ALL overlays
 
-- Text elements (can be in OverlayFrame or StatusBar):
+- Text elements (can be in OverlayFrameTextContainer or StatusBar):
 
   - `XPText` - current/max XP display (FontString)- **Styles override only when needed** (e.g., circular layout needs custom overlay positioning)
 
@@ -118,25 +118,25 @@ local FlatBarStyleTemplate = {### Optional Elements (Created by BaseMixin if Mis
 
         
 
-        -- Alias text elements if in OverlayFrame**Note:** BaseMixin automatically creates all overlays to provide full feature parity with existing FlatXPBar. Styles can disable specific overlays via config (`style.showQuestOverlays = false`, etc.)  - Override only if you need custom overlay layout (e.g., circular arc overlays).
+        -- Alias text elements if in OverlayFrameTextContainer**Note:** BaseMixin automatically creates all overlays to provide full feature parity with existing FlatXPBar. Styles can disable specific overlays via config (`style.showQuestOverlays = false`, etc.)  - Override only if you need custom overlay layout (e.g., circular arc overlays).
 
-        if self.OverlayFrame then
+        if self.OverlayFrameTextContainer then
 
-            if self.OverlayFrame.XPText then
+            if self.OverlayFrameTextContainer.XPText then
 
-                self.XPText = self.OverlayFrame.XPText
+                self.XPText = self.OverlayFrameTextContainer.XPText
 
             end## Minimal Lua Structure### Required Elements- UpdateBars(self, context)
 
-            if self.OverlayFrame.PercentText then
+            if self.OverlayFrameTextContainer.PercentText then
 
-                self.PercentText = self.OverlayFrame.PercentText
+                self.PercentText = self.OverlayFrameTextContainer.PercentText
 
             end
 
-            if self.OverlayFrame.LevelText thenFor standard linear layouts, the style Lua file can be **empty** - just provide config:- `StatusBar` - main XP bar (StatusBar widget)  - Only for non-linear bars (circular). Flat linear bars should use BaseMixin default.
+            if self.OverlayFrameTextContainer.LevelText thenFor standard linear layouts, the style Lua file can be **empty** - just provide config:- `StatusBar` - main XP bar (StatusBar widget)  - Only for non-linear bars (circular). Flat linear bars should use BaseMixin default.
 
-                self.LevelText = self.OverlayFrame.LevelText
+                self.LevelText = self.OverlayFrameTextContainer.LevelText
 
             end
 

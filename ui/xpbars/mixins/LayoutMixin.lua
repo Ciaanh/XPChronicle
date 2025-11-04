@@ -236,7 +236,7 @@ function XPBarLayoutMixin:UpdateQuestIncompleteOverlayLayout(context, overlayNam
 	local maxXP = context.xpMax or 1
 	local remainingXP = math.max(0, maxXP - currentXP)
 	
-	-- Determine visibility setting
+	-- Determine visibility setting (default to true if not explicitly disabled)
 	local db = Addon and Addon.db or {}
 	local showIncomplete
 	if context and context.showIncompleteQuestOverlay ~= nil then
@@ -246,7 +246,7 @@ function XPBarLayoutMixin:UpdateQuestIncompleteOverlayLayout(context, overlayNam
 		if config.showIncompleteQuestOverlay ~= nil then
 			showIncomplete = config.showIncompleteQuestOverlay == true
 		else
-			showIncomplete = (db.showIncompleteQuestOverlay == true)
+			showIncomplete = (db.showIncompleteQuestOverlay ~= false)
 		end
 	end
 	

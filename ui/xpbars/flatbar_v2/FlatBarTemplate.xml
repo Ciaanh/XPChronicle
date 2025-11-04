@@ -75,8 +75,8 @@
 				</Layers>
 			</StatusBar>
 
-			<!-- Overlay frame for text (separate from StatusBar for proper layering) -->
-			<Frame parentKey="TextContainer" frameStrata="MEDIUM" setAllPoints="true">
+			<!-- Overlay frame for ON-BAR text (separate from StatusBar for proper layering) -->
+			<Frame parentKey="OverlayFrameTextContainer" frameStrata="MEDIUM" setAllPoints="true">
 				<Layers>
 					<Layer level="ARTWORK" textureSubLevel="5">
 						<!-- Level text - left side -->
@@ -114,11 +114,22 @@
 								<Color r="0" g="0" b="0" a="0.8"/>
 							</Shadow>
 						</FontString>
+					</Layer>
+				</Layers>
+			</Frame>
 
+			<!-- BELOW-BAR text container (matches BaseMixin expectations) -->
+			<Frame parentKey="BelowBarTextContainer" frameStrata="MEDIUM">
+				<Size x="565" y="30"/>
+				<Anchors>
+					<Anchor point="TOPLEFT" relativePoint="BOTTOMLEFT" x="0" y="-2"/>
+				</Anchors>
+				<Layers>
+					<Layer level="ARTWORK">
 						<!-- Rate text (XP/hour + time to level) - below bar on left -->
 						<FontString parentKey="RateText" inherits="GameFontNormal" hidden="true">
 							<Anchors>
-								<Anchor point="TOPLEFT" relativePoint="BOTTOMLEFT" x="0" y="-2"/>
+								<Anchor point="TOPLEFT" x="0" y="0"/>
 							</Anchors>
 							<Color r="0.8" g="0.8" b="0.8"/>
 						</FontString>
@@ -126,7 +137,7 @@
 						<!-- Session text (session time + level time) - below bar on right -->
 						<FontString parentKey="SessionText" inherits="GameFontNormal" hidden="true">
 							<Anchors>
-								<Anchor point="TOPRIGHT" relativePoint="BOTTOMRIGHT" x="0" y="-2"/>
+								<Anchor point="TOPRIGHT" x="0" y="0"/>
 							</Anchors>
 							<Color r="0.8" g="0.8" b="0.8"/>
 						</FontString>
@@ -134,7 +145,7 @@
 						<!-- Quest summary text (quests + rested) - below bar center -->
 						<FontString parentKey="QuestSummaryText" inherits="GameFontNormal" hidden="true">
 							<Anchors>
-								<Anchor point="TOP" relativePoint="BOTTOM" x="0" y="-14"/>
+								<Anchor point="TOP" x="0" y="-12"/>
 							</Anchors>
 							<Color r="0.8" g="0.8" b="0.8"/>
 						</FontString>

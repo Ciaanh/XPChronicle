@@ -728,6 +728,77 @@ XPBar.currentView = nil
 XPBar.currentViewType = nil
 XPBar.periodicUpdateTimer = nil
 
+-- Observer Pattern: Track all registered bars for broadcast updates
+XPBar.observers = {} -- { observerId: bar }
+XPBar.observerCount = 0
+
+--- Register a bar to receive broadcast updates
+---@param bar table Bar instance with FullUpdate method
+---@param id string|nil Unique identifier (auto-generated if nil)
+---@return string observerId The ID assigned to this observer
+function XPBar:RegisterObserver(bar, id)
+	if not bar then
+		error("RegisterObserver requires a valid bar instance")
+	end
+	
+	if not bar.FullUpdate then
+		Addon.Logger:Warn("RegisterObserver: bar missing FullUpdate method - " .. tostring(id or "unknown"))
+	end
+	
+	local observerId = id or ("observer_" .. (self.observerCount + 1))
+	
+	-- Replace existing observer with same ID
+	if self.observers[observerId] then
+		Addon.Logger:Debug("RegisterObserver: replacing existing observer - " .. observerId)
+	end
+	
+	self.observers[observerId] = bar
+	self.observerCount = self.observerCount + 1
+	
+	Addon.Logger:Info(string.format("Registered observer: %s (total: %d)", observerId, self.observerCount))
+	return observerId
+end
+
+--- Unregister a bar from broadcast updates
+---@param id string Observer identifier
+function XPBar:UnregisterObserver(id)
+	if self.observers[id] then
+		self.observers[id] = nil
+		self.observerCount = math.max(0, self.observerCount - 1)
+		Addon.Logger:Info(string.format("Unregistered observer: %s (remaining: %d)", id, self.observerCount))
+	else
+		Addon.Logger:Warn("UnregisterObserver: observer not found - " .. tostring(id))
+	end
+end
+
+--- Broadcast update to all registered observers
+--- This allows multiple bars to coexist and receive updates simultaneously
+function XPBar:BroadcastUpdate()
+	local updateCount = 0
+	local errorCount = 0
+	
+	for id, bar in pairs(self.observers) do
+		if bar and bar.FullUpdate then
+			local success, err = pcall(function()
+				bar:FullUpdate()
+			end)
+			if success then
+				updateCount = updateCount + 1
+			else
+				errorCount = errorCount + 1
+				Addon.Logger:Error(string.format("BroadcastUpdate: error updating observer %s: %s", id, tostring(err)))
+			end
+		else
+			Addon.Logger:Warn("BroadcastUpdate: observer missing FullUpdate - " .. tostring(id))
+		end
+	end
+	
+	if updateCount > 0 or errorCount > 0 then
+		Addon.Logger:Debug(string.format("Broadcast complete: %d/%d bars updated (%d errors)", 
+			updateCount, self.observerCount, errorCount))
+	end
+end
+
 function XPBar:GetView()
     -- Legacy compatibility: old code expected Addon.UI.Views.XPBar
     -- Now we just return self since XPBar module is the coordinator
@@ -900,10 +971,17 @@ function XPBar:Initialize()
 	self:StartPeriodicUpdates()
 end
 
+--- Update all bars (legacy currentView + new observer pattern)
+--- This maintains backward compatibility while supporting multiple bars
 function XPBar:Update()
+	-- Legacy pattern: update currentView if set
 	if self.currentView and self.currentView.FullUpdate then
 		self.currentView:FullUpdate()
 	end
+	
+	-- New pattern: broadcast to all observers
+	-- This allows multiple bars to coexist (e.g., V1 + V2 test bars)
+	self:BroadcastUpdate()
 end
 
 function XPBar:RegisterXPEvents()

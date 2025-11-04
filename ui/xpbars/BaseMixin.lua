@@ -24,6 +24,31 @@ function BaseMixin:Refresh()
 	self:TriggerXPChanged(context)
 end
 
+--- Full update - Called by XPBar controller for option/color changes
+--- This provides V1 compatibility for live refresh features
+function BaseMixin:FullUpdate()
+	-- Prevent re-entrant calls
+	if self._isUpdating then
+		return
+	end
+	self._isUpdating = true
+
+	-- Build fresh context and update all visuals
+	local context = XPBarContextBuilder.BuildXPChangeContext("FULL_UPDATE")
+	
+	-- Update all visual elements (bars, overlays, text)
+	if self.UpdateVisuals then
+		self:UpdateVisuals(context)
+	end
+	
+	-- Update text visibility in case options changed
+	if self.UpdateTextVisibility then
+		self:UpdateTextVisibility(context)
+	end
+
+	self._isUpdating = nil
+end
+
 -------------------------------------------------------------------
 -- LIFECYCLE METHODS
 -------------------------------------------------------------------
