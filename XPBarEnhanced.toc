@@ -44,6 +44,7 @@ core\Session.lua
 core\Compatibility.lua
 
 # UI Common Utilities
+ui/common/ConfigHelper.lua
 ui/common/FrameUtils.lua
 ui/common/PositionStoreMixin.lua
 ui/common/DraggableFrameMixin.lua

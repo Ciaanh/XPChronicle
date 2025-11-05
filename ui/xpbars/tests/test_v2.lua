@@ -118,6 +118,17 @@ local function PrintContext()
 		return
 	end
 
+	-- First, print what's in the database
+	if Addon and Addon.db then
+		print("|cff00ff00Database Values:|r")
+		print((" showCompleteQuestOverlay: %s (type: %s)"):format(
+			tostring(Addon.db.showCompleteQuestOverlay), 
+			type(Addon.db.showCompleteQuestOverlay)))
+		print((" showIncompleteQuestOverlay: %s (type: %s)"):format(
+			tostring(Addon.db.showIncompleteQuestOverlay), 
+			type(Addon.db.showIncompleteQuestOverlay)))
+	end
+
 	local build = XPBarContextBuilder.BuildXPChangeContext or XPBarContextBuilder.BuildContext or XPBarContextBuilder.Build
 	if not build then
 		logError("ContextBuilder API not found")
@@ -134,6 +145,8 @@ local function PrintContext()
 	print((" Level: %d"):format(ctx.level or 0))
 	print((" XP: %d / %d (%.1f%%)"):format(ctx.currentXP or 0, ctx.xpMax or ctx.maxXP or 0, (ctx.percentComplete or 0)))
 	print((" Rested: %d (%.1f%%)"):format(ctx.restedXP or 0, (ctx.restedPercent or 0)))
+	print((" showCompleteQuestOverlay: %s"):format(tostring(ctx.showCompleteQuestOverlay)))
+	print((" showIncompleteQuestOverlay: %s"):format(tostring(ctx.showIncompleteQuestOverlay)))
 end
 
 -- TriggerFlash: attempt to play xp gain flash animation on the test frame

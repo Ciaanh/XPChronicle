@@ -12,37 +12,35 @@ local Addon = XPBarEnhanced
 
 --- Update text element visibility based on config
 function XPBarTextMixin:UpdateTextVisibility(context)
-	local db = Addon.db or {}
-
 	-- On-bar text elements: prefer explicit context flags when provided, default to true if not set
 	if self.LevelText then
-		local show = (context and context.showLevelText ~= nil) and context.showLevelText or (db.showLevelText ~= false)
+		local show = Addon.ConfigHelper.GetShowLevelText(context)
 		self.LevelText:SetShown(show)
 	end
 	if self.XPText then
-		local show = (context and context.showXPText ~= nil) and context.showXPText or (db.showXPText ~= false)
+		local show = Addon.ConfigHelper.GetShowXPText(context)
 		self.XPText:SetShown(show)
 	end
 	if self.PercentText then
-		local show = (context and context.showPercentage ~= nil) and context.showPercentage or (db.showPercentage ~= false)
+		local show = Addon.ConfigHelper.GetShowPercentage(context)
 		self.PercentText:SetShown(show)
 	end
 
 	-- Below-bar text elements: default to true if not explicitly set to false
 	if self.RateText then
-		local showXPPerHour = (context and context.showXPPerHourText ~= nil) and context.showXPPerHourText or (db.showXPPerHourText ~= false)
-		local showTimeToLevel = (context and context.showTimeToLevelText ~= nil) and context.showTimeToLevelText or (db.showTimeToLevelText ~= false)
+		local showXPPerHour = Addon.ConfigHelper.GetShowXPPerHourText(context)
+		local showTimeToLevel = Addon.ConfigHelper.GetShowTimeToLevelText(context)
 		local showRate = showXPPerHour or showTimeToLevel
 		self.RateText:SetShown(showRate)
 	end
 	if self.SessionText then
-		local showLevelTime = (context and context.showLevelTimeText ~= nil) and context.showLevelTimeText or (db.showLevelTimeText ~= false)
-		local showSessionTime = (context and context.showSessionTimeText ~= nil) and context.showSessionTimeText or (db.showSessionTimeText ~= false)
+		local showLevelTime = Addon.ConfigHelper.GetShowLevelTimeText(context)
+		local showSessionTime = Addon.ConfigHelper.GetShowSessionTimeText(context)
 		local showSession = showLevelTime or showSessionTime
 		self.SessionText:SetShown(showSession)
 	end
 	if self.QuestSummaryText then
-		local showQuest = (context and context.showQuestXP ~= nil) and context.showQuestXP or (db.showQuestXP ~= false)
+		local showQuest = Addon.ConfigHelper.GetShowQuestXP(context)
 		self.QuestSummaryText:SetShown(showQuest)
 	end
 end
@@ -116,9 +114,8 @@ function XPBarTextMixin:UpdateXPText(context)
 	local current = context.currentXP or 0
 
 	if XPBarTextFormatter then
-		local db = Addon.db or {}
-		local abbreviate = (context and context.abbreviateNumbers ~= nil) and context.abbreviateNumbers or (db.abbreviateNumbers ~= false)
-		local showRemaining = (context and context.showRemainingXP ~= nil) and context.showRemainingXP or (db.showRemainingXP == true)
+		local abbreviate = Addon.ConfigHelper.GetAbbreviateNumbers(context)
+		local showRemaining = Addon.ConfigHelper.GetShowRemainingXP(context)
 		local text = XPBarTextFormatter:GetXPText(current, maxv, abbreviate, showRemaining)
 		self.XPText:SetText(text)
 	else
@@ -142,15 +139,14 @@ function XPBarTextMixin:UpdatePercentText(context)
 	local current = context.currentXP or 0
 
 	if XPBarTextFormatter then
-		local db = Addon.db or {}
-		local decimals = (context and context.percentDecimals) or db.percentDecimals or 1
-		local showQuestPercent = (context and context.showQuestXP ~= nil) and context.showQuestXP or (db.showQuestPercent == true)
+		local decimals = context.percentDecimals or 1
+		local showQuestPercent = Addon.ConfigHelper.GetShowQuestPercent(context)
 
 		local questXP = 0
 		if showQuestPercent and Addon.XPBar then
 			local totalXP, completeXP, incompleteXP = Addon.XPBar:GetQuestXP()
-			local showComplete = (context and context.showCompleteQuestOverlay ~= nil) and context.showCompleteQuestOverlay or (db.showCompleteQuestOverlay ~= false)
-			local showIncomplete = (context and context.showIncompleteQuestOverlay ~= nil) and context.showIncompleteQuestOverlay or (db.showIncompleteQuestOverlay == true)
+			local showComplete = Addon.ConfigHelper.GetShowCompleteQuestOverlay(context)
+			local showIncomplete = Addon.ConfigHelper.GetShowIncompleteQuestOverlay(context)
 			if showComplete then
 				questXP = questXP + (completeXP or 0)
 			end
@@ -175,11 +171,10 @@ function XPBarTextMixin:UpdateRateText(context)
 		return
 	end
 
-	local db = Addon.db or {}
-	local abbreviate = db.abbreviateNumbers ~= false
+	local abbreviate = context.abbreviateNumbers ~= false
 	-- Prefer context-level toggles when present, default to true if not explicitly disabled
-	local showXPPerHour = (context and context.showXPPerHourText ~= nil) and context.showXPPerHourText or (db.showXPPerHourText ~= false)
-	local showTimeToLevel = (context and context.showTimeToLevelText ~= nil) and context.showTimeToLevelText or (db.showTimeToLevelText ~= false)
+	local showXPPerHour = Addon.ConfigHelper.GetShowXPPerHourText(context)
+	local showTimeToLevel = Addon.ConfigHelper.GetShowTimeToLevelText(context)
 
 	-- Prefer context values when provided
 	local xpPerHour = context and context.xpPerHour or nil
@@ -234,32 +229,24 @@ function XPBarTextMixin:UpdateSessionText(context)
 	end
 
 	local Addon = XPBarEnhanced
-	local db = Addon.db or {}
 	local sessionSeconds = 0
 	local levelSeconds = 0
 
 	-- Check which times to show based on individual settings; prefer context flags when present, default to true
-	local showSessionTime = (context and context.showSessionTimeText ~= nil) and context.showSessionTimeText or (db.showSessionTimeText ~= false)
-	local showLevelTime = (context and context.showLevelTimeText ~= nil) and context.showLevelTimeText or (db.showLevelTimeText ~= false)
+	local showSessionTime = Addon.ConfigHelper.GetShowSessionTimeText(context)
+	local showLevelTime = Addon.ConfigHelper.GetShowLevelTimeText(context)
 
-	-- Prefer context values if present
-	if context then
-		if showSessionTime and context.sessionSeconds then
-			sessionSeconds = context.sessionSeconds
-		end
-		if showLevelTime and context.levelSeconds then
-			levelSeconds = context.levelSeconds
-		end
-	end
-
-	-- Fallback to Session module when context doesn't provide values
-	if (sessionSeconds == 0 or levelSeconds == 0) and Addon.Session then
+	-- ALWAYS compute time fresh from Session service for real-time updates
+	-- Do NOT use stale context values
+	if Addon.Session then
 		local session = Addon.Session:GetCurrent()
 		if session then
-			if showSessionTime and session.sessionStart and sessionSeconds == 0 then
+			-- Session time: current time minus session start
+			if showSessionTime and session.sessionStart then
 				sessionSeconds = time() - session.sessionStart
 			end
-			if showLevelTime and levelSeconds == 0 then
+			-- Level time: realLevelTime from TIME_PLAYED_MSG plus elapsed time since last request
+			if showLevelTime then
 				if session.realLevelTime and session.realLevelTime > 0 then
 					levelSeconds = session.realLevelTime
 					if session.lastTimePlayedRequest and session.lastTimePlayedRequest > 0 then
@@ -329,8 +316,7 @@ function XPBarTextMixin:UpdateQuestSummaryText(context)
 		totalQuestXP, completeQuestXP, incompleteQuestXP = Addon.XPBar:GetQuestXP()
 	end
 
-	local db = Addon.db or {}
-	local decimals = db.percentDecimals or 1
+	local decimals = context.percentDecimals or 1
 
 	local maxXP = context.xpMax or 1
 	local restedXP = context.restedXP or 0

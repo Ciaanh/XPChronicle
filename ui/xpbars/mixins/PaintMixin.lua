@@ -5,6 +5,7 @@
 XPBarPaintMixin = {}
 
 local Addon = XPBarEnhanced
+local XPBarColors = _G.XPBarColors
 
 -------------------------------------------------------------------
 -- MIXIN METADATA
@@ -36,9 +37,6 @@ function XPBarPaintMixin:UpdateBarColors(context, barName)
 	local bar = self[barName]
 	
 	if not bar then
-		if Addon.Logger then
-			Addon.Logger:Warn("UpdateBarColors: bar not found - " .. barName)
-		end
 		return
 	end
 	
@@ -119,9 +117,6 @@ end
 function XPBarPaintMixin:BuildVisuals()
 	-- Require StatusBar (XML contract)
 	if not self.StatusBar then
-		if Addon and Addon.Logger then
-			Addon.Logger:Error("BuildVisuals: StatusBar missing from XML for " .. (self:GetName() or "<unnamed>"))
-		end
 		return
 	end
 	
@@ -159,47 +154,41 @@ function XPBarPaintMixin:BuildVisuals()
 		end
 	end
 	
-	-- Log missing optional overlays (development visibility)
-	if Addon and Addon.Logger then
-		if not self.RestedOverlay then
-			Addon.Logger:Debug("BuildVisuals: RestedOverlay missing (expected as StatusBar child)")
-		end
-		if not self.QuestOverlayComplete then
-			Addon.Logger:Debug("BuildVisuals: QuestOverlayComplete missing (expected as StatusBar child)")
-		end
-		if not self.QuestOverlayIncomplete then
-			Addon.Logger:Debug("BuildVisuals: QuestOverlayIncomplete missing (expected as StatusBar child)")
-		end
-		if not self.ExhaustionTick then
-			Addon.Logger:Debug("BuildVisuals: ExhaustionTick missing (expected as StatusBar child)")
-		end
-		if not self.GainFlash then
-			Addon.Logger:Debug("BuildVisuals: GainFlash missing (expected as StatusBar child)")
-		end
-		if not self.XPText then
-			Addon.Logger:Debug("BuildVisuals: XPText missing (expected in TextContainer)")
-		end
-		if not self.PercentText then
-			Addon.Logger:Debug("BuildVisuals: PercentText missing (expected in TextContainer)")
-		end
-		if not self.LevelText then
-			Addon.Logger:Debug("BuildVisuals: LevelText missing (expected in TextContainer)")
-		end
-		if not self.RateText then
-			Addon.Logger:Debug("BuildVisuals: RateText missing (expected in BelowBarTextContainer)")
-		end
-		if not self.SessionText then
-			Addon.Logger:Debug("BuildVisuals: SessionText missing (expected in BelowBarTextContainer)")
-		end
-		if not self.QuestSummaryText then
-			Addon.Logger:Debug("BuildVisuals: QuestSummaryText missing (expected in BelowBarTextContainer)")
-		end
-	end
-	
 	-- Apply text visibility from config (delegate to text mixin if available)
 	if self.UpdateTextVisibility then
 		self:UpdateTextVisibility(nil)
 	end
+	
+	-- V2 Architecture: Initialize user colors immediately after XML elements are aliased
+	-- This ensures user-configured colors override XML defaults
+	self:InitializeColors()
+end
+
+--- Initialize all colors from user configuration
+--- V2 Architecture: Called once during BuildVisuals to override XML defaults
+function XPBarPaintMixin:InitializeColors()
+	if not XPBarColors then
+		return
+	end
+	
+	-- Initialize overlay colors (read from user config, not XML)
+	if self.RestedOverlay then
+		local color = XPBarColors:GetUserColor(Color.Rested)
+		self.RestedOverlay:SetVertexColor(color.r, color.g, color.b, color.a)
+	end
+	
+	if self.QuestOverlayComplete then
+		local color = XPBarColors:GetUserColor(Color.QuestComplete)
+		self.QuestOverlayComplete:SetVertexColor(color.r, color.g, color.b, color.a)
+	end
+	
+	if self.QuestOverlayIncomplete then
+		local color = XPBarColors:GetUserColor(Color.QuestIncomplete)
+		self.QuestOverlayIncomplete:SetVertexColor(color.r, color.g, color.b, color.a)
+	end
+	
+	-- Note: StatusBar color (XpBar/XpBarRested) is set dynamically in UpdateBarColors based on rested state
+	-- We don't set it here because it changes based on context
 end
 
 --- Apply basic style configuration (size, texture, color)
@@ -220,11 +209,6 @@ function XPBarPaintMixin:ApplyStyle(styleConfig)
 	-- Apply a statusbar texture if provided
 	if styleConfig.barTexture then
 		self:ApplyBarTexture(styleConfig.barTexture)
-	end
-	
-	-- Other style params left for style-specific mixins (borders, corner radius, fonts)
-	if Addon and Addon.Logger then
-		Addon.Logger:Debug("ApplyStyle applied basic style for " .. (self:GetName() or "<unnamed>"))
 	end
 end
 

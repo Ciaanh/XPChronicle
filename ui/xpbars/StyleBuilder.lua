@@ -135,11 +135,11 @@ function StyleBuilder:ValidateConfig(config)
 	-- Validate position config
 	if config.position then
 		if config.position.mode and config.position.mode ~= "STATIC" and config.position.mode ~= "DRAGGABLE" then
-			print("WARNING: Invalid position.mode '" .. tostring(config.position.mode) .. "' - expected 'STATIC' or 'DRAGGABLE'")
+			error("Invalid position.mode '" .. tostring(config.position.mode) .. "' - expected 'STATIC' or 'DRAGGABLE'")
 		end
 
 		if config.position.mode == "DRAGGABLE" and not config.position.positionKey then
-			print("WARNING: position.mode is DRAGGABLE but position.positionKey not specified - position will not be saved")
+			error("position.mode is DRAGGABLE but position.positionKey not specified - position will not be saved")
 		end
 	end
 

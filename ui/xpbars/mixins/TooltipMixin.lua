@@ -10,6 +10,7 @@
 XPBarTooltipMixin = {}
 
 local TooltipMixin = XPBarTooltipMixin
+local XPBarColors = _G.XPBarColors
 
 -- track the current tooltip owner so Refresh can re-open it when needed
 TooltipMixin.currentTooltipOwner = nil

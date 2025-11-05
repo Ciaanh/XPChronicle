@@ -72,15 +72,20 @@ function BaseMixin:OnLoad()
 	-- Call BuildVisuals if style provides it
 	if self.BuildVisuals then
 		self:BuildVisuals()
-	else
-		if Addon.Logger then
-			Addon.Logger:Warn("XPBarMixinBase_v2:OnLoad - BuildVisuals() not implemented by style")
-		end
 	end
 
 	-- Apply style config if provided
 	if self.ApplyStyle and self.__xpbar_config.style then
 		self:ApplyStyle(self.__xpbar_config.style)
+	end
+
+	-- Register as observer for broadcast updates (color changes, etc.)
+	-- This ensures multiple V2 bars receive updates simultaneously
+	local Addon = XPBarEnhanced
+	if Addon.XPBar and Addon.XPBar.RegisterObserver then
+		-- Use frame name or generate unique ID
+		local observerId = self:GetName() or ("v2_bar_" .. tostring(self))
+		self.__observer_id = Addon.XPBar:RegisterObserver(self, observerId)
 	end
 
 	-- Initial refresh
@@ -91,11 +96,39 @@ end
 function BaseMixin:OnShow()
 	-- Refresh state when shown
 	self:Refresh()
+	
+	-- Register as observer if not already registered
+	-- This handles cases where bar is created but not via OnLoad
+	if not self.__observer_id then
+		local Addon = XPBarEnhanced
+		if Addon.XPBar and Addon.XPBar.RegisterObserver then
+			local observerId = self:GetName() or ("v2_bar_" .. tostring(self))
+			self.__observer_id = Addon.XPBar:RegisterObserver(self, observerId)
+		end
+	end
+	
+	-- Start periodic text refresh ticker (updates session/level time every second)
+	if not self._textRefreshTicker then
+		self._textRefreshTicker = C_Timer.NewTicker(1, function()
+			if self and self.UpdateSessionText and self:IsShown() then
+				-- Update session text with fresh time values (computes from Session service)
+				-- Don't pass context so it always fetches fresh time
+				self:UpdateSessionText(nil)
+			end
+		end)
+	end
 end
 
 --- OnHide - Called when bar becomes hidden
 function BaseMixin:OnHide()
-	-- Cleanup if needed (behavior mixins may override)
+	-- Cancel periodic text refresh ticker
+	if self._textRefreshTicker then
+		self._textRefreshTicker:Cancel()
+		self._textRefreshTicker = nil
+	end
+	
+	-- Note: Don't unregister observer here - we want to receive updates
+	-- even when hidden (e.g., color changes should update all bars)
 end
 
 -------------------------------------------------------------------

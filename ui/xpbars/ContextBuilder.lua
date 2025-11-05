@@ -38,17 +38,57 @@ end
 function ContextBuilder.GetQuestXP()
 	local completeQuestXP = 0
 	local incompleteQuestXP = 0
-	local completeCount = 0
-	local incompleteCount = 0
 
 	if XPBarEnhanced and XPBarEnhanced.XPBar then
-		local total, complete, incomplete = XPBarEnhanced.XPBar:GetQuestXP()
+		local _, complete, incomplete = XPBarEnhanced.XPBar:GetQuestXP()
 		completeQuestXP = complete or 0
 		incompleteQuestXP = incomplete or 0
-	-- counts not exposed by current service; keep zero defaults
 	end
 
-	return completeQuestXP, incompleteQuestXP, completeCount, incompleteCount
+	return completeQuestXP, incompleteQuestXP
+end
+
+-------------------------------------------------------------------
+-- CONTEXT MANIPULATION HELPERS
+-------------------------------------------------------------------
+
+--- Extend an existing context with additional fields
+--- Creates a new context table by copying base and adding new fields
+--- @param baseContext table The base context to extend
+--- @param additions table Table of key-value pairs to add
+--- @return table extendedContext New context with all fields
+function ContextBuilder.ExtendContext(baseContext, additions)
+	local extended = {}
+	
+	-- Copy all fields from base context
+	if baseContext then
+		for k, v in pairs(baseContext) do
+			extended[k] = v
+		end
+	end
+	
+	-- Add/override with new fields
+	if additions then
+		for k, v in pairs(additions) do
+			extended[k] = v
+		end
+	end
+	
+	return extended
+end
+
+--- Make a context table immutable using metatable protection
+--- Prevents accidental modifications to context after creation
+--- @param context table The context to make immutable
+--- @return table immutableContext Protected context
+function ContextBuilder.MakeImmutable(context)
+	return setmetatable({}, {
+		__index = context,
+		__newindex = function(t, k, v)
+			error(string.format("Attempt to modify immutable context field '%s'", tostring(k)), 2)
+		end,
+		__metatable = false -- Prevent metatable access
+	})
 end
 
 -- Compute XP gained since last snapshot (handles level-up wrap-around)
@@ -71,29 +111,65 @@ end
 
 -- Update session tracking with a gain and return session snapshot
 function ContextBuilder.UpdateSessionWithGain(xpGained)
-	ContextBuilder._sessionStart = ContextBuilder._sessionStart or time()
+	-- ARCHITECTURE NOTE: sessionStart should persist across reloads
+	-- Use Session service's sessionStart from saved variables instead of transient local
+	local AddonGlobal = _G["XPBarEnhanced"]
+	local sessionStart = time() -- Fallback if Session not available
+	if AddonGlobal and AddonGlobal.Session then
+		local session = AddonGlobal.Session:GetCurrent()
+		if session and session.sessionStart then
+			sessionStart = session.sessionStart
+		end
+	end
+	
 	ContextBuilder._sessionXP = ContextBuilder._sessionXP or 0
 	ContextBuilder._sessionXP = ContextBuilder._sessionXP + (xpGained or 0)
 
-	local sessionStart = ContextBuilder._sessionStart
 	local sessionXP = ContextBuilder._sessionXP
 	local sessionDuration = time() - sessionStart
-	local xpPerHour = ContextBuilder.CalculateXPPerHour(sessionStart, sessionXP, 0, ContextBuilder._lastXP or 0)
+	
+	-- Get realLevelTime from Session service for fallback calculation
+	local realLevelTime = 0
+	if AddonGlobal and AddonGlobal.Session then
+		local session = AddonGlobal.Session:GetCurrent()
+		if session and session.realLevelTime then
+			realLevelTime = session.realLevelTime
+			-- Add elapsed time since last TIME_PLAYED_MSG for real-time accuracy
+			if session.lastTimePlayedRequest and session.lastTimePlayedRequest > 0 then
+				local elapsed = time() - session.lastTimePlayedRequest
+				realLevelTime = realLevelTime + elapsed
+			end
+		end
+	end
+	
+	local currentXP = UnitXP("player") or 0
+	local xpPerHour = ContextBuilder.CalculateXPPerHour(sessionStart, sessionXP, realLevelTime, currentXP)
 
 	return sessionStart, sessionXP, sessionDuration, xpPerHour
 end
 
 -- Helper to build base context table
 function ContextBuilder.BuildBaseContext(event, source, coreState, extras)
-	-- Helper to resolve boolean config with precedence: per-frame config -> global Addon.db -> default
-	local function cfgBool(db, key, default)
-		if db and db[key] ~= nil then
-			return db[key] == true
-		end
-		return default == true
-	end
+	-- Use explicit global reference to avoid nil issues
+	local AddonGlobal = _G["XPBarEnhanced"]
+	local db = AddonGlobal and AddonGlobal.db
 
-	local db = Addon and Addon.db or {}
+	-- Helper to get boolean from db with default fallback
+	local function getBool(key, default)
+		local dbValue = db and db[key]
+		
+		if dbValue ~= nil then
+			-- For defaults that are true: show unless explicitly disabled
+			if default == true then
+				return dbValue ~= false
+			-- For defaults that are false: hide unless explicitly enabled  
+			else
+				return dbValue == true
+			end
+		else
+			return default == true
+		end
+	end
 
 	local ctx = {
 		event = event,
@@ -106,19 +182,24 @@ function ContextBuilder.BuildBaseContext(event, source, coreState, extras)
 		restedXP = coreState.restedXP,
 		isRested = coreState.isRested,
 		isFullyRested = coreState.isFullyRested,
-		-- Centralized display flags (per-frame config overrides global settings)
-		showXPText = cfgBool(db, "showXPText", true),
-		showLevelText = cfgBool(db, "showLevelText", true),
-		showPercentage = cfgBool(db, "showPercentage", true),
-		showQuestXP = cfgBool(db, "showQuestXP", true),
-		showCompleteQuestOverlay = cfgBool(db, "showCompleteQuestOverlay", true),
-		showIncompleteQuestOverlay = cfgBool(db, "showIncompleteQuestOverlay", true),
-		showRestedOverlay = cfgBool(db, "showRestedOverlay", true),
-		showExhaustionTick = cfgBool(db, "showExhaustionTick", true),
-		showSessionTimeText = cfgBool(db, "showSessionTimeText", true),
-		showLevelTimeText = cfgBool(db, "showLevelTimeText", true),
-		showXPPerHourText = cfgBool(db, "showXPPerHourText", true),
-		showTimeToLevelText = cfgBool(db, "showTimeToLevelText", true)
+		-- Centralized display flags using ConfigHelper for consistency
+		showXPText = getBool("showXPText", true),
+		showLevelText = getBool("showLevelText", true),
+		showPercentage = getBool("showPercentage", true),
+		showQuestXP = getBool("showQuestXP", true),
+		showCompleteQuestOverlay = getBool("showCompleteQuestOverlay", true),
+		showIncompleteQuestOverlay = getBool("showIncompleteQuestOverlay", false),
+		showRestedOverlay = getBool("showRestedOverlay", true),
+		showExhaustionTick = getBool("showExhaustionTick", true),
+		showSessionTimeText = getBool("showSessionTimeText", true),
+		showLevelTimeText = getBool("showLevelTimeText", true),
+		showXPPerHourText = getBool("showXPPerHourText", true),
+		showTimeToLevelText = getBool("showTimeToLevelText", true),
+		-- Configuration values
+		percentDecimals = (db and db.percentDecimals) or 1,
+		abbreviateNumbers = getBool("abbreviateNumbers", true),
+		showRemainingXP = getBool("showRemainingXP", false),
+		showQuestPercent = getBool("showQuestPercent", false)
 	}
 
 	if extras and type(extras) == "table" then
@@ -126,6 +207,7 @@ function ContextBuilder.BuildBaseContext(event, source, coreState, extras)
 			ctx[k] = v
 		end
 	end
+	
 	return ctx
 end
 
@@ -142,10 +224,27 @@ function ContextBuilder.BuildXPChangeContext(event, ...)
 	local core = ContextBuilder.GetCoreState()
 	local xpGained, lastXP = ContextBuilder.ComputeXPGained(core.currentXP, core.xpMax)
 	local sessionStart, sessionXP, sessionDuration, xpPerHour = ContextBuilder.UpdateSessionWithGain(xpGained)
+	local completeQuestXP, incompleteQuestXP = ContextBuilder.GetQuestXP()
+	
+	-- Get real level time from Session service (not just session duration)
+	local levelSeconds = 0
+	local AddonGlobal = _G["XPBarEnhanced"]
+	if AddonGlobal and AddonGlobal.Session then
+		local session = AddonGlobal.Session:GetCurrent()
+		if session and session.realLevelTime and session.realLevelTime > 0 then
+			levelSeconds = session.realLevelTime
+			-- Add elapsed time since last TIME_PLAYED_MSG for real-time accuracy
+			if session.lastTimePlayedRequest and session.lastTimePlayedRequest > 0 then
+				local elapsed = time() - session.lastTimePlayedRequest
+				levelSeconds = levelSeconds + elapsed
+			end
+		end
+	end
 
-	local completeQuestXP, incompleteQuestXP, completeCount, incompleteCount = ContextBuilder.GetQuestXP()
-
-	local extras = {
+	local baseContext = ContextBuilder.BuildBaseContext(event, "PLAYER_XP_UPDATE", core, nil)
+	
+	-- Extend with XP change specific data
+	local ctx = ContextBuilder.ExtendContext(baseContext, {
 		-- XP change tracking
 		xpBefore = lastXP,
 		xpAfter = core.currentXP,
@@ -153,18 +252,17 @@ function ContextBuilder.BuildXPChangeContext(event, ...)
 		-- Quest XP
 		completeQuestXP = completeQuestXP,
 		incompleteQuestXP = incompleteQuestXP,
-		completeCount = completeCount,
-		incompleteCount = incompleteCount,
 		-- Session stats
 		sessionXP = sessionXP,
 		sessionDuration = sessionDuration,
+		sessionSeconds = sessionDuration,
+		levelSeconds = levelSeconds, -- Real level time from Session service
 		sessionStart = sessionStart,
 		xpPerHour = xpPerHour,
 		timeToLevel = ContextBuilder.CalculateTimeToLevel(core.currentXP, core.xpMax, xpPerHour)
-	}
-
-	local ctx = ContextBuilder.BuildBaseContext(event, "PLAYER_XP_UPDATE", core, extras)
-	return ctx
+	})
+	
+	return ContextBuilder.MakeImmutable(ctx)
 end
 
 --- Build context for level-up events
@@ -175,22 +273,48 @@ function ContextBuilder.BuildLevelUpContext(event, newLevel)
 	local core = ContextBuilder.GetCoreState()
 	local completeQuestXP, incompleteQuestXP = ContextBuilder.GetQuestXP()
 
+	-- Use Session service's sessionStart from saved variables
+	local AddonGlobal = _G["XPBarEnhanced"]
+	local sessionStart = time() -- Fallback
+	if AddonGlobal and AddonGlobal.Session then
+		local session = AddonGlobal.Session:GetCurrent()
+		if session and session.sessionStart then
+			sessionStart = session.sessionStart
+		end
+	end
+
+	-- Calculate current session stats before reset
+	local sessionXP = ContextBuilder._sessionXP or 0
+	local sessionDuration = time() - sessionStart
+	local xpPerHour = ContextBuilder.CalculateXPPerHour(sessionStart, sessionXP, 0, 0)
+	local timeToLevel = ContextBuilder.CalculateTimeToLevel(core.currentXP, core.xpMax, xpPerHour)
+
 	-- Reset session tracking for new level
 	ContextBuilder._lastXP = core.currentXP
 	ContextBuilder._lastMaxXP = core.xpMax
-	ContextBuilder._sessionStart = ContextBuilder._sessionStart or time()
+	-- Don't reset sessionStart - it persists in Session service saved variables
 	ContextBuilder._sessionXP = 0
 
-	local extras = {
+	local baseContext = ContextBuilder.BuildBaseContext(event, "PLAYER_LEVEL_UP", core, nil)
+	
+	-- Extend with level-up specific data
+	local ctx = ContextBuilder.ExtendContext(baseContext, {
 		oldLevel = (newLevel or core.level) - 1,
 		newLevel = newLevel or core.level,
 		-- Quest XP
 		completeQuestXP = completeQuestXP,
-		incompleteQuestXP = incompleteQuestXP
-	}
-
-	local ctx = ContextBuilder.BuildBaseContext(event, "PLAYER_LEVEL_UP", core, extras)
-	return ctx
+		incompleteQuestXP = incompleteQuestXP,
+		-- Session stats (from before reset)
+		sessionXP = sessionXP,
+		sessionDuration = sessionDuration,
+		sessionStart = sessionStart,
+		xpPerHour = xpPerHour,
+		timeToLevel = timeToLevel,
+		sessionSeconds = sessionDuration,
+		levelSeconds = 0 -- Reset for new level
+	})
+	
+	return ContextBuilder.MakeImmutable(ctx)
 end
 
 --- Build context for rested state change
@@ -200,14 +324,15 @@ function ContextBuilder.BuildRestedContext(event, ...)
 	local core = ContextBuilder.GetCoreState()
 	local completeQuestXP, incompleteQuestXP = ContextBuilder.GetQuestXP()
 
-	local extras = {
-		-- Quest XP
+	local baseContext = ContextBuilder.BuildBaseContext(event, "RESTED_UPDATE", core, nil)
+	
+	-- Extend with quest XP data
+	local ctx = ContextBuilder.ExtendContext(baseContext, {
 		completeQuestXP = completeQuestXP,
 		incompleteQuestXP = incompleteQuestXP
-	}
-
-	local ctx = ContextBuilder.BuildBaseContext(event, "RESTED_UPDATE", core, extras)
-	return ctx
+	})
+	
+	return ContextBuilder.MakeImmutable(ctx)
 end
 
 --- Build context for quest overlay updates
@@ -215,45 +340,49 @@ end
 ---@return table context Immutable context object
 function ContextBuilder.BuildQuestContext(event, ...)
 	local core = ContextBuilder.GetCoreState()
-	local completeQuestXP, incompleteQuestXP, completeCount, incompleteCount = ContextBuilder.GetQuestXP()
+	local completeQuestXP, incompleteQuestXP = ContextBuilder.GetQuestXP()
 
-	local extras = {
-		-- Quest XP
+	local baseContext = ContextBuilder.BuildBaseContext(event, "QUEST_UPDATE", core, nil)
+	
+	-- Extend with quest XP data
+	local ctx = ContextBuilder.ExtendContext(baseContext, {
 		completeQuestXP = completeQuestXP,
-		incompleteQuestXP = incompleteQuestXP,
-		completeCount = completeCount,
-		incompleteCount = incompleteCount
-	}
-
-	local ctx = ContextBuilder.BuildBaseContext(event, "QUEST_UPDATE", core, extras)
-	return ctx
+		incompleteQuestXP = incompleteQuestXP
+	})
+	
+	return ContextBuilder.MakeImmutable(ctx)
 end
 
+--- Build context for tooltip display
+---@return table context Immutable context object
 function ContextBuilder.BuildTooltipContext()
 	local core = ContextBuilder.GetCoreState()
 	local xpGained, lastXP = ContextBuilder.ComputeXPGained(core.currentXP, core.xpMax)
 	local sessionStart, sessionXP, sessionDuration, xpPerHour = ContextBuilder.UpdateSessionWithGain(xpGained)
-	local completeQuestXP, incompleteQuestXP, completeCount, incompleteCount = ContextBuilder.GetQuestXP()
+	local completeQuestXP, incompleteQuestXP = ContextBuilder.GetQuestXP()
 
-	local extras = {
+	local baseContext = ContextBuilder.BuildBaseContext("TOOLTIP", "TOOLTIP_CONTEXT", core, nil)
+	
+	-- Extend with tooltip-specific data
+	local ctx = ContextBuilder.ExtendContext(baseContext, {
 		-- Quest XP
 		completeQuestXP = completeQuestXP,
 		incompleteQuestXP = incompleteQuestXP,
-		completeCount = completeCount,
-		incompleteCount = incompleteCount,
 		-- Session stats
 		sessionXP = sessionXP,
 		sessionStart = sessionStart,
+		sessionDuration = sessionDuration,
+		sessionSeconds = sessionDuration,
+		levelSeconds = sessionDuration, -- For tooltip, assume level time = session time
 		xpPerHour = xpPerHour,
 		timeToLevel = ContextBuilder.CalculateTimeToLevel(core.currentXP, core.xpMax, xpPerHour)
-	}
-
-	local ctx = ContextBuilder.BuildBaseContext(event, "TOOLTIP_CONTEXT", core, extras)
-	return ctx
+	})
+	
+	return ContextBuilder.MakeImmutable(ctx)
 end
 
 -------------------------------------------------------------------
--- SESSION CALCULATION METHODS (duplicated from core/Session.lua)
+-- SESSION CALCULATION METHODS
 -------------------------------------------------------------------
 
 --- Calculate XP gain rate (XP per hour)
@@ -299,32 +428,6 @@ function ContextBuilder.CalculateTimeToLevel(currentXP, maxXP, xpPerHour)
 	return 0
 end
 
---- Build session stats snapshot
---- Duplicated from Session:GetStats() - independent implementation
----@param sessionStart number Session start timestamp
----@param sessionXP number Total XP gained in session
----@param realLevelTime number|nil Real played time at current level (optional)
----@param realTotalTime number|nil Real total played time (optional)
----@return table stats Session statistics
-function ContextBuilder.BuildSessionStats(sessionStart, sessionXP, realLevelTime, realTotalTime)
-	local duration = time() - (sessionStart or time())
-
-	-- Calculate XP per hour
-	local xpPerHour = 0
-	if duration > 0 then
-		xpPerHour = ((sessionXP or 0) / (duration / 3600))
-	end
-
-	return {
-		duration = duration,
-		xpGained = sessionXP or 0,
-		xpPerHour = xpPerHour,
-		startTime = sessionStart or time(),
-		realTotalTime = realTotalTime or 0,
-		realLevelTime = realLevelTime or 0
-	}
-end
-
 -------------------------------------------------------------------
 -- INITIALIZATION
 -------------------------------------------------------------------
@@ -332,7 +435,6 @@ end
 --- Initialize context builder state
 --- Called on addon load to set up session tracking
 function ContextBuilder.Initialize()
-	ContextBuilder._sessionStart = time()
 	ContextBuilder._sessionXP = 0
 	ContextBuilder._lastXP = UnitXP("player") or 0
 	ContextBuilder._lastMaxXP = UnitXPMax("player") or 1
@@ -340,7 +442,6 @@ end
 
 --- Reset session tracking (e.g., on login or manual reset)
 function ContextBuilder.ResetSession()
-	ContextBuilder._sessionStart = time()
 	ContextBuilder._sessionXP = 0
 	ContextBuilder._lastXP = UnitXP("player") or 0
 	ContextBuilder._lastMaxXP = UnitXPMax("player") or 1

@@ -1,5 +1,6 @@
-<Ui xmlns="http://www.blizzard.com/wow/ui/"
-	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/">
+<Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/
+..\..\Blizzard_SharedXML\UI.xsd">
+
 	<!-- XP Bar Enhanced - FlatBar Template v2 -->
 	<!-- Follows project conventions from existing FlatXPBar.xml -->
 
@@ -39,7 +40,7 @@
 				<Layers>
 					<!-- Rested XP overlay - on top of StatusBar fill -->
 					<Layer level="ARTWORK" textureSubLevel="1">
-						<Texture parentKey="RestedOverlay" file="Interface\Buttons\WHITE8X8">
+						<Texture parentKey="RestedOverlay" hidden="true" file="Interface\Buttons\WHITE8X8">
 							<Size x="0" y="30"/>
 							<Anchors>
 								<Anchor point="BOTTOMLEFT" x="0" y="0"/>

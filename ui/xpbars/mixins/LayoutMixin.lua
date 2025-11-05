@@ -78,16 +78,24 @@ function XPBarLayoutMixin:CalculateRestedBounds(context, barWidth)
 	-- Calculate remaining XP to next level
 	local remainingXP = math.max(0, maxXP - currentXP)
 	
-	-- Calculate offset after completed quest XP
-	local questOffset = math.min(completeQuestXP, remainingXP)
-	local offsetPixels = math.floor((questOffset / maxXP) * barWidth)
+	-- Rested overlay starts AFTER current XP fill + quest overlays (like V1)
+	-- Calculate pixel offset from currentXP + questOffset
+	local questOffset = 0
+	if context.showCompleteQuestOverlay and completeQuestXP > 0 then
+		questOffset = math.min(completeQuestXP, remainingXP)
+	end
 	
-	-- Calculate remaining space after quest offset
+	-- Offset starts from currentXP + questOffset (rested comes AFTER filled portion)
+	local startOffsetXP = currentXP + questOffset
+	local offsetPixels = math.floor((startOffsetXP / maxXP) * barWidth)
+	
+	-- Calculate remaining space after current XP and quest offset
 	local remainingAfterQuest = remainingXP - questOffset
 	local restedXPClamped = math.min(restedXP, remainingAfterQuest)
 	
-	-- Only show if has rested XP, not fully rested, and has space
-	local visible = (restedXP > 0) and not isFullyRested and (restedXPClamped > 0)
+	-- V1 parity: Hide overlay when rested fully covers remaining XP OR when fully rested (>= 150% of max XP)
+	-- Show only if: has rested XP AND (rested < remaining XP) AND (not at 150% threshold) AND has space
+	local visible = (restedXP > 0) and (restedXP < remainingXP) and not isFullyRested and (restedXPClamped > 0)
 	
 	if not visible then
 		return 0, 0, false
@@ -137,9 +145,6 @@ function XPBarLayoutMixin:UpdateBarLayout(context, barName)
 	local bar = self[barName]
 	
 	if not bar then
-		if Addon.Logger then
-			Addon.Logger:Warn("UpdateBarLayout: bar not found - " .. barName)
-		end
 		return
 	end
 	
@@ -197,23 +202,25 @@ function XPBarLayoutMixin:UpdateQuestCompleteOverlayLayout(context, overlayName)
 	end
 	
 	local completeXP = context.completeQuestXP or 0
-	local showComplete = context.showCompleteQuestOverlay
+	
+	local showComplete = Addon.ConfigHelper.GetShowCompleteQuestOverlay(context)
 	
 	local visible = false
 	if showComplete and (completeXP and completeXP > 0) then
 		local currentXP = context.currentXP or 0
 		local maxXP = context.xpMax or 1
 		local remainingXP = math.max(0, maxXP - currentXP)
-		
 		local questXPClamped = math.min(completeXP, remainingXP)
-		local barWidth = self:ValidateBarWidth(self)
+		local ratio = questXPClamped / maxXP
 		
-		local offsetPixels, widthPixels = self:CalculateOverlayBounds(currentXP, questXPClamped, maxXP, barWidth)
-		
-		overlay:ClearAllPoints()
-		overlay:SetPoint("BOTTOMLEFT", offsetPixels, 0)
-		overlay:SetWidth(math.max(1, widthPixels))
-		visible = true
+		if ratio >= 0.01 then
+			local barWidth = self:ValidateBarWidth(self)
+			local offsetPixels, widthPixels = self:CalculateOverlayBounds(currentXP, questXPClamped, maxXP, barWidth)
+			overlay:ClearAllPoints()
+			overlay:SetPoint("BOTTOMLEFT", offsetPixels, 0)
+			overlay:SetWidth(math.max(1, widthPixels))
+			visible = true
+		end
 	end
 	
 	overlay:SetShown(visible)
@@ -232,41 +239,41 @@ function XPBarLayoutMixin:UpdateQuestIncompleteOverlayLayout(context, overlayNam
 	
 	local completeQuestXP = context.completeQuestXP or 0
 	local incompleteQuestXP = context.incompleteQuestXP or 0
-	local currentXP = context.currentXP or 0
-	local maxXP = context.xpMax or 1
-	local remainingXP = math.max(0, maxXP - currentXP)
 	
-	-- Determine visibility setting (default to true if not explicitly disabled)
-	local db = Addon and Addon.db or {}
-	local showIncomplete
-	if context and context.showIncompleteQuestOverlay ~= nil then
-		showIncomplete = context.showIncompleteQuestOverlay
-	else
-		local config = self.__xpbar_config or {}
-		if config.showIncompleteQuestOverlay ~= nil then
-			showIncomplete = config.showIncompleteQuestOverlay == true
-		else
-			showIncomplete = (db.showIncompleteQuestOverlay ~= false)
+	local showIncomplete = Addon.ConfigHelper.GetShowIncompleteQuestOverlay(context)
+	
+	local visible = false
+	if showIncomplete and incompleteQuestXP > 0 then
+		local currentXP = context.currentXP or 0
+		local maxXP = context.xpMax or 1
+		local remainingXP = math.max(0, maxXP - currentXP)
+		
+		-- Only subtract complete quest XP if that overlay is actually showing
+		if context.showCompleteQuestOverlay and completeQuestXP > 0 then
+			remainingXP = math.max(0, remainingXP - completeQuestXP)
+		end
+		
+		local questXPClamped = math.min(incompleteQuestXP, remainingXP)
+		local ratio = questXPClamped / maxXP
+		
+		if ratio >= 0.01 then
+			local barWidth = self:ValidateBarWidth(self)
+			
+			-- Calculate start position: current XP + complete quest XP (only if complete overlay showing)
+			local startXP = currentXP
+			if context.showCompleteQuestOverlay and completeQuestXP > 0 then
+				startXP = startXP + completeQuestXP
+			end
+			
+			local offsetPixels, widthPixels = self:CalculateOverlayBounds(startXP, questXPClamped, maxXP, barWidth)
+			overlay:ClearAllPoints()
+			overlay:SetPoint("BOTTOMLEFT", offsetPixels, 0)
+			overlay:SetWidth(math.max(1, widthPixels))
+			visible = true
 		end
 	end
 	
-	-- Account for complete quest overlay
-	remainingXP = math.max(0, remainingXP - completeQuestXP)
-	local questXPClamped = math.min(incompleteQuestXP, remainingXP)
-	local ratio = questXPClamped / maxXP
-	local visible = showIncomplete and incompleteQuestXP > 0 and ratio >= 0.01
-	
 	overlay:SetShown(visible)
-	
-	if visible then
-		local barWidth = self:ValidateBarWidth(self)
-		local startXP = currentXP + completeQuestXP
-		local offsetPixels, widthPixels = self:CalculateOverlayBounds(startXP, questXPClamped, maxXP, barWidth)
-		
-		overlay:ClearAllPoints()
-		overlay:SetPoint("BOTTOMLEFT", offsetPixels, 0)
-		overlay:SetWidth(math.max(1, widthPixels))
-	end
 end
 
 --- Update exhaustion tick marker position/visibility (not color)

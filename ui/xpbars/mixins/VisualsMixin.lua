@@ -88,8 +88,7 @@ function XPBarVisualsMixin:UpdateFlashOverlay(context, flashName)
 end
 
 function XPBarVisualsMixin:UpdateOverlays(context)
-    if not context and Addon and Addon.Logger then
-        Addon.Logger:Warn("UpdateOverlays called without context")
+    if not context then
         return
     end
     if self.UpdateRestedOverlay then
