@@ -111,21 +111,23 @@ end
 
 -- Update session tracking with a gain and return session snapshot
 function ContextBuilder.UpdateSessionWithGain(xpGained)
-	-- ARCHITECTURE NOTE: sessionStart should persist across reloads
-	-- Use Session service's sessionStart from saved variables instead of transient local
+	-- ARCHITECTURE NOTE: sessionStart and sessionXP should persist across reloads
+	-- Use Session service's sessionStart and gainedXP from saved variables
 	local AddonGlobal = _G["XPBarEnhanced"]
 	local sessionStart = time() -- Fallback if Session not available
+	local sessionXP = 0 -- Fallback
+	
 	if AddonGlobal and AddonGlobal.Session then
 		local session = AddonGlobal.Session:GetCurrent()
 		if session and session.sessionStart then
 			sessionStart = session.sessionStart
 		end
+		-- Use Session service's persistent gainedXP instead of transient local counter
+		if session and session.gainedXP then
+			sessionXP = session.gainedXP
+		end
 	end
-	
-	ContextBuilder._sessionXP = ContextBuilder._sessionXP or 0
-	ContextBuilder._sessionXP = ContextBuilder._sessionXP + (xpGained or 0)
 
-	local sessionXP = ContextBuilder._sessionXP
 	local sessionDuration = time() - sessionStart
 	
 	-- Get realLevelTime from Session service for fallback calculation
@@ -283,17 +285,23 @@ function ContextBuilder.BuildLevelUpContext(event, newLevel)
 		end
 	end
 
-	-- Calculate current session stats before reset
-	local sessionXP = ContextBuilder._sessionXP or 0
+	-- Calculate current session stats (use Session service's gainedXP)
+	local AddonGlobal = _G["XPBarEnhanced"]
+	local sessionXP = 0
+	if AddonGlobal and AddonGlobal.Session then
+		local session = AddonGlobal.Session:GetCurrent()
+		if session and session.gainedXP then
+			sessionXP = session.gainedXP
+		end
+	end
+	
 	local sessionDuration = time() - sessionStart
 	local xpPerHour = ContextBuilder.CalculateXPPerHour(sessionStart, sessionXP, 0, 0)
 	local timeToLevel = ContextBuilder.CalculateTimeToLevel(core.currentXP, core.xpMax, xpPerHour)
 
-	-- Reset session tracking for new level
+	-- Reset XP tracking for new level (Session service handles its own reset)
 	ContextBuilder._lastXP = core.currentXP
 	ContextBuilder._lastMaxXP = core.xpMax
-	-- Don't reset sessionStart - it persists in Session service saved variables
-	ContextBuilder._sessionXP = 0
 
 	local baseContext = ContextBuilder.BuildBaseContext(event, "PLAYER_LEVEL_UP", core, nil)
 	
@@ -433,16 +441,17 @@ end
 -------------------------------------------------------------------
 
 --- Initialize context builder state
---- Called on addon load to set up session tracking
+--- Called on addon load to set up XP tracking
 function ContextBuilder.Initialize()
-	ContextBuilder._sessionXP = 0
+	-- No longer tracking sessionXP locally - use Session service's persistent gainedXP
 	ContextBuilder._lastXP = UnitXP("player") or 0
 	ContextBuilder._lastMaxXP = UnitXPMax("player") or 1
 end
 
---- Reset session tracking (e.g., on login or manual reset)
+--- Reset XP tracking (e.g., on login or manual reset)
+--- Note: Session service handles its own session reset
 function ContextBuilder.ResetSession()
-	ContextBuilder._sessionXP = 0
+	-- No longer tracking sessionXP locally - use Session service's persistent gainedXP
 	ContextBuilder._lastXP = UnitXP("player") or 0
 	ContextBuilder._lastMaxXP = UnitXPMax("player") or 1
 end

@@ -8,24 +8,6 @@ local Addon = XPBarEnhanced
 local XPBarColors = _G.XPBarColors
 
 -------------------------------------------------------------------
--- MIXIN METADATA
--------------------------------------------------------------------
-
-XPBarPaintMixin.__metadata = {
-	name = "XPBarPaintMixin",
-	version = "1.0.0",
-	provides = {
-		"UpdateBarColors",
-		"UpdateRestedOverlayColor",
-		"UpdateQuestCompleteOverlayColor",
-		"UpdateQuestIncompleteOverlayColor",
-		"ApplyBarTexture",
-		"BuildVisuals",
-		"ApplyStyle"
-	}
-}
-
--------------------------------------------------------------------
 -- COLOR APPLICATION METHODS
 -------------------------------------------------------------------
 
@@ -40,8 +22,10 @@ function XPBarPaintMixin:UpdateBarColors(context, barName)
 		return
 	end
 	
-	-- Select color based on rested state
-	local colorKey = context.isRested and Color.XpBarRested or Color.XpBar
+	-- Select color based on whether player has rested XP (not just in resting area)
+	-- Check restedXP > 0 to match V1 behavior
+	local hasRestedXP = context.restedXP and context.restedXP > 0
+	local colorKey = hasRestedXP and Color.XpBarRested or Color.XpBar
 	local color = XPBarColors:GetUserColor(colorKey)
 	bar:SetStatusBarColor(color.r, color.g, color.b, color.a)
 end

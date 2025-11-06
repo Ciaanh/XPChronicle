@@ -5,21 +5,6 @@ XPBarVisualsMixin = {}
 
 local Addon = XPBarEnhanced
 
-XPBarVisualsMixin.__metadata = {
-    name = "XPBarVisualsMixin",
-    version = "2.0.0",
-    provides = {
-        "UpdateCurrentXPBar",
-        "UpdateRestedOverlay",
-        "UpdateQuestCompleteOverlay",
-        "UpdateQuestIncompleteOverlay",
-        "UpdateExhaustionTick",
-        "UpdateFlashOverlay",
-        "UpdateOverlays",
-        "UpdateBars"
-    }
-}
-
 function XPBarVisualsMixin:UpdateCurrentXPBar(context, barName)
     if self.UpdateBarLayout then
         self:UpdateBarLayout(context, barName)

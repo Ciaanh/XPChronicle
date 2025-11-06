@@ -7,26 +7,6 @@ XPBarLayoutMixin = {}
 local Addon = XPBarEnhanced
 
 -------------------------------------------------------------------
--- MIXIN METADATA
--------------------------------------------------------------------
-
-XPBarLayoutMixin.__metadata = {
-	name = "XPBarLayoutMixin",
-	version = "1.0.0",
-	provides = {
-		"UpdateBarLayout",
-		"UpdateRestedOverlayLayout",
-		"UpdateQuestCompleteOverlayLayout",
-		"UpdateQuestIncompleteOverlayLayout",
-		"UpdateExhaustionTickLayout",
-		"CalculateBarRatio",
-		"CalculateOverlayBounds",
-		"CalculateRestedBounds",
-		"ValidateBarWidth"
-	}
-}
-
--------------------------------------------------------------------
 -- LAYOUT CALCULATION HELPERS
 -------------------------------------------------------------------
 

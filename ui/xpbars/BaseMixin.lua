@@ -104,13 +104,19 @@ function BaseMixin:OnShow()
 		end
 	end
 	
-	-- Start periodic text refresh ticker (updates session/level time every second)
+	-- Start periodic text refresh ticker (updates session/level time and rate text)
 	if not self._textRefreshTicker then
-		self._textRefreshTicker = C_Timer.NewTicker(1, function()
-			if self and self.UpdateSessionText and self:IsShown() then
+		self._textRefreshTicker = C_Timer.NewTicker(2.5, function()
+			if self and self:IsShown() then
 				-- Update session text with fresh time values (computes from Session service)
 				-- Don't pass context so it always fetches fresh time
-				self:UpdateSessionText(nil)
+				if self.UpdateSessionText then
+					self:UpdateSessionText(nil)
+				end
+				-- Update rate text (XP/hour and time to level) with fresh calculations
+				if self.UpdateRateText then
+					self:UpdateRateText(nil)
+				end
 			end
 		end)
 	end

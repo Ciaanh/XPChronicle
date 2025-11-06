@@ -171,7 +171,7 @@ function XPBarTextMixin:UpdateRateText(context)
 		return
 	end
 
-	local abbreviate = context.abbreviateNumbers ~= false
+	local abbreviate = context and context.abbreviateNumbers ~= false or true
 	-- Prefer context-level toggles when present, default to true if not explicitly disabled
 	local showXPPerHour = Addon.ConfigHelper.GetShowXPPerHourText(context)
 	local showTimeToLevel = Addon.ConfigHelper.GetShowTimeToLevelText(context)
