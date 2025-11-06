@@ -89,13 +89,6 @@ function StyleBuilder:BuildBehaviorList(config)
 		table.insert(behaviors, XPBarTextMixin)
 	end
 
-	-- Animation mixin (optional, default enabled)
-	if config.animation ~= false then
-		if XPBarAnimationMixin then
-			table.insert(behaviors, XPBarAnimationMixin)
-		end
-	end
-
 	-- Interaction mixin (optional, default enabled)
 	if config.interaction ~= false then
 		if XPBarInteractionMixin then

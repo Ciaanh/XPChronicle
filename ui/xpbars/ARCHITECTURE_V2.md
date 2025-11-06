@@ -6,6 +6,21 @@
 
 ---
 
+## ⚠️ IMPORTANT NOTE: Animation System Removed
+
+**The animation system (AnimationMixin) has been completely removed from V2** to preserve a smooth, feature-complete implementation during the style migration from V1.
+
+**What this means:**
+- All references to `animation` config in this document are **deprecated**
+- No smooth value transitions, flash effects, or level-up animations in V2
+- The StatusBar updates are **instant** (no smoothing)
+- This ensures stability and predictability during migration
+- V1 styles retain their full animation capabilities
+
+**If you see animation-related config or code in this document, ignore it.** The V2 implementation is intentionally simplified to focus on core layout and rendering functionality.
+
+---
+
 ## Introduction
 
 Welcome to the XPBarEnhanced V2 architecture! This document explains how to create custom XP bar styles using the new mixin-based composition system.
@@ -15,14 +30,13 @@ Welcome to the XPBarEnhanced V2 architecture! This document explains how to crea
 V2 is a complete rewrite of the XPBarEnhanced architecture that:
 - **Reduces code duplication** by 80%+ through shared behavior mixins
 - **Simplifies style creation** - new styles require only ~100-200 lines of code
-- **Centralizes common features** - events, animations, tooltips, positioning
+- **Centralizes common features** - events, tooltips, positioning
 - **Enables rapid development** - focus only on visual layout, not plumbing
 
 ### Why Create a Custom Style?
 
 The built-in styles (Flat, Legacy, Vertical, Circular) cover most use cases, but you might want:
 - Unique visual layouts (diagonal bars, spiral patterns, etc.)
-- Custom animations (bouncing, pulsing, particles)
 - Integration with other addons (portraits, reputation, etc.)
 - Personal aesthetic preferences
 
@@ -48,7 +62,6 @@ local MyStyleTemplate = {}
 
 -- Define your style config
 local DefaultConfig = {
-    animation = {enabled = true, valueSmoothing = true, xpGainFlash = true},
     interaction = {enabled = true},
     tooltip = {enabled = true},
     position = {mode = "DRAGGABLE", positionKey = "MyStyle_v2"},
@@ -244,11 +257,6 @@ The V2 architecture has three layers:
 
 #### Behavior Mixins (Behavior Layer)
 
-**AnimationMixin** (`mixins/AnimationMixin.lua`):
-- Value smoothing (XP bar fills smoothly, not instantly)
-- Flash effects (white overlay on XP gain/level-up)
-- **Your use case**: Enable/disable in config, or add custom animations
-
 **PositionMixin** (`mixins/PositionMixin.lua`):
 - Draggable positioning (Shift+LeftClick drag)
 - Position persistence to `XPBarEnhancedDB.barPositions`
@@ -335,14 +343,6 @@ The config controls which behavior mixins are enabled and provides style-specifi
 
 ```lua
 local DefaultConfig = {
-    -- Animation settings
-    animation = {
-        enabled = true,           -- Enable AnimationMixin
-        valueSmoothing = true,    -- Smooth bar fill transitions
-        xpGainFlash = true,       -- Flash on XP gain
-        levelUpFlash = true       -- Flash on level-up
-    },
-    
     -- Interaction settings
     interaction = {
         enabled = true            -- Enable InteractionMixin
@@ -373,10 +373,6 @@ local DefaultConfig = {
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
-| `animation.enabled` | boolean | true | Enable/disable all animations |
-| `animation.valueSmoothing` | boolean/number | true | Smooth bar fill (true = 0.25s, number = custom duration) |
-| `animation.xpGainFlash` | boolean | true | Flash overlay on XP gain |
-| `animation.levelUpFlash` | boolean | true | Flash overlay on level-up |
 | `interaction.enabled` | boolean | true | Enable mouse interaction |
 | `tooltip.enabled` | boolean | true | Show tooltip on hover |
 | `position.mode` | string | "DRAGGABLE" | "DRAGGABLE" or "STATIC" |

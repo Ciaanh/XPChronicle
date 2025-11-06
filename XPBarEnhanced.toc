@@ -74,7 +74,6 @@ ui\xpbars\mixins\LayoutMixin.lua
 ui\xpbars\mixins\PaintMixin.lua
 ui\xpbars\mixins\VisualsMixin.lua
 ui\xpbars\mixins\TextMixin.lua
-ui\xpbars\mixins\AnimationMixin.lua
 ui\xpbars\mixins\InteractionMixin.lua
 ui\xpbars\mixins\TooltipMixin.lua
 ui\xpbars\mixins\PositionMixin.lua

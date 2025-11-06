@@ -58,10 +58,7 @@ function BaseMixin:OnLoad()
 	-- Initialize internal config
 	self.__xpbar_config = self.__xpbar_config or {}
 
-	-- Initialize behavior mixins (if present)
-	if self.InitializeAnimationState then
-		self:InitializeAnimationState()
-	end
+	-- Initialize position behavior (if present)
 	if self.InitializePosition then
 		self:InitializePosition()
 	end
@@ -232,12 +229,6 @@ function BaseMixin:TriggerXPChanged(context)
 	if self.UpdateExhaustionTick then
 		self:UpdateExhaustionTick(context)
 	end
-	if self.PlayXPGainAnimation and context and context.xpGained > 0 then
-		self:PlayXPGainAnimation(context)
-	end
-	if self.FlashXPGain and context and context.xpGained > 0 then
-		self:FlashXPGain(context)
-	end
 	if self.UpdateVisuals then
 		self:UpdateVisuals(context)
 	end
@@ -251,12 +242,6 @@ function BaseMixin:TriggerLevelUp(context)
 	end
 	if self.UpdateRestedOverlay then
 		self:UpdateRestedOverlay(context)
-	end
-	if self.PlayLevelUpAnimation then
-		self:PlayLevelUpAnimation(context)
-	end
-	if self.FlashLevelUp then
-		self:FlashLevelUp(context)
 	end
 	if self.UpdateVisuals then
 		self:UpdateVisuals(context)

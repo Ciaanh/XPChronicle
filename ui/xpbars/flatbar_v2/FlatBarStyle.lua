@@ -24,7 +24,6 @@ local FlatBarStyleTemplate = {}
 -------------------------------------------------------------------
 
 local DefaultConfig = {
-	animation = {enabled = true, valueSmoothing = true, xpGainFlash = true, levelUpFlash = true},
 	interaction = {enabled = true},
 	tooltip = {enabled = true},
 	position = {mode = "DRAGGABLE", positionKey = "FlatBar_v2"},
