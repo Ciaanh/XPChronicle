@@ -973,6 +973,11 @@ end
 function XPBarEnhancedOptionsMixin:OnResetSettingsClicked()
     Config:Reset()
     self:Refresh()
+    
+    -- Refresh bars immediately to apply new colors and settings
+    if Addon.XPBar and Addon.XPBar.Update then
+        Addon.XPBar:Update()
+    end
 end
 
 function XPBarEnhancedOptionsMixin:OnResetStatsClicked()

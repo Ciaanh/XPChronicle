@@ -168,9 +168,29 @@ end
 
 --- Set default position for draggable bars
 function PositionMixin:SetDefaultDraggablePosition()
-	-- Default: bottom center of screen (above action bars)
+	-- Try to get default from Config based on position key
+	local Addon = XPBarEnhanced
+	local defaultPos = nil
+	
+	if Addon.defaults and Addon.defaults.barPositions and self.__position_key then
+		defaultPos = Addon.defaults.barPositions[self.__position_key]
+	end
+	
 	self:ClearAllPoints()
-	self:SetPoint("BOTTOM", UIParent, "BOTTOM", 0, 100)
+	
+	if defaultPos and defaultPos.point then
+		-- Use default from Config
+		self:SetPoint(
+			defaultPos.point,
+			UIParent,
+			defaultPos.relativePoint or defaultPos.point,
+			defaultPos.x or 0,
+			defaultPos.y or 0
+		)
+	else
+		-- Fallback: center of screen
+		self:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
+	end
 end
 
 --- Clear saved position

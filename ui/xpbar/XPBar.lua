@@ -741,21 +741,12 @@ function XPBar:RegisterObserver(bar, id)
 		error("RegisterObserver requires a valid bar instance")
 	end
 	
-	if not bar.FullUpdate then
-		Addon.Logger:Warn("RegisterObserver: bar missing FullUpdate method - " .. tostring(id or "unknown"))
-	end
-	
 	local observerId = id or ("observer_" .. (self.observerCount + 1))
 	
-	-- Replace existing observer with same ID
-	if self.observers[observerId] then
-		Addon.Logger:Debug("RegisterObserver: replacing existing observer - " .. observerId)
-	end
-	
+	-- Replace existing observer with same ID if present
 	self.observers[observerId] = bar
 	self.observerCount = self.observerCount + 1
 	
-	Addon.Logger:Info(string.format("Registered observer: %s (total: %d)", observerId, self.observerCount))
 	return observerId
 end
 
@@ -765,37 +756,21 @@ function XPBar:UnregisterObserver(id)
 	if self.observers[id] then
 		self.observers[id] = nil
 		self.observerCount = math.max(0, self.observerCount - 1)
-		Addon.Logger:Info(string.format("Unregistered observer: %s (remaining: %d)", id, self.observerCount))
-	else
-		Addon.Logger:Warn("UnregisterObserver: observer not found - " .. tostring(id))
 	end
 end
 
 --- Broadcast update to all registered observers
 --- This allows multiple bars to coexist and receive updates simultaneously
 function XPBar:BroadcastUpdate()
-	local updateCount = 0
-	local errorCount = 0
-	
 	for id, bar in pairs(self.observers) do
 		if bar and bar.FullUpdate then
 			local success, err = pcall(function()
 				bar:FullUpdate()
 			end)
-			if success then
-				updateCount = updateCount + 1
-			else
-				errorCount = errorCount + 1
+			if not success then
 				Addon.Logger:Error(string.format("BroadcastUpdate: error updating observer %s: %s", id, tostring(err)))
 			end
-		else
-			Addon.Logger:Warn("BroadcastUpdate: observer missing FullUpdate - " .. tostring(id))
 		end
-	end
-	
-	if updateCount > 0 or errorCount > 0 then
-		Addon.Logger:Debug(string.format("Broadcast complete: %d/%d bars updated (%d errors)", 
-			updateCount, self.observerCount, errorCount))
 	end
 end
 
