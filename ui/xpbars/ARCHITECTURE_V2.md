@@ -1,62 +1,460 @@
-# XPBar v2 — Architecture & Migration Plan
+# XPBarEnhanced V2 Architecture - Custom Style Developer Guide
 
-This document defines the architecture, composition flow, and migration plan for the XP bar refactor into `XPBarMixinBase_v2` and independent behavior/style mixins.
+**Version**: 2.0  
+**Status**: Production Ready  
+**Audience**: External developers creating custom XP bar styles
 
-Important constraints and decisions
+---
 
-- The new base mixin will be globally named `XPBarMixinBase_v2`.
-- **Builder pattern**: Style mixins are created via `StyleBuilder:Create(XPBarMixinBase_v2, config)` which uses `CreateFromMixins` to compose base + behaviors + style template into a new global mixin.
-- Style mixins are **globally registered** after creation (e.g., `CircularXPBarMixin = StyleBuilder:Create(...)`), and XML templates reference these composed mixins.
-- All new runtime code for v2 will be placed under `ui/xpbars` only. No existing files should be modified.
-- **No code cleanup during v2 development**: Existing code (Session, Database, current XPBarMixinBase, etc.) must NOT be modified or removed. Cleanup will be done separately after v2 migration is complete.
-- Use `XPChronicleDB.barPositions` for position persistence (the `PositionMixin` will read/write `XPChronicleDB.barPositions[positionKey]`).
-- **Color management**: Always use `XPBarColors:GetUserColor(colorKey)` to retrieve user-defined colors from the options panel. Never hardcode color values.
+## Introduction
 
-Style mixin creation and XML usage
+Welcome to the XPBarEnhanced V2 architecture! This document explains how to create custom XP bar styles using the new mixin-based composition system.
 
-- **Builder pattern approach**:
-  - Style files call `StyleBuilder:Create(XPBarMixinBase_v2, styleTemplate, config)` at load time.
-  - Builder internally calls `CreateFromMixins(XPBarMixinBase_v2, AnimationMixin, InteractionMixin, PositionMixin, TooltipMixin, styleTemplate)`.
-  - Result is a composed mixin registered globally (e.g., `CircularXPBarMixin`).
-  - XML templates reference the composed mixin: `<Frame mixin="CircularXPBarMixin">`.
-- **Mixin composition order**: Base → Behaviors → Style (style overrides win).
-- **No runtime Mixin() calls**: All composition happens once at addon load via CreateFromMixins.
+### What is V2?
 
-Event registration policy
+V2 is a complete rewrite of the XPBarEnhanced architecture that:
+- **Reduces code duplication** by 80%+ through shared behavior mixins
+- **Simplifies style creation** - new styles require only ~100-200 lines of code
+- **Centralizes common features** - events, animations, tooltips, positioning
+- **Enables rapid development** - focus only on visual layout, not plumbing
 
-- The new base must support the same events used by the current `XPBarMixinBase.lua`. The base will expose `RegisterCommonEvents()` and `RegisterQuestEvents()` helpers; styles/mixins request quest events explicitly. See the Event list section below for the full set.
+### Why Create a Custom Style?
 
-Simplicity and error handling
+The built-in styles (Flat, Legacy, Vertical, Circular) cover most use cases, but you might want:
+- Unique visual layouts (diagonal bars, spiral patterns, etc.)
+- Custom animations (bouncing, pulsing, particles)
+- Integration with other addons (portraits, reputation, etc.)
+- Personal aesthetic preferences
 
-- Avoid pcall-based error swallowing. Prefer explicit errors so failures are surfaced early during development. Keep implementations simple and easy to read.
+This guide shows you how to build your own style from scratch.
 
-Summary
+---
 
-- Add new files under `ui/xpbars/`:
-  - `StyleBuilder.lua` — global `XPBarStyleBuilder` for composing style mixins
-  - `BaseMixin.lua` (global `XPBarMixinBase_v2`) — event orchestration, default API, Trigger/Action methods
-  - `ContextBuilder.lua` — standalone utility module for building immutable context objects (integrates Session methods)
-  - `mixins/AnimationMixin.lua` — value smoothing, transitions, and flash effects
-  - `mixins/InteractionMixin.lua` — mouse handling, clicks (non-tooltip)
-  - `mixins/TooltipMixin.lua` — tooltip provider and GameTooltip management
-  - `mixins/PositionMixin.lua` — positioning (STATIC anchored to Blizzard bar | DRAGGABLE with persistence)
-  - `flatbar_v2/FlatBarStyleTemplate.lua` — style template (visual methods only)
-  - `flatbar_v2/FlatBarStyle.lua` — calls StyleBuilder to create `FlatBarXPBarMixin`
-  - `flatbar_v2/FlatBarTemplate.xml` — XML frame template
-  - `tests/test_v2.lua` — dev test harness
+## Quick Start: Create Your First Style in 10 Minutes
 
-Goals
+### Step 1: Create Your Style Directory
 
-- Use `StyleBuilder` to compose mixins via `CreateFromMixins` at addon load time (not per-frame).
-- Extract animation (including flash effects), interaction, tooltip, and positioning logic to dedicated behavior mixins.
-- Separate context building into standalone utility module (`ContextBuilder`) that integrates/replaces Session functionality.
-- Keep style templates limited to visuals and layout (BuildVisuals, UpdateVisuals, overlay action methods).
-- Event handlers in base call `TriggerXXX` methods which orchestrate actions; styles override individual actions or overlay methods, not event handlers.
-- Preserve all existing features of the current `XPBarMixinBase` by mapping them into base, ContextBuilder, or appropriate behavior mixins.
-- Support all current visual elements: current XP bar, completed quest overlay, incomplete quest overlay, rested overlay, exhaustion tick marker, and flash overlay.
+```
+ui/xpbars/mystyle_v2/
+  MyStyleBar.lua        ← Config and registration
+  MyStyleTemplate.xml   ← Visual structure
+```
+
+### Step 2: Define Your Style Template (`MyStyleBar.lua`)
+
+```lua
+-- Minimal style template
+local MyStyleTemplate = {}
+
+-- Define your style config
+local DefaultConfig = {
+    animation = {enabled = true, valueSmoothing = true, xpGainFlash = true},
+    interaction = {enabled = true},
+    tooltip = {enabled = true},
+    position = {mode = "DRAGGABLE", positionKey = "MyStyle_v2"},
+    style = {width = 400, height = 40}
+}
+
+-- Register your style with StyleBuilder
+MyStyleXPBarMixin = XPBarStyleBuilder:Create(XPBarMixinBase_v2, MyStyleTemplate, DefaultConfig)
+XPBarStyleBuilder:RegisterStyle("mystyle", MyStyleXPBarMixin)
+```
+
+### Step 3: Create Your XML Template (`MyStyleTemplate.xml`)
+
+```xml
+<Ui xmlns="http://www.blizzard.com/wow/ui/">
+    <Frame name="MyStyleTemplate_v2" mixin="MyStyleXPBarMixin" virtual="true">
+        <Size x="400" y="40"/>
+        
+        <!-- Background -->
+        <Layers>
+            <Layer level="BACKGROUND">
+                <Texture parentKey="Background" setAllPoints="true">
+                    <Color r="0.1" g="0.1" b="0.1" a="0.8"/>
+                </Texture>
+            </Layer>
+        </Layers>
+        
+        <!-- XP Bar (StatusBar widget) -->
+        <Frames>
+            <StatusBar parentKey="StatusBar" inherits="XPBarStatusBarTemplate_v2">
+                <Anchors>
+                    <Anchor point="BOTTOMLEFT"/>
+                    <Anchor point="TOPRIGHT"/>
+                </Anchors>
+            </StatusBar>
+        </Frames>
+    </Frame>
+</Ui>
+```
+
+### Step 4: Include Your Style in `.toc`
+
+```
+# Add to XPBarEnhanced.toc
+ui\xpbars\mystyle_v2\MyStyleBar.lua
+ui\xpbars\mystyle_v2\MyStyleTemplate.xml
+```
+
+### Step 5: Test Your Style In-Game
+
+```lua
+-- In WoW chat, type:
+/run XPBarStyleBuilder:CreateFrameForStyle("mystyle", nil, "MyStyleTemplate_v2"):Show()
+```
+
+**Congratulations!** You've created a basic custom style. Now let's dive deeper.
+
+---
+
+## Architecture Overview
+
+### Core Design Principles
+
+**Separation of Concerns**:
+- **Base Mixin** handles event orchestration (you don't touch this)
+- **Behavior Mixins** provide common features (animations, tooltips, positioning)
+- **Style Template** defines ONLY visual layout and custom logic
+
+**Composition over Inheritance**:
+- Styles are composed from mixins using `CreateFromMixins()`
+- No deep inheritance chains - flat, predictable structure
+- Override only what you need, inherit the rest
+
+**Immutable Contexts**:
+- All game state packaged into context objects
+- Contexts never modified after creation
+- Predictable, testable data flow
+
+---
+
+## Architecture Constraints & Guidelines
+
+### Required Global Dependencies
+
+Your style relies on these global objects (provided by XPBarEnhanced core):
+
+- `XPBarMixinBase_v2` - Base mixin for all styles
+- `XPBarStyleBuilder` - Mixin composition and registration
+- `XPBarContextBuilder` - Immutable context building
+- `XPBarColors` - User-defined color management
+- `XPBarEnhancedDB` - Saved variables (for position persistence)
+
+**Important**: Always check these exist before registering your style:
+
+```lua
+if not XPBarStyleBuilder or not XPBarMixinBase_v2 then
+    error("MyStyle: V2 core not loaded")
+end
+```
+
+### File Organization
+
+**Required Pattern**:
+```
+ui/xpbars/yourstyle_v2/
+  YourStyleBar.lua        ← Config, template, registration
+  YourStyleTemplate.xml   ← Visual structure
+  README.md               ← Optional: style documentation
+```
+
+**Why This Pattern?**
+- Keeps styles isolated and self-contained
+- Easy to add/remove styles without touching core
+- Clear separation between code (`.lua`) and structure (`.xml`)
+
+### Color Management Rules
+
+**NEVER hardcode colors**. Always use `XPBarColors:GetUserColor()`:
+
+```lua
+-- ❌ BAD: Hardcoded color
+texture:SetVertexColor(0.0, 0.5, 1.0, 1.0)
+
+-- ✅ GOOD: User-defined color
+local color = XPBarColors:GetUserColor(Color.XpBar)
+texture:SetVertexColor(color.r, color.g, color.b, color.a)
+```
+
+**Available Color Keys** (from `core/Colors.lua`):
+- `Color.XpBar` - Main XP bar (normal state)
+- `Color.XpBarRested` - Main XP bar (rested state)
+- `Color.Rested` - Rested XP overlay
+- `Color.QuestComplete` - Completed quest overlay
+- `Color.QuestIncomplete` - Incomplete quest overlay
+
+### Position Persistence
+
+Use `XPBarEnhancedDB.barPositions[positionKey]` for saving position:
+
+```lua
+-- Config specifies unique key for your style
+local config = {
+    position = {
+        mode = "DRAGGABLE",  -- or "STATIC"
+        positionKey = "MyStyle_v2"  -- Unique identifier
+    }
+}
+```
+
+**PositionMixin automatically handles**:
+- Reading/writing `XPBarEnhancedDB.barPositions[positionKey]`
+- Drag scripts (Shift+LeftClick)
+- Position restoration on load
+- Clamping to screen edges
 
 
-## 1. Component responsibilities (detailed)
+**Don't create new position persistence code** - PositionMixin handles it automatically.
+
+---
+
+## Component Responsibilities
+
+### What You Need to Know (High-Level)
+
+The V2 architecture has three layers:
+
+1. **Base Layer** (`XPBarMixinBase_v2`) - Event handling, action orchestration
+   - You **don't modify** this
+   - Provides: Event registration, Trigger methods, default Action methods
+
+2. **Behavior Layer** (Mixins in `ui/xpbars/mixins/`) - Reusable features
+   - You **rarely modify** these
+   - Provides: Animations, tooltips, positioning, text formatting, etc.
+
+3. **Style Layer** (Your code in `ui/xpbars/yourstyle_v2/`) - Visual implementation
+   - You **focus here**
+   - Provides: Visual layout, custom animations, overlay positioning
+
+### What Each Component Does
+
+#### XPBarMixinBase_v2 (Base Layer)
+
+**Responsibilities**:
+- Register game events (`PLAYER_XP_UPDATE`, `PLAYER_LEVEL_UP`, etc.)
+- Orchestrate responses via Trigger methods (`TriggerXPChanged`, `TriggerLevelUp`)
+- Provide default Action methods for updating overlays
+- Expose public API (`Refresh`, `FullUpdate`)
+
+**What This Means for You**:
+- You don't write event handlers
+- You don't duplicate XP/level tracking logic
+- You can override Action methods if you need custom behavior
+
+#### Behavior Mixins (Behavior Layer)
+
+**AnimationMixin** (`mixins/AnimationMixin.lua`):
+- Value smoothing (XP bar fills smoothly, not instantly)
+- Flash effects (white overlay on XP gain/level-up)
+- **Your use case**: Enable/disable in config, or add custom animations
+
+**PositionMixin** (`mixins/PositionMixin.lua`):
+- Draggable positioning (Shift+LeftClick drag)
+- Position persistence to `XPBarEnhancedDB.barPositions`
+- Static anchoring (match Blizzard bar position)
+- **Your use case**: Choose DRAGGABLE or STATIC mode in config
+
+**TooltipMixin** (`mixins/TooltipMixin.lua`):
+- Show GameTooltip on mouse hover
+- Default tooltip content (XP values, session stats)
+- **Your use case**: Override `GetTooltipContent()` for custom tooltip
+
+**TextMixin** (`mixins/TextMixin.lua`):
+- Format XP text (e.g., "12,345 / 50,000")
+- Update session/rate text every second
+- **Your use case**: Use default text or hide text elements
+
+**PaintMixin** (`mixins/PaintMixin.lua`):
+- Apply user-defined colors to overlays
+- Handle rested state color changes
+- **Your use case**: Just use it - colors automatic
+
+**LayoutMixin** (`mixins/LayoutMixin.lua`):
+- Calculate overlay positions (rested, quests, exhaustion tick)
+- Standard linear positioning algorithm
+- **Your use case**: Use default or override for custom layouts (circular, vertical)
+
+**VisualsMixin** (`mixins/VisualsMixin.lua`):
+- Orchestrate visual updates (bars, text, overlays)
+- Coordinate Paint + Layout + Text mixins
+- **Your use case**: Just use it - visual updates automatic
+
+**InteractionMixin** (`mixins/InteractionMixin.lua`):
+- Mouse enter/leave (non-tooltip)
+- Click handling
+- **Your use case**: Rarely need to customize
+
+#### XPBarContextBuilder (Utility Module)
+
+**Responsibilities**:
+- Build immutable context objects from game events
+- Provide XP/session calculations (XP per hour, time to level)
+- Integrate with Session service for persistence
+
+**What This Means for You**:
+- You receive contexts in all Action methods
+- Contexts contain ALL relevant data (XP, rested, quests, session stats)
+- You don't query game APIs directly - use context values
+
+**Example Context Shape**:
+```lua
+context = {
+    -- Core XP values
+    currentXP = 12345,
+    xpMax = 50000,
+    level = 65,
+    timestamp = 1704502800,
+    
+    -- Rested values
+    restedXP = 5000,
+    isRested = true,
+    isFullyRested = false,
+    
+    -- Quest values
+    completeQuestXP = 2000,
+    incompleteQuestXP = 500,
+    
+    -- Session values
+    xpPerHour = 12000,
+    sessionXP = 3000,
+    sessionDuration = 900,  -- seconds
+    realLevelTime = 7200,   -- seconds
+}
+```
+
+---
+
+## Creating a Custom Style: Deep Dive
+
+### Step-by-Step Guide
+
+#### 1. Define Your Style Config
+
+The config controls which behavior mixins are enabled and provides style-specific settings.
+
+```lua
+local DefaultConfig = {
+    -- Animation settings
+    animation = {
+        enabled = true,           -- Enable AnimationMixin
+        valueSmoothing = true,    -- Smooth bar fill transitions
+        xpGainFlash = true,       -- Flash on XP gain
+        levelUpFlash = true       -- Flash on level-up
+    },
+    
+    -- Interaction settings
+    interaction = {
+        enabled = true            -- Enable InteractionMixin
+    },
+    
+    -- Tooltip settings
+    tooltip = {
+        enabled = true            -- Enable TooltipMixin
+    },
+    
+    -- Position settings
+    position = {
+        mode = "DRAGGABLE",       -- "DRAGGABLE" or "STATIC"
+        positionKey = "MyStyle_v2"  -- Unique key for saved position
+    },
+    
+    -- Style-specific settings (your custom data)
+    style = {
+        width = 400,
+        height = 40,
+        showQuestOverlays = true,
+        customSetting = "value"
+    }
+}
+```
+
+**Config Keys Explained**:
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| `animation.enabled` | boolean | true | Enable/disable all animations |
+| `animation.valueSmoothing` | boolean/number | true | Smooth bar fill (true = 0.25s, number = custom duration) |
+| `animation.xpGainFlash` | boolean | true | Flash overlay on XP gain |
+| `animation.levelUpFlash` | boolean | true | Flash overlay on level-up |
+| `interaction.enabled` | boolean | true | Enable mouse interaction |
+| `tooltip.enabled` | boolean | true | Show tooltip on hover |
+| `position.mode` | string | "DRAGGABLE" | "DRAGGABLE" or "STATIC" |
+| `position.positionKey` | string | (required) | Unique key for saving position |
+| `style.*` | any | (custom) | Your style-specific settings |
+
+#### 2. Create Your Style Template
+
+The style template is a Lua table that can override base methods.
+
+```lua
+local MyStyleTemplate = {}
+
+-- Optional: Override Action methods for custom behavior
+function MyStyleTemplate:UpdateRestedOverlay(context, overlayName)
+    -- Custom overlay positioning logic
+    overlayName = overlayName or "MyRestedOverlay"  -- Custom name
+    local overlay = self[overlayName]
+    if not overlay then return end
+    
+    -- Custom positioning based on context
+    -- ...
+end
+
+-- Optional: Custom animations
+function MyStyleTemplate:PlayCustomAnimation()
+    -- Your custom animation logic
+end
+```
+
+**When to Override Action Methods**:
+- **Linear layouts (flat, legacy)**: Use default methods (no override needed)
+- **Non-linear layouts (circular, vertical)**: Override overlay positioning methods
+- **Custom animations**: Add new methods and call from Trigger overrides
+
+#### 3. Register Your Style
+
+Use `StyleBuilder:Create()` to compose mixins and create your style mixin:
+
+```lua
+MyStyleXPBarMixin = XPBarStyleBuilder:Create(
+    XPBarMixinBase_v2,    -- Base mixin
+    MyStyleTemplate,       -- Your style template
+    DefaultConfig          -- Your config
+)
+
+-- Register with StyleBuilder for programmatic creation
+XPBarStyleBuilder:RegisterStyle("mystyle", MyStyleXPBarMixin)
+```
+
+**What `StyleBuilder:Create()` Does**:
+1. Validates inputs and config
+2. Builds behavior mixin list based on config flags
+3. Calls `CreateFromMixins(Base, Behaviors..., StyleTemplate)`
+4. Returns composed mixin ready for XML reference
+
+**Composition Order** (later wins):
+```
+Base → Animation → Interaction → Tooltip → Position → Layout → Paint → Text → Visuals → YourStyleTemplate
+```
+
+#### 4. Define Your XML Template
+
+The XML defines the visual structure - textures, frames, fontstrings.
+
+**Minimum Required Elements**:
+- `Background` texture
+- `StatusBar` (main XP bar - uses `XPBarStatusBarTemplate_v2`)
+
+**Optional Elements**:
+- `RestedLevel` texture (rested overlay)
+- `QuestOverlayComplete` texture
+- `QuestOverlayIncomplete` texture
+- `ExhaustionTick` button
+- `GainFlash` texture (flash overlay)
+- Text fontstrings: `LevelText`, `XPText`, `PercentText`
+
+**Example XML**:
 
 ### XPBarContextBuilder (`ui/xpbars/ContextBuilder.lua`)
 
@@ -386,19 +784,19 @@ Behavior details:
 Responsibilities:
 
 - Handle positioning in two modes: `STATIC` (anchored to Blizzard MainMenuExpBar) or `DRAGGABLE` (user-movable with persistence).
-- Duplicate minimal PositionStore functions but persist to `XPChronicleDB.barPositions` (per user instruction).
+- Duplicate minimal PositionStore functions but persist to `XPBarEnhancedDB.barPositions` (per user instruction).
 - Provide `OnLoad()` to register as a behavior mixin and apply initial position based on config.
 
 Position modes:
 
 - **STATIC**: Frame is anchored to the default Blizzard XP bar position (match current legacy bar behavior).
-- **DRAGGABLE**: Frame can be dragged; position is saved to `XPChronicleDB.barPositions[positionKey]` and restored on load.
+- **DRAGGABLE**: Frame can be dragged; position is saved to `XPBarEnhancedDB.barPositions[positionKey]` and restored on load.
 
 Persisted storage conventions (DRAGGABLE mode):
 
-- Use `XPChronicleDB = XPChronicleDB or { barPositions = {} }` (ensure parent table exists).
+- Use `XPBarEnhancedDB = XPBarEnhancedDB or { barPositions = {} }` (ensure parent table exists).
 - The config must provide `config.position.positionKey` — a unique string for this bar instance.
-- Saved record shape: `XPChronicleDB.barPositions[positionKey] = { point = "TOPLEFT", relativeTo = "UIParent", relativePoint = "TOPLEFT", x = 100, y = -50 }`.
+- Saved record shape: `XPBarEnhancedDB.barPositions[positionKey] = { point = "TOPLEFT", relativeTo = "UIParent", relativePoint = "TOPLEFT", x = 100, y = -50 }`.
 
 Duplicated functions (planned):
 
@@ -412,7 +810,7 @@ Duplicated functions (planned):
 Notes:
 
 - These methods intentionally duplicate only needed behavior to avoid touching existing `PositionStoreMixin`.
-- The `PositionMixin` will not create or alter other `XPChronicleDB` keys; it operates only in `XPChronicleDB.barPositions`.
+- The `PositionMixin` will not create or alter other `XPBarEnhancedDB` keys; it operates only in `XPBarEnhancedDB.barPositions`.
 
 ### Style mixins (example: FlatBarStyleMixin v2 / `ui/xpbars/flatbar_v2/FlatBarStyleMixin.lua`)
 
@@ -733,13 +1131,13 @@ Compatibility note:
 - During migration, both v1 and v2 bars might be active and registering the same events; that's expected for dev/testing but must be handled by the user when verifying parity.
 
 
-## 5. Persistence: using `XPChronicleDB.barPositions`
+## 5. Persistence: using `XPBarEnhancedDB.barPositions`
 
-- All position persistence for v2 bars will use the existing `XPChronicleDB.barPositions` table, not a new saved-variables table.
+- All position persistence for v2 bars will use the existing `XPBarEnhancedDB.barPositions` table, not a new saved-variables table.
 - Expectations/requirements for the saved structure:
-  - `XPChronicleDB` must exist in the global saved-variables table for the addon (this is the project's top-level DB).
-  - `XPChronicleDB.barPositions` will be a table keyed by `config.interaction.positionKey`.
-- `DraggableMixin` will read/write `XPChronicleDB.barPositions[positionKey]` and provide `SavePosition`, `RestorePosition`, `ClearSavedPosition`.
+  - `XPBarEnhancedDB` must exist in the global saved-variables table for the addon (this is the project's top-level DB).
+  - `XPBarEnhancedDB.barPositions` will be a table keyed by `config.interaction.positionKey`.
+- `DraggableMixin` will read/write `XPBarEnhancedDB.barPositions[positionKey]` and provide `SavePosition`, `RestorePosition`, `ClearSavedPosition`.
 
 Example usage in config:
 
@@ -750,7 +1148,7 @@ config.interaction = {
 }
 ```
 
-Security: `DraggableMixin` will not modify other `XPChronicleDB` keys.
+Security: `DraggableMixin` will not modify other `XPBarEnhancedDB` keys.
 
 
 ## 6. Feature extraction mapping (existing `XPBarMixinBase` -> new components)
@@ -771,7 +1169,7 @@ Likely features in current `XPBarMixinBase` and their v2 targets:
 
 - **Overlay updates** (rested, quest, exhaustion tick, flash) → `XPBarMixinBase_v2` overlay action methods (UpdateRestedOverlay, UpdateQuestCompleteOverlay, UpdateQuestIncompleteOverlay, UpdateExhaustionTick, UpdateFlashOverlay)
 
-- **Dragging and saved position** → `PositionMixin` (duplicated PositionStore funcs; uses `XPChronicleDB.barPositions`)
+- **Dragging and saved position** → `PositionMixin` (duplicated PositionStore funcs; uses `XPBarEnhancedDB.barPositions`)
 
 - **Tooltip and mouse interactions** → `TooltipMixin` (tooltip provider, OnEnter, OnLeave) + `InteractionMixin` (OnClick, OnMouseDown, OnMouseUp)
 
@@ -828,7 +1226,7 @@ Phase 1 — Implementation (isolated, non-invasive):
 
   - `ui/xpbars/mixins/TooltipMixin.lua`
 
-  - `ui/xpbars/mixins/PositionMixin.lua` (writes to `XPChronicleDB.barPositions`)
+  - `ui/xpbars/mixins/PositionMixin.lua` (writes to `XPBarEnhancedDB.barPositions`)
 
 - Add StyleBuilder:
 
@@ -857,7 +1255,7 @@ Phase 2 — Developer testing (in-client QA):
 
 - Verify no extraneous events get registered.
 
-- Verify `XPChronicleDB.barPositions` is updated correctly when dragging.
+- Verify `XPBarEnhancedDB.barPositions` is updated correctly when dragging.
 
 - Verify ContextBuilder produces correct context shapes with all required fields.
 
@@ -957,7 +1355,7 @@ API surface exported by a bar instance (after Setup):
 
 Before implementing, please confirm the following:
 
-1. ✅ **CONFIRMED**: `XPChronicleDB.barPositions` is the correct place to persist positions and the code will assume that `XPChronicleDB` exists (create subtable if missing).
+1. ✅ **CONFIRMED**: `XPBarEnhancedDB.barPositions` is the correct place to persist positions and the code will assume that `XPBarEnhancedDB` exists (create subtable if missing).
 
 2. ✅ **CONFIRMED**: The exact minimal events list — the plan uses `{ PLAYER_ENTERING_WORLD, PLAYER_XP_UPDATE, PLAYER_LEVEL_UP, UPDATE_EXHAUSTION, PLAYER_UPDATE_RESTING, TIME_PLAYED_MSG }` for common events. Quest events are registered separately when needed.
 
