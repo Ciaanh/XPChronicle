@@ -129,7 +129,8 @@ function TooltipMixin:AddXPSection(content, ctx, cfg)
 	local leftR, leftG, leftB = 0.7, 0.7, 0.7
 	local rightR, rightG, rightB = 1, 1, 1
 	if XPBarColors and Color and XPBarColors.GetUserColor then
-		local key = (ctx and ctx.isRested) and Color.XpBarRested or Color.XpBar
+		local hasRestedXP = ctx and (ctx.hasRestedXP or (ctx.restedXP and ctx.restedXP > 0))
+		local key = hasRestedXP and Color.XpBarRested or Color.XpBar
 		local c = (XPBarColors and XPBarColors.GetUserColor) and XPBarColors:GetUserColor(key) or nil
 		if c then
 			rightR, rightG, rightB = c.r or rightR, c.g or rightG, c.b or rightB
@@ -528,8 +529,8 @@ function TooltipMixin:OnEnter()
 	-- Rested
 	self:AddRestedSection(content, ctx, tooltipConfig)
 
-	-- Resting status (legacy)
-	if ctx.isRested then
+	-- Resting status
+	if ctx.isResting then
 		table.insert(content.lines, " ")
 		table.insert(
 			content.lines,
@@ -616,7 +617,7 @@ function TooltipMixin:GetTooltipContent()
 		local content = {title = string.format(L["TT_LEVEL_FMT"] or "Level %d", tonumber(c.level) or 1), lines = {}}
 		self:AddXPSection(content, c, self.__xpbar_config and self.__xpbar_config.tooltip)
 		self:AddRestedSection(content, c, self.__xpbar_config and self.__xpbar_config.tooltip)
-		if c.isRested then
+		if c.isResting then
 			table.insert(content.lines, " ")
 			table.insert(
 				content.lines,

@@ -10,9 +10,22 @@
 		<Size x="565" y="30"/>
 		<Layers>
 			<!-- Background layer -->
-			<Layer level="BACKGROUND">
+			<Layer level="BACKGROUND" textureSubLevel="1">
 				<Texture parentKey="Background" setAllPoints="true">
 					<Color r="0" g="0" b="0" a="0.5"/>
+				</Texture>
+			</Layer>
+
+			<!-- Rested XP overlay - BEHIND status bar, starts from 0 -->
+			<!-- Width = currentXP + restedXP, so visible portion shows beyond filled bar -->
+			<Layer level="BACKGROUND" textureSubLevel="2">
+				<Texture parentKey="RestedOverlay" hidden="true" file="Interface\Buttons\WHITE8X8">
+					<Size x="0" y="30"/>
+					<Anchors>
+						<Anchor point="BOTTOMLEFT" x="0" y="0"/>
+					</Anchors>
+					<!-- Initial color matches Config.lua defaults.colors.rested -->
+					<Color r="0.07" g="0.58" b="0.95" a="0.5"/>
 				</Texture>
 			</Layer>
 
@@ -38,20 +51,8 @@
 				<BarColor r="0.58" g="0.0" b="0.55"/>
 				<BarTexture file="Interface\Buttons\WHITE8X8"/>
 				<Layers>
-					<!-- Rested XP overlay - on top of StatusBar fill -->
+					<!-- Quest overlay - complete quests - on top of StatusBar fill -->
 					<Layer level="ARTWORK" textureSubLevel="1">
-						<Texture parentKey="RestedOverlay" hidden="true" file="Interface\Buttons\WHITE8X8">
-							<Size x="0" y="30"/>
-							<Anchors>
-								<Anchor point="BOTTOMLEFT" x="0" y="0"/>
-							</Anchors>
-							<!-- Initial color matches Config.lua defaults.colors.rested -->
-							<Color r="0.07" g="0.58" b="0.95" a="0.5"/>
-						</Texture>
-					</Layer>
-
-					<!-- Quest overlay - complete quests - on top of rested -->
-					<Layer level="ARTWORK" textureSubLevel="2">
 						<Texture parentKey="QuestOverlayComplete" hidden="true" file="Interface\Buttons\WHITE8X8">
 							<Size x="0" y="30"/>
 							<Anchors>
@@ -63,7 +64,7 @@
 					</Layer>
 
 					<!-- Quest overlay - incomplete quests -->
-					<Layer level="ARTWORK" textureSubLevel="3">
+					<Layer level="ARTWORK" textureSubLevel="2">
 						<Texture parentKey="QuestOverlayIncomplete" hidden="true" file="Interface\Buttons\WHITE8X8">
 							<Size x="0" y="30"/>
 							<Anchors>

@@ -761,11 +761,17 @@ end
 
 --- Broadcast update to all registered observers
 --- This allows multiple bars to coexist and receive updates simultaneously
-function XPBar:BroadcastUpdate()
+--- @param context table Optional pre-built context to use for all observers
+function XPBar:BroadcastUpdate(context)
+	-- Build context once if not provided
+	if not context and XPBarContextBuilder and XPBarContextBuilder.BuildXPChangeContext then
+		context = XPBarContextBuilder.BuildXPChangeContext("BROADCAST_UPDATE")
+	end
+	
 	for id, bar in pairs(self.observers) do
 		if bar and bar.FullUpdate then
 			local success, err = pcall(function()
-				bar:FullUpdate()
+				bar:FullUpdate(context) -- Pass the shared context
 			end)
 			if not success then
 				Addon.Logger:Error(string.format("BroadcastUpdate: error updating observer %s: %s", id, tostring(err)))

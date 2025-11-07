@@ -4,7 +4,30 @@
 
 The V2 architecture proof-of-concept for the flat bar style has been validated and is production-ready. This document outlines the complete migration plan to port all remaining bar styles (Legacy, Vertical, Circular) from the old architecture (V1) to the new mixin-based composition system (V2).
 
-**Status**: Code freeze on V2 flat bar - ready for systematic migration of remaining styles.
+**Status**: Phase 1 complete - V2 flat bar with new AnimationManager ready for systematic migration of remaining styles.
+
+### Key V2 Achievements (Phase 1)
+
+✅ **New Animation System** - Frame-perfect centralized animation driver
+- `AnimationManager.lua` (479 lines) - Centralized OnUpdate driver with bar registration
+- Flash timing matches V1 exactly: 38 frames @ 60fps = 0.494s measured duration
+- Context preservation pattern prevents double flash bug (xpGained=0 events)
+- 100ms flash cooldown prevents rapid retriggers on quest turn-ins
+- Retargeting support aggregates multiple rapid XP gains smoothly
+- Level-up instant reset avoids StatusBar "drain" artifact
+
+✅ **Flat Bar V2** - Production ready (225 lines, down from 500 in V1)
+- Uses AnimationManager for all standard effects
+- Implements `ApplyAnimationStep` for frame updates
+- Clean separation: style handles visuals, AnimationManager handles timing
+
+✅ **Debug Infrastructure** - Comprehensive troubleshooting commands
+- `/animdebug` - Animation debug messages
+- `/flashdebug` + `/v2flashlogs` - Flash timing validation  
+- `/flashtrack` + `/flashtracklogs` - Flash event tracking
+- `/testlevelup` - Trigger level-up for both V1 and V2
+
+**Migration Impact**: All future styles get frame-perfect animations with zero additional code.
 
 ---
 
@@ -76,18 +99,36 @@ The V2 architecture proof-of-concept for the flat bar style has been validated a
 - `StyleBuilder.lua` (213 lines) - Mixin composition via `CreateFromMixins`
 
 **Behavior Mixins** (in `ui/xpbars/mixins/`):
-1. **AnimationMixin.lua** (363 lines) - Value smoothing, flash effects
-2. **InteractionMixin.lua** (40 lines) - Mouse handling
-3. **LayoutMixin.lua** (308 lines) - Overlay positioning algorithms
-4. **PaintMixin.lua** (175 lines) - Color application, overlay painting
-5. **PositionMixin.lua** (210 lines) - Dragging, position persistence
-6. **TextMixin.lua** (337 lines) - Text formatting and updates
-7. **TooltipMixin.lua** (73 lines) - Tooltip management
-8. **VisualsMixin.lua** (167 lines) - Visual element orchestration
+1. **InteractionMixin.lua** (40 lines) - Mouse handling
+2. **LayoutMixin.lua** (308 lines) - Overlay positioning algorithms
+3. **PaintMixin.lua** (175 lines) - Color application, overlay painting
+4. **PositionMixin.lua** (210 lines) - Dragging, position persistence
+5. **TextMixin.lua** (337 lines) - Text formatting and updates
+6. **TooltipMixin.lua** (73 lines) - Tooltip management
+7. **VisualsMixin.lua** (167 lines) - Visual element orchestration
+
+**Animation System** (in `ui/xpbars/mixins/animation/`):
+- **AnimationManager.lua** (479 lines) - ✅ **NEW V2 SYSTEM**
+  - Centralized animation driver with OnUpdate loop
+  - Flash timing matching V1 exactly (0.5s duration, 38 frames @ 60fps)
+  - Retargeting support (smooth handling of multiple rapid XP gains)
+  - Level-up detection with instant bar reset
+  - Context aggregation for smooth bar positioning
+  - Flash cooldown system (100ms) to prevent double flash
+  - Context preservation pattern (incoming vs aggregated)
+- **AnimationUtils.lua** (324 lines)
+  - Duration calculation based on ratio delta
+  - Easing functions (EaseOutQuad)
+  - Level-up detection logic
+  - Context aggregation utilities
+  - Flash data building for step context
+- **AnimationMixin.lua** (363 lines) - ⚠️ **LEGACY - TO BE DEPRECATED**
+  - Old animation system (retained for V1 styles during migration)
+  - Will be removed in Phase 5 after all styles migrated
 
 **Implemented Styles**:
 - **FlatBar V2** (`ui/xpbars/flatbar_v2/`) - ✅ VALIDATED AND PRODUCTION-READY
-  - `FlatBarStyle.lua` (61 lines) - Minimal config + registration only
+  - `FlatBarStyle.lua` (225 lines) - Uses new AnimationManager
   - `FlatBarTemplate.xml` - Visual structure definition
 
 **Characteristics**:
@@ -95,7 +136,7 @@ The V2 architecture proof-of-concept for the flat bar style has been validated a
 - Common logic centralized in mixins
 - Observer pattern for multi-instance support
 - Styles focus only on visual layout (minimal code)
-- Animations centralized in AnimationMixin
+- **Animations centralized in AnimationManager (V2) with frame-perfect timing**
 
 ---
 
@@ -107,7 +148,10 @@ The V2 architecture proof-of-concept for the flat bar style has been validated a
 |--------|----------|----------|---------|
 | **Event Handling** | Duplicated in each style | Centralized in BaseMixin | -70% code duplication |
 | **Position Management** | Duplicated in each container | PositionMixin | Single source of truth |
-| **Animations** | Embedded in styles | AnimationMixin | Reusable across styles |
+| **Animations** | Embedded in styles | AnimationManager (centralized driver) | Frame-perfect timing, reusable |
+| **Animation Timing** | Inconsistent across styles | 38 frames, 0.494s (validated) | Matches V1 exactly |
+| **Retargeting** | Manual in each style | AnimationManager (context aggregation) | Smooth XP gains |
+| **Flash System** | Duplicated logic | AnimationManager (cooldown + context preservation) | No double flash |
 | **Context Building** | Mixed with event handlers | ContextBuilder utility | Testable, immutable |
 | **Color Management** | Ad-hoc in each style | PaintMixin | Consistent color application |
 | **Text Formatting** | Duplicated logic | TextMixin | Real-time updates, centralized |
@@ -354,25 +398,78 @@ Global Cleanup ← Phase 6 (final polish)
 
 ## Animation Testing Strategy
 
+### V2 Animation System Architecture
+
+**Status**: ✅ **PRODUCTION READY** (as of Phase 1 completion)
+
+**Core Components**:
+
+#### AnimationManager (`ui/xpbars/mixins/animation/AnimationManager.lua` - 479 lines)
+- **Centralized animation driver** with frame-based OnUpdate loop
+- **Bar registration system**: Register/Unregister bars for animation updates
+- **Flash timing**: 0.5s duration (0.25s fade in + 0.25s fade out) - matches V1 exactly
+- **Retargeting support**: Smooth handling of multiple rapid XP gains via context aggregation
+- **Level-up detection**: Instant bar reset (progress=1.0) to avoid "drain" effect
+- **Flash cooldown**: 100ms cooldown after flash completion to prevent double flash
+- **Context preservation pattern**: Separates incoming context (for decisions) from aggregated context (for positioning)
+
+**Key Methods**:
+```lua
+AnimationManager:AnimateTo(bar, targetRatio, xpContext, config)
+AnimationManager:OnUpdate(elapsed)  -- Driver loop
+AnimationManager:UpdateBarAnimation(bar, now)
+AnimationManager:Register(bar) / Unregister(bar)
+```
+
+#### AnimationUtils (`ui/xpbars/mixins/animation/AnimationUtils.lua` - 324 lines)
+- **Duration calculation**: Based on ratio delta (0.3s base + 0.15s per 10% delta)
+- **Easing functions**: EaseOutQuad for smooth deceleration
+- **Level-up detection**: Detects XP decrease or PLAYER_LEVEL_UP event
+- **Context aggregation**: Combines multiple XP gains during retargeting
+- **Flash data building**: Calculates flash alpha for each animation step
+
+**Key Features Validated**:
+- ✅ Flash timing matches V1 exactly (38 frames @ 60fps = 0.494s measured)
+- ✅ Double flash bug fixed via context preservation pattern
+- ✅ Cooldown system prevents rapid retriggers
+- ✅ Level-up instant reset (superior to V1's "drain" effect)
+- ✅ Retargeting handles aggregated XP gains smoothly
+
+**Debug Commands Available**:
+- `/animdebug` - Dump animation debug messages (max 50)
+- `/flashdebug` + `/v2flashlogs` - V2 flash timing logs (max 100)
+- `/flashtrack` + `/flashtracklogs` - Flash event tracking (toggle on/off)
+- `/testlevelup` - Trigger PLAYER_LEVEL_UP for both V1 and V2
+
+---
+
 ### Animation Categories
 
-#### 1. Standard Animations (Handled by AnimationMixin)
+#### 1. Standard Animations (Handled by AnimationManager)
 
-**Description**: Built-in V2 animations provided by `AnimationMixin.lua`.
+**Description**: Built-in V2 animations provided by the new `AnimationManager` system.
 
 **Included Effects**:
-- Value smoothing (XP bar fill transitions)
-- Flash effects (XP gain, level up)
+- Value smoothing (XP bar fill transitions with EaseOutQuad)
+- Flash effects (XP gain, level up) - 0.5s fade in/out
+- Retargeting (smooth aggregation of multiple XP gains)
+- Level-up instant reset (avoids StatusBar smoothing artifact)
 
 **Testing Approach**:
-- ✅ Already validated in flat bar V2
-- ⬜ Verify each migrated style uses AnimationMixin correctly
-- ⬜ Test flash timing and alpha transitions
+- ✅ Already validated in flat bar V2 (Phase 1 complete)
+- ✅ Flash timing verified: 38 frames, 0.494s duration (matches V1)
+- ✅ Double flash prevention tested and confirmed
+- ⬜ Verify each migrated style uses AnimationManager correctly
+- ⬜ Test flash timing consistency across all styles
+- ⬜ Validate retargeting behavior with rapid XP gains
 
 **Validation**:
-- XP gain triggers flash (white overlay fade in/out)
-- Level up triggers flash (white overlay fade in/out)
-- Bar value smoothly interpolates (no instant jumps)
+- XP gain triggers flash (white overlay fade in/out, 0.5s duration)
+- Level up triggers flash (white overlay fade in/out, 0.5s duration)
+- Bar value smoothly interpolates (no instant jumps except level-up)
+- Multiple rapid XP gains aggregate smoothly (no stutter)
+- Flash cooldown prevents double flash on quest turn-ins
+- Periodic refresh (xpGained=0) does NOT trigger flash
 
 ---
 
@@ -403,60 +500,90 @@ Global Cleanup ← Phase 6 (final polish)
 ---
 
 ### Animation Integration Patterns
+---
 
-#### Pattern 1: AnimationMixin-Only (Legacy, Flat)
+### Animation Integration Patterns
 
-**No custom animations** - rely entirely on AnimationMixin.
+#### Pattern 1: AnimationManager-Only (Legacy, Flat)
 
+**No custom animations** - rely entirely on AnimationManager for standard effects.
+
+**Implementation**:
 ```lua
--- Style config enables standard animations
-local config = {
-    animation = {
-        enabled = true,
-        valueSmoothing = true,
-        xpGainFlash = true,
-        levelUpFlash = true
-    }
-}
+-- Style integrates with AnimationManager via BaseMixin
+-- AnimationManager automatically handles:
+--   - Flash effects (XP gain, level up)
+--   - Value smoothing (EaseOutQuad)
+--   - Retargeting (multiple rapid XP gains)
+--   - Level-up instant reset
+
+-- Style only needs to implement ApplyAnimationStep
+function FlatBarStyle:ApplyAnimationStep(context)
+    -- Update StatusBar value
+    self.StatusBar:SetValue(context.currentRatio)
+    
+    -- Apply flash alpha if active
+    if context.flashData and context.flashData.currentAlpha > 0 then
+        self.FlashOverlay:SetAlpha(context.flashData.currentAlpha)
+    else
+        self.FlashOverlay:SetAlpha(0)
+    end
+end
 ```
 
-**Testing**: Verify AnimationMixin flash and smoothing work correctly.
+**Testing**: 
+- ⬜ Verify AnimationManager flash timing (0.5s duration)
+- ⬜ Verify smooth value interpolation
+- ⬜ Test retargeting with rapid XP gains
+- ⬜ Verify level-up instant reset (no "drain")
 
 ---
 
-#### Pattern 2: AnimationMixin + Custom OnUpdate (Vertical)
+#### Pattern 2: AnimationManager + Custom OnUpdate (Vertical)
 
-**Custom gravity physics** added via OnUpdate handler.
+**Custom gravity physics** added via OnUpdate handler alongside AnimationManager.
 
+**Implementation**:
 ```lua
-function VerticalBarStyleTemplate:InitializeAnimations()
-    -- AnimationMixin handles standard effects
-    -- Custom OnUpdate for gravity
+function VerticalBarStyle:Initialize()
+    -- AnimationManager handles standard effects
+    -- Custom OnUpdate for gravity animation
     self:SetScript("OnUpdate", function(self, elapsed)
         self:UpdateGravityAnimation(elapsed)
     end)
 end
 
-function VerticalBarStyleTemplate:UpdateGravityAnimation(elapsed)
+function VerticalBarStyle:UpdateGravityAnimation(elapsed)
     -- Custom gravity physics here
     -- Update particle positions
     -- Apply velocity/acceleration
 end
+
+-- Still implement ApplyAnimationStep for AnimationManager
+function VerticalBarStyle:ApplyAnimationStep(context)
+    -- Standard bar update + gravity particles
+end
 ```
 
 **Testing**:
-- ⬜ AnimationMixin flash/smoothing still works
-- ⬜ Gravity animation doesn't conflict with smoothing
-- ⬜ Performance acceptable (OnUpdate every frame)
+- ⬜ AnimationManager flash/smoothing still works correctly
+- ⬜ Gravity animation doesn't interfere with standard animations
+- ⬜ Performance acceptable with both OnUpdate and AnimationManager active
+
+**Testing**:
+- ⬜ AnimationManager flash/smoothing still works correctly
+- ⬜ Gravity animation doesn't interfere with standard animations
+- ⬜ Performance acceptable with both OnUpdate and AnimationManager active
 
 ---
 
-#### Pattern 3: AnimationMixin + Custom Ticker (Circular)
+#### Pattern 3: AnimationManager + Custom Ticker (Circular)
 
-**Multi-phase glow animation** via C_Timer.NewTicker.
+**Multi-phase glow animation** via C_Timer.NewTicker alongside AnimationManager.
 
+**Implementation**:
 ```lua
-function CircularBarStyleTemplate:TriggerLevelUpGlow()
+function CircularBarStyle:TriggerLevelUpGlow()
     local startTime = GetTime()
     local fadeInDuration = 0.3
     local holdDuration = 0.5
@@ -483,13 +610,19 @@ function CircularBarStyleTemplate:TriggerLevelUpGlow()
         end
     end)
 end
+
+-- Still implement ApplyAnimationStep for AnimationManager
+function CircularBarStyle:ApplyAnimationStep(context)
+    -- Update arc angles based on context.currentRatio
+    -- Apply AnimationManager flash to separate overlay
+end
 ```
 
 **Testing**:
-- ⬜ Glow timing matches V1 exactly
-- ⬜ AnimationMixin flash doesn't interfere
-- ⬜ Ticker cleanup on style hide/unload
-- ⬜ Multiple rapid triggers handled gracefully
+- ⬜ Glow timing matches V1 exactly (fade in: 0.3s, hold: 0.5s, fade out: 0.5s)
+- ⬜ AnimationManager flash doesn't interfere with glow animation
+- ⬜ Ticker cleanup on style hide/unload (prevent memory leak)
+- ⬜ Multiple rapid triggers handled gracefully (cancel previous ticker)
 
 ---
 

@@ -12,7 +12,7 @@ local XPBarColors = _G.XPBarColors
 -------------------------------------------------------------------
 
 --- Update status bar color based on rested state
----@param context table Context with isRested flag
+---@param context table Context with hasRestedXP or restedXP field
 ---@param barName string|nil StatusBar name (default: "StatusBar")
 function XPBarPaintMixin:UpdateBarColors(context, barName)
 	barName = barName or "StatusBar"
@@ -23,8 +23,8 @@ function XPBarPaintMixin:UpdateBarColors(context, barName)
 	end
 	
 	-- Select color based on whether player has rested XP (not just in resting area)
-	-- Check restedXP > 0 to match V1 behavior
-	local hasRestedXP = context.restedXP and context.restedXP > 0
+	-- Use hasRestedXP field if available, otherwise check restedXP > 0
+	local hasRestedXP = context.hasRestedXP or (context.restedXP and context.restedXP > 0)
 	local colorKey = hasRestedXP and Color.XpBarRested or Color.XpBar
 	local color = XPBarColors:GetUserColor(colorKey)
 	bar:SetStatusBarColor(color.r, color.g, color.b, color.a)

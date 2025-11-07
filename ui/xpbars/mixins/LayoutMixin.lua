@@ -52,49 +52,37 @@ function XPBarLayoutMixin:CalculateRestedBounds(context, barWidth)
 	local restedXP = context.restedXP or 0
 	local currentXP = context.currentXP or 0
 	local maxXP = context.xpMax or 1
-	local completeQuestXP = context.completeQuestXP or 0
 	local isFullyRested = context.isFullyRested or false
 	
-	-- Calculate remaining XP to next level
-	local remainingXP = math.max(0, maxXP - currentXP)
+	-- V2 approach: Rested overlay BEHIND StatusBar, starts from 0
+	-- Width = currentXP + restedXP, so the visible portion shows beyond filled bar
+	-- This way it animates automatically as currentXP changes
 	
-	-- Rested overlay starts AFTER current XP fill + quest overlays (like V1)
-	-- Calculate pixel offset from currentXP + questOffset
-	local questOffset = 0
-	if context.showCompleteQuestOverlay and completeQuestXP > 0 then
-		questOffset = math.min(completeQuestXP, remainingXP)
-	end
-	
-	-- Offset starts from currentXP + questOffset (rested comes AFTER filled portion)
-	local startOffsetXP = currentXP + questOffset
-	local offsetPixels = math.floor((startOffsetXP / maxXP) * barWidth)
-	
-	-- Calculate remaining space after current XP and quest offset
-	local remainingAfterQuest = remainingXP - questOffset
-	local restedXPClamped = math.min(restedXP, remainingAfterQuest)
-	
-	-- V1 parity: Hide overlay when rested fully covers remaining XP OR when fully rested (>= 150% of max XP)
-	-- Show only if: has rested XP AND (rested < remaining XP) AND (not at 150% threshold) AND has space
-	local visible = (restedXP > 0) and (restedXP < remainingXP) and not isFullyRested and (restedXPClamped > 0)
-	
-	if not visible then
+	-- Hide if no rested XP or fully rested (>= 150% threshold)
+	if restedXP <= 0 or isFullyRested then
 		return 0, 0, false
 	end
 	
-	-- Calculate rested overlay width
-	local restedRatio = restedXPClamped / maxXP
-	local restedPixels = math.floor(restedRatio * barWidth)
+	-- Calculate total width: current XP + rested XP
+	-- This positions the rested overlay to extend beyond the current filled bar
+	local totalXP = currentXP + restedXP
 	
-	-- Ensure we don't exceed bar width
-	if offsetPixels + restedPixels <= barWidth + 1 then
-		return offsetPixels, math.max(1, restedPixels), true
+	-- Clamp to max XP (can't show beyond 100%)
+	local totalXPClamped = math.min(totalXP, maxXP)
+	
+	-- Calculate pixel width from 0 to (currentXP + restedXP)
+	local totalRatio = totalXPClamped / maxXP
+	local totalPixels = math.floor(totalRatio * barWidth)
+	
+	-- Must be wider than current XP to be visible
+	local currentRatio = currentXP / maxXP
+	local currentPixels = math.floor(currentRatio * barWidth)
+	
+	if totalPixels > currentPixels then
+		-- Start from 0 (BOTTOMLEFT anchor), width extends to currentXP + restedXP
+		return 0, math.max(1, totalPixels), true
 	else
-		local remainingWidth = math.max(0, barWidth - offsetPixels)
-		if remainingWidth > 1 then
-			return offsetPixels, remainingWidth, true
-		else
-			return 0, 0, false
-		end
+		return 0, 0, false
 	end
 end
 
@@ -157,15 +145,15 @@ function XPBarLayoutMixin:UpdateRestedOverlayLayout(context, overlayName)
 		return
 	end
 	
-	-- Calculate layout
+	-- Calculate layout (returns offset=0, width=total, visible)
 	local barWidth = self:ValidateBarWidth(self)
 	local offsetPixels, widthPixels, visible = self:CalculateRestedBounds(context, barWidth)
 	
 	overlay:SetShown(visible)
 	
 	if visible then
-		overlay:ClearAllPoints()
-		overlay:SetPoint("BOTTOMLEFT", offsetPixels, 0)
+		-- V2: No offset needed, always starts from BOTTOMLEFT (0,0)
+		-- Width = currentXP + restedXP
 		overlay:SetWidth(widthPixels)
 	end
 end

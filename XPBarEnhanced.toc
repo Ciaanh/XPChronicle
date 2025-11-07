@@ -69,7 +69,12 @@ Frames.xml
 # v2 Architecture
 ui\xpbars\ContextBuilder.lua
 ui\xpbars\StyleBuilder.lua
+
+# v2 Base and Mixins
 ui\xpbars\BaseMixin.lua
+ui\xpbars\mixins\animation\AnimationUtils.lua
+ui\xpbars\mixins\animation\AnimationManager.lua
+ui\xpbars\mixins\animation\AnimationBase.lua
 ui\xpbars\mixins\LayoutMixin.lua
 ui\xpbars\mixins\PaintMixin.lua
 ui\xpbars\mixins\VisualsMixin.lua
@@ -77,6 +82,8 @@ ui\xpbars\mixins\TextMixin.lua
 ui\xpbars\mixins\InteractionMixin.lua
 ui\xpbars\mixins\TooltipMixin.lua
 ui\xpbars\mixins\PositionMixin.lua
+
+# v2 Styles
 ui\xpbars\flatbar_v2\FlatBarStyle.lua
 ui\xpbars\flatbar_v2\FlatBarTemplate.xml
 ui\xpbars\tests\test_v2.lua

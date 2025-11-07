@@ -4,6 +4,48 @@
 local Addon = XPBarEnhanced
 
 -----------------------------------
+-- Debug Flag
+-----------------------------------
+local debugV1FlashTiming = false
+local v1FlashTimingLogs = {} -- Array to collect V1 flash timing logs
+local MAX_V1_FLASH_LOGS = 100
+
+local function AddV1FlashTimingLog(message)
+	table.insert(v1FlashTimingLogs, string.format("[%.3f] %s", GetTime(), message))
+	if #v1FlashTimingLogs > MAX_V1_FLASH_LOGS then
+		table.remove(v1FlashTimingLogs, 1)
+	end
+end
+
+-- Command to toggle V1 flash timing debug
+SLASH_V1FLASHDEBUG1 = "/v1flashdebug"
+SlashCmdList["V1FLASHDEBUG"] = function()
+	debugV1FlashTiming = not debugV1FlashTiming
+	if debugV1FlashTiming then
+		v1FlashTimingLogs = {} -- Clear logs when enabling
+	end
+	local status = debugV1FlashTiming and "ENABLED" or "DISABLED"
+	print(string.format("|cffff8800[V1 Flash Debug]|r Detailed flash timing: %s", status))
+end
+
+-- Command to dump V1 flash timing logs
+SLASH_V1FLASHLOGS1 = "/v1flashlogs"
+SlashCmdList["V1FLASHLOGS"] = function()
+	if #v1FlashTimingLogs == 0 then
+		UIErrorsFrame:AddMessage("No V1 flash timing logs collected. Enable with /v1flashdebug", 1.0, 0.5, 0.0, 1.0)
+		error("No V1 flash timing logs collected. Enable with /v1flashdebug")
+		return
+	end
+	
+	UIErrorsFrame:AddMessage("=== V1 Flash Timing Logs ===", 1.0, 0.5, 0.0, 1.0)
+	for _, msg in ipairs(v1FlashTimingLogs) do
+		UIErrorsFrame:AddMessage(msg, 1.0, 1.0, 1.0, 1.0)
+		error(msg)
+	end
+	UIErrorsFrame:AddMessage(string.format("=== Total: %d logs ===", #v1FlashTimingLogs), 1.0, 0.5, 0.0, 1.0)
+end
+
+-----------------------------------
 -- Shared Constants
 -----------------------------------
 local CONTAINER_WIDTH = 571
@@ -1082,14 +1124,23 @@ function XPBarMixinBase:UpdateFlashEffect(now, elapsed)
 	-- Calculate flash alpha (triangle wave: fade in, then fade out)
 	local halfPeriod = constants.GAIN_FLASH_HALF_PERIOD_SECONDS
 	local alpha
+	local phase
 
 	if elapsed_since_start < halfPeriod then
 		-- Fade in
 		alpha = (elapsed_since_start / halfPeriod) * constants.GAIN_FLASH_MAX_ALPHA
+		phase = "fade_in"
 	else
 		-- Fade out
 		local fadeProgress = (elapsed_since_start - halfPeriod) / halfPeriod
 		alpha = (1 - fadeProgress) * constants.GAIN_FLASH_MAX_ALPHA
+		phase = "fade_out"
+	end
+	
+	-- Debug: Log detailed flash timing if enabled
+	if debugV1FlashTiming then
+		AddV1FlashTimingLog(string.format("V1: elapsed=%.3fs phase=%s alpha=%.3f duration=%.2fs halfPeriod=%.2fs",
+			elapsed_since_start, phase, alpha, state.flashDuration, halfPeriod))
 	end
 
 	if self.SetFlashAlpha then

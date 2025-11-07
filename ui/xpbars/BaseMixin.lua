@@ -26,15 +26,18 @@ end
 
 --- Full update - Called by XPBar controller for option/color changes
 --- This provides V1 compatibility for live refresh features
-function BaseMixin:FullUpdate()
+--- @param context table Optional pre-built context (if provided by broadcaster)
+function BaseMixin:FullUpdate(context)
 	-- Prevent re-entrant calls
 	if self._isUpdating then
 		return
 	end
 	self._isUpdating = true
 
-	-- Build fresh context and update all visuals
-	local context = XPBarContextBuilder.BuildXPChangeContext("FULL_UPDATE")
+	-- Use provided context or build fresh one
+	if not context then
+		context = XPBarContextBuilder.BuildXPChangeContext("FULL_UPDATE")
+	end
 	
 	-- Update all visual elements (bars, overlays, text)
 	if self.UpdateVisuals then
@@ -57,6 +60,11 @@ end
 function BaseMixin:OnLoad()
 	-- Initialize internal config
 	self.__xpbar_config = self.__xpbar_config or {}
+
+	-- Initialize animation system (from AnimationBase mixin)
+	if self.InitializeAnimation then
+		self:InitializeAnimation()
+	end
 
 	-- Initialize position behavior (if present)
 	if self.InitializePosition then
@@ -128,6 +136,11 @@ function BaseMixin:OnHide()
 	if self._textRefreshTicker then
 		self._textRefreshTicker:Cancel()
 		self._textRefreshTicker = nil
+	end
+	
+	-- Cleanup animation state (from AnimationBase mixin)
+	if self.CleanupAnimation then
+		self:CleanupAnimation()
 	end
 	
 	-- Note: Don't unregister observer here - we want to receive updates

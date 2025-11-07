@@ -22,14 +22,16 @@ function ContextBuilder.GetCoreState()
 	local xpMax = UnitXPMax("player") or 1
 	local level = UnitLevel("player") or 1
 	local restedXP = GetXPExhaustion() or 0
-	local isRested = IsResting()
+	local isResting = IsResting() -- Player is in a resting area (inn/city)
+	local hasRestedXP = restedXP > 0 -- Player has rested XP bonus available
 	local isFullyRested = restedXP >= (1.5 * xpMax)
 	return {
 		currentXP = currentXP,
 		xpMax = xpMax,
 		level = level,
 		restedXP = restedXP,
-		isRested = isRested,
+		isResting = isResting,
+		hasRestedXP = hasRestedXP,
 		isFullyRested = isFullyRested
 	}
 end
@@ -182,7 +184,8 @@ function ContextBuilder.BuildBaseContext(event, source, coreState, extras)
 		remainingXP = coreState.xpMax - coreState.currentXP,
 		level = coreState.level,
 		restedXP = coreState.restedXP,
-		isRested = coreState.isRested,
+		isResting = coreState.isResting,
+		hasRestedXP = coreState.hasRestedXP,
 		isFullyRested = coreState.isFullyRested,
 		-- Centralized display flags using ConfigHelper for consistency
 		showXPText = getBool("showXPText", true),
