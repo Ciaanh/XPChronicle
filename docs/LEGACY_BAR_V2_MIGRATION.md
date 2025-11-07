@@ -234,63 +234,126 @@ end
 
 ### Step 4: Create LegacyBarTemplate.xml ⏳
 
-**Based on**: V1 `LegacyXPBar.xml` with V2 simplification principles
+**Based on**: V1 `LegacyXPBar.xml` with V2 simplification (following FlatBarTemplate_v2 pattern)
+
+**Key Design Decision: Eliminate Container Completely**
+
+After analyzing Flat Bar V2's structure, we can place the border frame atlas directly on the main frame as a texture layer, eliminating the container wrapper entirely.
+
+**V1 Legacy Structure**:
+```
+LegacyXPBarContainerTemplate (571x17)
+├── Border frame atlas (OVERLAY layer)
+└── LegacyXPBarTemplate (565x11, offset 1,5 inside container)
+    └── StatusBar (565x10)
+```
+
+**V2 Legacy Structure** (No Container):
+```
+LegacyBarTemplate (571x17) - single frame, no nesting!
+├── Border frame atlas (OVERLAY layer - same as V1)
+├── Flash overlay (OVERLAY layer)
+├── StatusBar (565x10, offset 1,5 inside frame)
+│   ├── Background atlas
+│   ├── Rested overlay
+│   ├── Quest overlays
+│   └── Exhaustion tick
+├── OverlayFrameTextContainer (on-bar text)
+└── BelowBarTextContainer (below-bar text)
+```
 
 **Key Changes from V1**:
 
-1. **Simplified Container Structure** (following Flat Bar V2 pattern)
-   - V1 had `LegacyXPBarContainerTemplate` + `LegacyXPBarTemplate` (nested)
-   - V2 merges into single `LegacyBarTemplate` with minimal container wrapper
-   - Container **only** exists to hold border frame atlas (`UI-HUD-ExperienceBar-Frame`)
-   - Positioning logic moves from container mixin to `LegacyPositionMixin`
+1. **No Container Wrapper** (major simplification)
+   - V1: `LegacyXPBarContainerTemplate` wraps `LegacyXPBarTemplate` (nested)
+   - V2: Single `LegacyBarTemplate` frame (flat, like FlatBarTemplate_v2)
+   - Border frame atlas is just a texture layer on main frame
 
-2. **Mixin declaration**: Use V2 composition pattern
+2. **Frame size includes border space**
+   - Frame: 571x17 (accommodates border)
+   - StatusBar: 565x10 (actual bar size)
+   - StatusBar offset: (1,5) positions bar inside border area
+
+3. **Border as texture layer** (not container)
+   ```xml
+   <Layers>
+       <Layer level="OVERLAY">
+           <Texture parentKey="BorderFrame" atlas="UI-HUD-ExperienceBar-Frame" 
+                    useAtlasSize="true"/>
+       </Layer>
+   </Layers>
+   ```
+
+4. **Positioning logic in mixin**
+   - Container OnLoad/OnShow logic → `LegacyPositionMixin:InitializePosition()`
+   - No container scripts needed
+   - Positioning operates directly on main frame
+
+5. **Mixin declaration**: V2 composition pattern
    ```xml
    <Frame name="LegacyBarTemplate" virtual="true" 
           mixin="LegacyBarStyleTemplate"
           frameStrata="LOW" enableMouse="true">
    ```
 
-3. **Simplified scripts**: Only V2 contract methods
+6. **Simplified scripts**: Only V2 contract methods
    ```xml
    <Scripts>
-       <OnLoad>
-           self:Initialize()
-       </OnLoad>
+       <OnLoad method="OnLoad"/>
+       <OnShow method="OnShow"/>
+       <OnHide method="OnHide"/>
+       <OnEnter method="OnEnter"/>
+       <OnLeave method="OnLeave"/>
+       <OnMouseUp method="OnMouseUp"/>
    </Scripts>
    ```
 
-4. **Keep visual structure**: StatusBar, overlays, text elements (same as V1)
-   - StatusBar with atlases (background, border frame)
-   - Rested overlay (solid texture, customizable color)
-   - Quest overlays (complete + incomplete)
-   - Exhaustion tick (atlas-based marker)
-   - Text elements (level, XP, percent, below-bar)
-
-**Structure Decision**:
+**XML Structure Template**:
 ```xml
-<!-- OPTION A: Minimal Container (RECOMMENDED) -->
-<Frame name="LegacyBarTemplate" virtual="true" mixin="LegacyBarStyleTemplate">
+<Frame name="LegacyBarTemplate" virtual="true" mixin="LegacyBarStyleTemplate" 
+       frameStrata="LOW" enableMouse="true" fixedFrameStrata="true">
+    <Size x="571" y="17"/>
     <Layers>
-        <!-- Border frame atlas overlay -->
+        <!-- Border frame atlas - on main frame, not container -->
         <Layer level="OVERLAY">
-            <Texture parentKey="BorderFrame" atlas="UI-HUD-ExperienceBar-Frame"/>
+            <Texture parentKey="BorderFrame" atlas="UI-HUD-ExperienceBar-Frame" 
+                     useAtlasSize="true"/>
+        </Layer>
+        
+        <!-- Flash overlay (above border) -->
+        <Layer level="OVERLAY" textureSubLevel="3">
+            <Texture parentKey="GainFlash" hidden="true">
+                <Anchors>
+                    <Anchor point="TOPLEFT" x="1" y="-5"/>
+                    <Anchor point="BOTTOMRIGHT" x="-5" y="1"/>
+                </Anchors>
+            </Texture>
         </Layer>
     </Layers>
     <Frames>
-        <!-- Main bar (StatusBar + overlays) -->
-        <StatusBar parentKey="StatusBar">...</StatusBar>
+        <!-- StatusBar offset inside frame to accommodate border -->
+        <StatusBar parentKey="StatusBar" minValue="0" maxValue="1" defaultValue="0">
+            <Size x="565" y="10"/>
+            <Anchors>
+                <Anchor point="BOTTOMLEFT" x="1" y="5"/>
+            </Anchors>
+            <!-- StatusBar layers: background atlas, overlays, etc. -->
+        </StatusBar>
+        
+        <!-- Text containers -->
+        <Frame parentKey="OverlayFrameTextContainer">...</Frame>
+        <Frame parentKey="BelowBarTextContainer">...</Frame>
     </Frames>
 </Frame>
-
-<!-- OPTION B: Completely Flat (like Flat Bar V2) -->
-<!-- Would lose border frame atlas unless moved inside StatusBar layers -->
 ```
 
-**Recommendation**: Use **Option A** - minimal container for border frame atlas
-- Keeps visual fidelity with V1 (border frame matches Blizzard style)
-- Still much simpler than V1 container (no positioning logic, no text wiring)
-- Container is purely cosmetic (border frame), not functional
+**Why This Works**:
+- ✅ Border frame atlas is purely visual (texture layer)
+- ✅ StatusBar offset (1,5) leaves room for border (same as V1)
+- ✅ Frame size (571x17) includes border space (same as V1)
+- ✅ No functional loss - positioning moves to LegacyPositionMixin
+- ✅ Consistent with Flat Bar V2 pattern (no container nesting)
+- ✅ Simpler XML structure (~140 lines vs V1's 184 lines)
 
 ### Step 5: Register with StyleBuilder ⏳
 
@@ -428,14 +491,22 @@ ui\xpbars\legacy_v2\_includes.xml
 
 ### Code Reduction
 - **V1 Legacy**: 469 lines (Lua) + 184 lines (XML) = **653 lines total**
-- **V2 Legacy**: ~150 lines (Lua) + ~150 lines (XML) = **~300 lines estimated**
-- **Reduction**: ~54% (353 lines saved)
+- **V2 Legacy**: ~180 lines (Lua) + ~140 lines (XML) = **~320 lines estimated**
+- **Reduction**: ~51% (333 lines saved)
 
-**Note**: XML is shorter than V1 because:
-- Container logic removed (positioning moved to LegacyPositionMixin)
+**Note**: XML is significantly shorter than V1 because:
+- **No container wrapper** (saves ~40 lines)
+  - Container template eliminated entirely
+  - Border frame atlas moved to main frame as texture layer
+  - Follows Flat Bar V2 pattern (single frame, no nesting)
+- Container positioning logic removed (moved to LegacyPositionMixin)
 - Text wiring removed (handled by TextMixin)
 - Event scripts simplified (V2 contract methods only)
-- Container kept minimal (just border frame atlas wrapper)
+
+**Lua breakdown**:
+- LegacyBarStyle.lua: ~150 lines (ApplyAnimationStep + GetAnimationConfig)
+- LegacyPositionMixin.lua: ~30 lines (static positioning)
+- V1 had 469 lines → V2 has 180 lines (62% reduction)
 
 ### Shared Code Reuse
 - Event handling: BaseMixin (reused)
