@@ -111,62 +111,18 @@ XPBarMixinBase_v2        -- Event orchestration, Trigger/Action methods
 + InteractionMixin       -- Mouse handling (Alt+Click, Ctrl+Click)
 + LayoutMixin            -- Overlay positioning (standard algorithms)
 + PaintMixin             -- Color application
++ PositionMixin          -- Positioning (static mode: isDraggable=false)
 + TextMixin              -- Text formatting, real-time updates
 + TooltipMixin           -- Tooltip management
 + VisualsMixin           -- Visual element orchestration
-+ LegacyPositionMixin    -- NEW: Static positioning (custom for Legacy)
 + LegacyBarStyleTemplate -- Style-specific implementation
 ```
 
-### New Positioning Mixin
-
-**Create**: `ui/xpbars/mixins/LegacyPositionMixin.lua`
-
-This will be a **minimal mixin** specifically for Legacy Bar's static positioning:
-
-```lua
--- LegacyPositionMixin.lua
--- Static positioning for Legacy Bar (anchored to Blizzard's XP bar)
-
-local LegacyPositionMixin = {}
-
-function LegacyPositionMixin:InitializePosition()
-    -- Position to match Blizzard's XP bar immediately
-    self:PositionToMatchBlizzardBar()
-    
-    -- Retry after 0.5s in case Blizzard UI not fully loaded
-    self._positionTimer = C_Timer.NewTimer(0.5, function()
-        if self and self.PositionToMatchBlizzardBar then
-            self:PositionToMatchBlizzardBar()
-        end
-    end)
-end
-
-function LegacyPositionMixin:PositionToMatchBlizzardBar()
-    local container = _G.MainStatusTrackingBarContainer
-    if not container then
-        return
-    end
-    
-    self:ClearAllPoints()
-    self:SetPoint("TOP", container, "TOP", 0, 5)
-end
-
-function LegacyPositionMixin:OnHide()
-    -- Cleanup timer
-    if self._positionTimer then
-        self._positionTimer:Cancel()
-        self._positionTimer = nil
-    end
-end
-
-return LegacyPositionMixin
-```
-
-**Rationale**: 
-- Flat Bar uses `PositionMixin` (draggable, persistence)
-- Legacy Bar needs **static positioning** (non-draggable, anchored to Blizzard)
-- Custom mixin avoids conflicts with PositionMixin's dragging logic
+**Note on Positioning**: 
+- Legacy Bar uses the same `PositionMixin` as Flat Bar
+- Static positioning achieved via `isDraggable = false` config
+- PositionMixin already supports both draggable and static modes
+- No custom positioning mixin needed
 
 ---
 
@@ -182,17 +138,7 @@ Files to create:
 - `LegacyBarTemplate.xml` - Visual structure
 - `_includes.xml` - File references
 
-### Step 2: Create LegacyPositionMixin ⏳
-**File**: `ui/xpbars/mixins/LegacyPositionMixin.lua`
-
-**Purpose**: Handle static positioning anchored to Blizzard's XP bar
-
-**Methods**:
-- `InitializePosition()` - Position to Blizzard bar with retry
-- `PositionToMatchBlizzardBar()` - Anchor to MainStatusTrackingBarContainer
-- `OnHide()` - Cleanup timer
-
-### Step 3: Implement LegacyBarStyle.lua ⏳
+### Step 2: Implement LegacyBarStyle.lua ⏳
 
 **Structure**:
 ```lua
@@ -232,7 +178,7 @@ function LegacyBarStyleTemplate:ApplyAnimationStep(stepContext)
 end
 ```
 
-### Step 4: Create LegacyBarTemplate.xml ⏳
+### Step 3: Create LegacyBarTemplate.xml ⏳
 
 **Based on**: V1 `LegacyXPBar.xml` with V2 simplification (following FlatBarTemplate_v2 pattern)
 
@@ -246,12 +192,22 @@ LegacyXPBarContainerTemplate (571x17)
 ├── Border frame atlas (OVERLAY layer)
 └── LegacyXPBarTemplate (565x11, offset 1,5 inside container)
     └── StatusBar (565x10)
+        └── ExhaustionTick (Button, 10x14)
 ```
 
 **V2 Legacy Structure** (No Container):
 ```
 LegacyBarTemplate (571x17) - single frame, no nesting!
 ├── Border frame atlas (OVERLAY layer - same as V1)
+├── Flash overlay (OVERLAY layer)
+├── StatusBar (565x11, offset 1,5 inside frame) - V1 size
+│   ├── Background atlas (UI-HUD-ExperienceBar-Fill)
+│   ├── Rested overlay (solid texture)
+│   ├── Quest overlays (solid textures)
+│   └── ExhaustionTick (Button, 10x14) - atlas-based marker
+├── OverlayFrameTextContainer (on-bar text)
+└── BelowBarTextContainer (below-bar text)
+```
 ├── Flash overlay (OVERLAY layer)
 ├── StatusBar (565x10, offset 1,5 inside frame)
 │   ├── Background atlas
@@ -269,9 +225,9 @@ LegacyBarTemplate (571x17) - single frame, no nesting!
    - V2: Single `LegacyBarTemplate` frame (flat, like FlatBarTemplate_v2)
    - Border frame atlas is just a texture layer on main frame
 
-2. **Frame size includes border space**
+2. **Frame size includes border space** (V1 dimensions preserved)
    - Frame: 571x17 (accommodates border)
-   - StatusBar: 565x10 (actual bar size)
+   - StatusBar: 565x11 (V1 bar size - matches original exactly)
    - StatusBar offset: (1,5) positions bar inside border area
 
 3. **Border as texture layer** (not container)
@@ -284,19 +240,33 @@ LegacyBarTemplate (571x17) - single frame, no nesting!
    </Layers>
    ```
 
-4. **Positioning logic in mixin**
-   - Container OnLoad/OnShow logic → `LegacyPositionMixin:InitializePosition()`
-   - No container scripts needed
-   - Positioning operates directly on main frame
+4. **StatusBar texture uses atlas** (V1 approach, not solid color)
+   ```xml
+   <StatusBar parentKey="StatusBar">
+       <BarTexture atlas="UI-HUD-ExperienceBar-Fill" useAtlasSize="false"/>
+   </StatusBar>
+   ```
 
-5. **Mixin declaration**: V2 composition pattern
+5. **ExhaustionTick included** (V1 structure preserved)
+   - Button element inside StatusBar (V1 structure)
+   - Size: 10x14 (V1 size)
+   - Anchored to rested overlay right edge
+   - Normal + Highlight textures (atlas-based)
+   - Uses ExhaustionTickMixin for tooltip
+
+6. **Positioning via PositionMixin** (static mode)
+   - `isDraggable = false` in style config
+   - PositionMixin handles both static and draggable modes
+   - No custom positioning mixin needed
+
+7. **Mixin declaration**: V2 composition pattern
    ```xml
    <Frame name="LegacyBarTemplate" virtual="true" 
           mixin="LegacyBarStyleTemplate"
           frameStrata="LOW" enableMouse="true">
    ```
 
-6. **Simplified scripts**: Only V2 contract methods
+8. **Simplified scripts**: Only V2 contract methods
    ```xml
    <Scripts>
        <OnLoad method="OnLoad"/>
@@ -320,24 +290,79 @@ LegacyBarTemplate (571x17) - single frame, no nesting!
                      useAtlasSize="true"/>
         </Layer>
         
-        <!-- Flash overlay (above border) -->
+        <!-- Flash overlay (covers StatusBar area, V1 match) -->
         <Layer level="OVERLAY" textureSubLevel="3">
             <Texture parentKey="GainFlash" hidden="true">
                 <Anchors>
-                    <Anchor point="TOPLEFT" x="1" y="-5"/>
-                    <Anchor point="BOTTOMRIGHT" x="-5" y="1"/>
+                    <Anchor point="TOPLEFT" x="1" y="-6"/>
+                    <Anchor point="BOTTOMRIGHT" x="-5" y="5"/>
                 </Anchors>
             </Texture>
         </Layer>
     </Layers>
     <Frames>
-        <!-- StatusBar offset inside frame to accommodate border -->
+        <!-- StatusBar offset inside frame to accommodate border (V1 size: 565x11) -->
         <StatusBar parentKey="StatusBar" minValue="0" maxValue="1" defaultValue="0">
-            <Size x="565" y="10"/>
+            <Size x="565" y="11"/>
             <Anchors>
                 <Anchor point="BOTTOMLEFT" x="1" y="5"/>
             </Anchors>
-            <!-- StatusBar layers: background atlas, overlays, etc. -->
+            <!-- StatusBar texture: atlas (V1 approach) -->
+            <BarTexture atlas="UI-HUD-ExperienceBar-Fill" useAtlasSize="false"/>
+            
+            <Layers>
+                <!-- Rested overlay -->
+                <Layer level="ARTWORK" textureSubLevel="1">
+                    <Texture parentKey="ExhaustionLevelFillBar" hidden="true" 
+                             file="Interface\Buttons\WHITE8X8">
+                        <Anchors>
+                            <Anchor point="TOPLEFT"/>
+                            <Anchor point="BOTTOMLEFT"/>
+                        </Anchors>
+                    </Texture>
+                </Layer>
+                
+                <!-- Quest overlays (complete + incomplete) -->
+                <Layer level="ARTWORK" textureSubLevel="2">
+                    <Texture parentKey="QuestOverlayComplete" hidden="true" 
+                             file="Interface\Buttons\WHITE8X8">
+                        <Anchors>
+                            <Anchor point="TOPLEFT"/>
+                            <Anchor point="BOTTOMLEFT"/>
+                        </Anchors>
+                    </Texture>
+                </Layer>
+                
+                <Layer level="ARTWORK" textureSubLevel="3">
+                    <Texture parentKey="QuestOverlayIncomplete" hidden="true" 
+                             file="Interface\Buttons\WHITE8X8">
+                        <Anchors>
+                            <Anchor point="TOPLEFT"/>
+                            <Anchor point="BOTTOMLEFT"/>
+                        </Anchors>
+                    </Texture>
+                </Layer>
+            </Layers>
+            
+            <Frames>
+                <!-- Exhaustion Tick (rested XP marker) - V1 structure preserved -->
+                <Button parentKey="ExhaustionTick" hidden="true" frameStrata="MEDIUM" 
+                        mixin="ExhaustionTickMixin">
+                    <Size x="10" y="14"/>
+                    <Anchors>
+                        <Anchor point="CENTER" relativeKey="$parent.ExhaustionLevelFillBar" 
+                                relativePoint="RIGHT"/>
+                    </Anchors>
+                    <NormalTexture parentKey="Normal" atlas="UI-HUD-ExperienceBar-Frame-Pip"/>
+                    <HighlightTexture parentKey="Highlight" 
+                                     atlas="UI-HUD-ExperienceBar-Frame-Pip-Mouseover" 
+                                     alphaMode="ADD"/>
+                    <Scripts>
+                        <OnEnter method="OnEnter"/>
+                        <OnLeave function="GameTooltip_Hide"/>
+                    </Scripts>
+                </Button>
+            </Frames>
         </StatusBar>
         
         <!-- Text containers -->
@@ -350,12 +375,15 @@ LegacyBarTemplate (571x17) - single frame, no nesting!
 **Why This Works**:
 - ✅ Border frame atlas is purely visual (texture layer)
 - ✅ StatusBar offset (1,5) leaves room for border (same as V1)
+- ✅ StatusBar size 565x11 matches V1 exactly
+- ✅ StatusBar uses atlas texture `UI-HUD-ExperienceBar-Fill` (V1 approach)
+- ✅ ExhaustionTick included with V1 structure (Button inside StatusBar)
 - ✅ Frame size (571x17) includes border space (same as V1)
-- ✅ No functional loss - positioning moves to LegacyPositionMixin
+- ✅ No functional loss - positioning via PositionMixin (static mode)
 - ✅ Consistent with Flat Bar V2 pattern (no container nesting)
 - ✅ Simpler XML structure (~140 lines vs V1's 184 lines)
 
-### Step 5: Register with StyleBuilder ⏳
+### Step 4: Register with StyleBuilder ⏳
 
 **In LegacyBarStyle.lua**:
 ```lua
@@ -368,15 +396,15 @@ XPBarStyleBuilder.RegisterStyle("legacy_v2", {
         XPBarInteractionMixin,
         XPBarLayoutMixin,
         XPBarPaintMixin,
+        XPBarPositionMixin,      -- Static mode (isDraggable=false)
         XPBarTextMixin,
         XPBarTooltipMixin,
         XPBarVisualsMixin,
-        LegacyPositionMixin,  -- Custom positioning
         LegacyBarStyleTemplate
     },
     config = {
-        isDraggable = false,  -- IMPORTANT: Static positioning only
-        savePosition = false, -- No position persistence
+        isDraggable = false,      -- IMPORTANT: Static positioning (anchored to Blizzard bar)
+        savePosition = false,     -- No position persistence needed
         defaultSize = { width = 565, height = 11 },
         animations = {
             enabled = true,
@@ -386,7 +414,7 @@ XPBarStyleBuilder.RegisterStyle("legacy_v2", {
 })
 ```
 
-### Step 6: Update Includes ⏳
+### Step 5: Update Includes ⏳
 
 **In main `Frames.xml`**:
 ```xml
@@ -402,27 +430,30 @@ XPBarStyleBuilder.RegisterStyle("legacy_v2", {
 </Ui>
 ```
 
-### Step 7: Update .toc File ⏳
+### Step 6: Update .toc File ⏳
 
 Add after Flat Bar V2 includes:
 ```toc
 # Legacy Bar V2
-ui\xpbars\mixins\LegacyPositionMixin.lua
 ui\xpbars\legacy_v2\_includes.xml
 ```
+
+**Note**: No custom positioning mixin needed - PositionMixin handles static mode via `isDraggable=false`
 
 ---
 
 ## Testing Checklist
 
 ### Visual Elements
-- [ ] StatusBar renders correctly (solid color texture)
-- [ ] Background atlas texture visible
+- [ ] StatusBar renders correctly with atlas texture (UI-HUD-ExperienceBar-Fill)
+- [ ] StatusBar size matches V1 (565x11)
+- [ ] Border frame atlas visible (UI-HUD-ExperienceBar-Frame)
 - [ ] Rested overlay positioned correctly (after current XP)
 - [ ] Quest complete overlay visible when quests ready
 - [ ] Quest incomplete overlay visible with incomplete quest progress
-- [ ] Exhaustion tick positioned at rested XP end
-- [ ] Flash overlay covers full bar area
+- [ ] Exhaustion tick positioned at rested XP end (Button, 10x14)
+- [ ] Exhaustion tick tooltip works on hover
+- [ ] Flash overlay covers StatusBar area correctly
 
 ### Positioning
 - [ ] Bar anchored to Blizzard's MainStatusTrackingBarContainer
@@ -541,9 +572,8 @@ If V2 Legacy has issues:
 
 ### Day 1: Structure & Implementation
 - [ ] Create directory structure
-- [ ] Implement LegacyPositionMixin
 - [ ] Implement LegacyBarStyle.lua
-- [ ] Create LegacyBarTemplate.xml
+- [ ] Create LegacyBarTemplate.xml (with ExhaustionTick)
 - [ ] Update includes and .toc
 
 ### Day 2: Testing & Refinement
