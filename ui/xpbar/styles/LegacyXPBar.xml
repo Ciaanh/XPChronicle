@@ -5,7 +5,7 @@
 
 	<!-- Legacy XP Bar Template (simplified from StatusTrackingBarTemplate) -->
 	<Frame name="LegacyXPBarTemplate" virtual="true" mixin="LegacyXPBarMixin" frameStrata="LOW" enableMouse="true" fixedFrameStrata="true">
-		<Size x="565" y="11"/>
+		<Size x="563" y="9"/>
 		<Layers>
 			<!-- Flash effect overlay (solid color for customization) -->
 			<Layer level="OVERLAY" textureSubLevel="3">
@@ -21,9 +21,8 @@
 		<Frames>
 			<!-- XP StatusBar (no inheritance - direct implementation) -->
 			<StatusBar parentKey="StatusBar" minValue="0" maxValue="1" defaultValue="0">
-				<Size x="565" y="10"/>
 				<Anchors>
-					<Anchor point="BOTTOMLEFT" x="0" y="0"/>
+					<Anchor point="TOPLEFT" x="0" y="0"/>
 					<Anchor point="BOTTOMRIGHT" x="0" y="0"/>
 				</Anchors>
 				<BarColor r="1" g="1" b="1"/>
@@ -44,7 +43,7 @@
 						<Texture parentKey="ExhaustionLevelFillBar" file="Interface\TargetingFrame\UI-StatusBar">
 							<Size x="0" y="10"/>
 							<Anchors>
-								<Anchor point="BOTTOMLEFT" x="0" y="0"/>
+								<Anchor point="LEFT" x="0" y="0"/>
 							</Anchors>
 							<Color r="0.0" g="0.5" b="1.0" a="0.5"/>
 						</Texture>
@@ -55,7 +54,7 @@
 						<Texture parentKey="QuestOverlayComplete" hidden="true" file="Interface\TargetingFrame\UI-StatusBar">
 							<Size x="0" y="10"/>
 							<Anchors>
-								<Anchor point="BOTTOMLEFT" x="0" y="0"/>
+								<Anchor point="LEFT" x="0" y="0"/>
 							</Anchors>
 							<Color r="1.0" g="0.59" b="0.0" a="0.8"/>
 						</Texture>
@@ -66,7 +65,7 @@
 						<Texture parentKey="QuestOverlayIncomplete" hidden="true" file="Interface\TargetingFrame\UI-StatusBar">
 							<Size x="0" y="10"/>
 							<Anchors>
-								<Anchor point="BOTTOMLEFT" x="0" y="0"/>
+								<Anchor point="LEFT" x="0" y="0"/>
 							</Anchors>
 							<Color r="1.0" g="0.82" b="0.31" a="0.6"/>
 						</Texture>
@@ -155,7 +154,7 @@
 		<Frames>
 			<Frame parentKey="Bar" inherits="LegacyXPBarTemplate">
 				<Anchors>
-					<Anchor point="BOTTOMLEFT" x="1" y="5"/>
+					<Anchor point="CENTER" x="0" y="0"/>
 				</Anchors>
 			</Frame>
 			<!-- Below-bar text container -->

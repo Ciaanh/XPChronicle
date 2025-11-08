@@ -179,3 +179,82 @@ Addon.Tests.CreateTestBar = CreateTestBar
 Addon.Tests.DestroyTestBar = DestroyTestBar
 Addon.Tests.PrintContext = PrintContext
 Addon.Tests.TriggerFlash = TriggerFlash
+
+-------------------------------------------------------------------
+-- LEGACY BAR V2 TEST FUNCTIONS
+-------------------------------------------------------------------
+
+local LegacyTestFrame = nil
+local LegacyTestObserverId = nil
+
+-- CreateLegacyTestBar: create and initialize Legacy Bar V2 test frame
+local function CreateLegacyTestBar(config)
+	local frame
+	if XPBarEnhanced_CreateLegacyBarFrame then
+		frame = XPBarEnhanced_CreateLegacyBarFrame()
+	elseif XPBarStyleBuilder and XPBarStyleBuilder.CreateFrameForStyle then
+		-- Fallback: create directly from style builder
+		frame = XPBarStyleBuilder:CreateFrameForStyle("legacy_v2", nil, "LegacyBarTemplate")
+	end
+
+	if not frame then
+		logError("Failed to create Legacy Bar V2 test frame")
+		return
+	end
+
+	-- Store frame reference
+	LegacyTestFrame = frame
+	
+	-- Register as global for easy access
+	_G.LegacyBar_v2 = frame
+
+	-- Register with observer pattern (allows multiple bars to coexist)
+	if Addon and Addon.XPBar and Addon.XPBar.RegisterObserver then
+		LegacyTestObserverId = Addon.XPBar:RegisterObserver(frame, "legacy_v2_test")
+		logInfo(string.format("Legacy V2 test bar registered as observer: %s", LegacyTestObserverId))
+	else
+		logWarn("Legacy V2 test bar: XPBar observer pattern not available")
+	end
+
+	-- Ensure frame is shown
+	frame:Show()
+
+	-- Force initial visuals if context builder exists
+	if frame.UpdateVisuals and XPBarContextBuilder and XPBarContextBuilder.BuildXPChangeContext then
+		local ctx = XPBarContextBuilder:BuildXPChangeContext()
+		frame:UpdateVisuals(ctx)
+	end
+
+	logInfo("Legacy Bar V2 test frame created successfully!")
+	return frame
+end
+
+-- DestroyLegacyTestBar: cleanup Legacy Bar V2 test frame
+local function DestroyLegacyTestBar()
+	if not LegacyTestFrame then
+		logWarn("No Legacy Bar V2 test frame to destroy")
+		return
+	end
+
+	-- Unregister from observer pattern
+	if Addon and Addon.XPBar and Addon.XPBar.UnregisterObserver and LegacyTestObserverId then
+		Addon.XPBar:UnregisterObserver(LegacyTestObserverId)
+		logInfo(string.format("Legacy V2 test bar unregistered observer: %s", LegacyTestObserverId))
+		LegacyTestObserverId = nil
+	end
+
+	if LegacyTestFrame.UnregisterAllEvents then
+		pcall(LegacyTestFrame.UnregisterAllEvents, LegacyTestFrame)
+	end
+	if LegacyTestFrame.OnUnload then
+		pcall(LegacyTestFrame.OnUnload, LegacyTestFrame)
+	end
+	LegacyTestFrame:Hide()
+	_G.LegacyBar_v2 = nil
+	LegacyTestFrame = nil
+	logInfo("Legacy Bar V2 test frame destroyed")
+end
+
+-- Export Legacy Bar V2 test functions
+Addon.Tests.CreateLegacyTestBar = CreateLegacyTestBar
+Addon.Tests.DestroyLegacyTestBar = DestroyLegacyTestBar

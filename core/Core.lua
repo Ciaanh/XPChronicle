@@ -379,8 +379,10 @@ SlashCmdList["XPTEST"] = function(msg)
 
     if cmd == "help" then
         print("|cff00ff00XPBarEnhanced v2 Test:|r")
-        print(" /xptest create   - create test bar (requires dev mode)")
-        print(" /xptest destroy  - destroy test bar (requires dev mode)")
+        print(" /xptest create   - create Flat Bar V2 test bar (requires dev mode)")
+        print(" /xptest destroy  - destroy Flat Bar V2 test bar (requires dev mode)")
+        print(" /xptest legacy   - create Legacy Bar V2 test bar (requires dev mode)")
+        print(" /xptest legacydestroy - destroy Legacy Bar V2 test bar (requires dev mode)")
         print(" /xptest context  - print current context")
         print(" /xptest flash    - trigger xp gain flash (if available)")
         print(" /xptest help     - this help")
@@ -394,6 +396,12 @@ SlashCmdList["XPTEST"] = function(msg)
             return
         elseif cmd == "destroy" and Addon.Tests.DestroyTestBar then
             Addon.Tests.DestroyTestBar()
+            return
+        elseif cmd == "legacy" and Addon.Tests.CreateLegacyTestBar then
+            Addon.Tests.CreateLegacyTestBar()
+            return
+        elseif cmd == "legacydestroy" and Addon.Tests.DestroyLegacyTestBar then
+            Addon.Tests.DestroyLegacyTestBar()
             return
         elseif cmd == "context" and Addon.Tests.PrintContext then
             Addon.Tests.PrintContext()

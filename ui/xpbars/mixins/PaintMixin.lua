@@ -17,11 +17,11 @@ local XPBarColors = _G.XPBarColors
 function XPBarPaintMixin:UpdateBarColors(context, barName)
 	barName = barName or "StatusBar"
 	local bar = self[barName]
-	
+
 	if not bar then
 		return
 	end
-	
+
 	-- Select color based on whether player has rested XP (not just in resting area)
 	-- Use hasRestedXP field if available, otherwise check restedXP > 0
 	local hasRestedXP = context.hasRestedXP or (context.restedXP and context.restedXP > 0)
@@ -35,11 +35,11 @@ end
 function XPBarPaintMixin:UpdateRestedOverlayColor(overlayName)
 	overlayName = overlayName or "RestedOverlay"
 	local overlay = self[overlayName]
-	
+
 	if not overlay then
 		return
 	end
-	
+
 	local color = XPBarColors:GetUserColor(Color.Rested)
 	overlay:SetVertexColor(color.r, color.g, color.b, color.a)
 end
@@ -49,11 +49,11 @@ end
 function XPBarPaintMixin:UpdateQuestCompleteOverlayColor(overlayName)
 	overlayName = overlayName or "QuestOverlayComplete"
 	local overlay = self[overlayName]
-	
+
 	if not overlay then
 		return
 	end
-	
+
 	local color = XPBarColors:GetUserColor(Color.QuestComplete)
 	overlay:SetVertexColor(color.r, color.g, color.b, color.a)
 end
@@ -63,11 +63,11 @@ end
 function XPBarPaintMixin:UpdateQuestIncompleteOverlayColor(overlayName)
 	overlayName = overlayName or "QuestOverlayIncomplete"
 	local overlay = self[overlayName]
-	
+
 	if not overlay then
 		return
 	end
-	
+
 	local color = XPBarColors:GetUserColor(Color.QuestIncomplete)
 	overlay:SetVertexColor(color.r, color.g, color.b, color.a)
 end
@@ -82,11 +82,11 @@ end
 function XPBarPaintMixin:ApplyBarTexture(texture, barName)
 	barName = barName or "StatusBar"
 	local bar = self[barName]
-	
+
 	if not bar or not bar.SetStatusBarTexture then
 		return
 	end
-	
+
 	if texture then
 		bar:SetStatusBarTexture(texture)
 	end
@@ -103,14 +103,14 @@ function XPBarPaintMixin:BuildVisuals()
 	if not self.StatusBar then
 		return
 	end
-	
+
 	-- Alias overlays expected as children of StatusBar
 	self.RestedOverlay = self.RestedOverlay or (self.StatusBar and self.StatusBar.RestedOverlay)
 	self.QuestOverlayComplete = self.QuestOverlayComplete or (self.StatusBar and self.StatusBar.QuestOverlayComplete)
 	self.QuestOverlayIncomplete = self.QuestOverlayIncomplete or (self.StatusBar and self.StatusBar.QuestOverlayIncomplete)
 	self.ExhaustionTick = self.ExhaustionTick or (self.StatusBar and self.StatusBar.ExhaustionTick)
 	self.GainFlash = self.GainFlash or (self.StatusBar and self.StatusBar.GainFlash)
-	
+
 	-- Alias ON-BAR text children
 	local onBarTextContainer = self.OverlayFrameTextContainer
 	if onBarTextContainer then
@@ -124,7 +124,7 @@ function XPBarPaintMixin:BuildVisuals()
 			self.LevelText = onBarTextContainer.LevelText
 		end
 	end
-	
+
 	-- Alias BELOW-BAR text children (if style uses BelowBarTextContainer)
 	if self.BelowBarTextContainer then
 		if not self.RateText and self.BelowBarTextContainer.RateText then
@@ -137,12 +137,12 @@ function XPBarPaintMixin:BuildVisuals()
 			self.QuestSummaryText = self.BelowBarTextContainer.QuestSummaryText
 		end
 	end
-	
+
 	-- Apply text visibility from config (delegate to text mixin if available)
 	if self.UpdateTextVisibility then
 		self:UpdateTextVisibility(nil)
 	end
-	
+
 	-- V2 Architecture: Initialize user colors immediately after XML elements are aliased
 	-- This ensures user-configured colors override XML defaults
 	self:InitializeColors()
@@ -154,23 +154,23 @@ function XPBarPaintMixin:InitializeColors()
 	if not XPBarColors then
 		return
 	end
-	
+
 	-- Initialize overlay colors (read from user config, not XML)
 	if self.RestedOverlay then
 		local color = XPBarColors:GetUserColor(Color.Rested)
 		self.RestedOverlay:SetVertexColor(color.r, color.g, color.b, color.a)
 	end
-	
+
 	if self.QuestOverlayComplete then
 		local color = XPBarColors:GetUserColor(Color.QuestComplete)
 		self.QuestOverlayComplete:SetVertexColor(color.r, color.g, color.b, color.a)
 	end
-	
+
 	if self.QuestOverlayIncomplete then
 		local color = XPBarColors:GetUserColor(Color.QuestIncomplete)
 		self.QuestOverlayIncomplete:SetVertexColor(color.r, color.g, color.b, color.a)
 	end
-	
+
 	-- Note: StatusBar color (XpBar/XpBarRested) is set dynamically in UpdateBarColors based on rested state
 	-- We don't set it here because it changes based on context
 end
@@ -181,15 +181,7 @@ function XPBarPaintMixin:ApplyStyle(styleConfig)
 	if not styleConfig then
 		return
 	end
-	
-	-- Apply size to main frame and StatusBar if provided
-	if styleConfig.width and styleConfig.height then
-		self:SetSize(styleConfig.width, styleConfig.height)
-		if self.StatusBar then
-			self.StatusBar:SetSize(styleConfig.width, styleConfig.height)
-		end
-	end
-	
+
 	-- Apply a statusbar texture if provided
 	if styleConfig.barTexture then
 		self:ApplyBarTexture(styleConfig.barTexture)

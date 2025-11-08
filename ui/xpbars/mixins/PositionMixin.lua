@@ -45,11 +45,7 @@ function PositionMixin:InitializePosition()
 	if mode == POSITION_MODE.STATIC then
 		self:ApplyStaticPosition()
 	elseif mode == POSITION_MODE.DRAGGABLE then
-		-- Make frame movable (InteractionMixin handles the actual drag via Shift+click)
-		self:SetMovable(true)
-		self:EnableMouse(true)
-		-- Restore saved position
-		self:RestorePosition()
+		self:EnableDragging(true)
 	end
 end
 
@@ -63,23 +59,13 @@ function PositionMixin:ApplyStaticPosition()
 	local container = _G.MainStatusTrackingBarContainer
 	if container then
 		self:ClearAllPoints()
-		self:SetPoint("TOPLEFT", container, "TOPLEFT", 0, 0)
-		self:SetPoint("TOPRIGHT", container, "TOPRIGHT", 0, 0)
+		self:SetPoint("TOPLEFT", container, "TOPLEFT", 0, -50) -- to edit when development is done to remove -50 offset
+		self:SetPoint("TOPRIGHT", container, "TOPRIGHT", 0, -50)
 		return
 	end
 
-	-- Fallback: anchor to MainMenuExpBar if available
-	local expBar = _G.MainMenuExpBar
-	if expBar then
-		self:ClearAllPoints()
-		self:SetPoint("TOPLEFT", expBar, "TOPLEFT", 0, 0)
-		self:SetPoint("TOPRIGHT", expBar, "TOPRIGHT", 0, 0)
-		return
-	end
-
-	-- Last resort: anchor to bottom of screen
-	self:ClearAllPoints()
-	self:SetPoint("BOTTOM", UIParent, "BOTTOM", 0, 0)
+	-- fallback to dragging if MainStatusTrackingBarContainer not found
+	self:EnableDragging(true)
 end
 
 -------------------------------------------------------------------
@@ -89,28 +75,12 @@ end
 --- Enable or disable dragging
 ---@param enabled boolean True to enable dragging
 function PositionMixin:EnableDragging(enabled)
-	if enabled then
-		self:SetMovable(true)
-		self:EnableMouse(true)
-		self:RegisterForDrag("LeftButton")
-		self:SetScript(
-			"OnDragStart",
-			function(frame)
-				frame:StartMoving()
-			end
-		)
-		self:SetScript(
-			"OnDragStop",
-			function(frame)
-				frame:StopMovingOrSizing()
-				frame:SavePosition()
-			end
-		)
-	else
-		self:SetMovable(false)
-		self:RegisterForDrag()
-		self:SetScript("OnDragStart", nil)
-		self:SetScript("OnDragStop", nil)
+	-- Make frame movable (InteractionMixin handles the actual drag via Shift+click)
+	self:SetMovable(enabled)
+	self:EnableMouse(enabled)
+	if (enabled) then
+		-- Restore saved position
+		self:RestorePosition()
 	end
 end
 
@@ -171,13 +141,13 @@ function PositionMixin:SetDefaultDraggablePosition()
 	-- Try to get default from Config based on position key
 	local Addon = XPBarEnhanced
 	local defaultPos = nil
-	
+
 	if Addon.defaults and Addon.defaults.barPositions and self.__position_key then
 		defaultPos = Addon.defaults.barPositions[self.__position_key]
 	end
-	
+
 	self:ClearAllPoints()
-	
+
 	if defaultPos and defaultPos.point then
 		-- Use default from Config
 		self:SetPoint(
