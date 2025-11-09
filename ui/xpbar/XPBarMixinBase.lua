@@ -809,19 +809,6 @@ end
 function XPBarMixinBase:OnAnimationUpdate(elapsed)
 	local now = GetTime()
 
-	-- DEBUG: Print every 60 frames
-	self._debugUpdateCount = (self._debugUpdateCount or 0) + 1
-	if self._debugUpdateCount % 60 == 0 then
-		print(
-			string.format(
-				"[XPBar Update] frame=%d, animating=%s, flashing=%s",
-				self._debugUpdateCount,
-				tostring(self.animation.isAnimating),
-				tostring(self.animation.flashingXPGain)
-			)
-		)
-	end
-
 	-- Check if paused
 	if self.animation.pauseUntil > now then
 		return
@@ -1054,8 +1041,6 @@ function XPBarMixinBase:TriggerXPGainFlash(isRested)
 	-- Register with the global animation driver so flash ticks are driven
 	if Addon and Addon._AnimationDriver then
 		Addon._AnimationDriver:AddBar(self)
-	else
-		print("[XPBar] ERROR: No driver available!")
 	end
 end
 
@@ -1694,7 +1679,6 @@ function XPBarMixinBase:UpdateBarDisplay()
 
 	-- Check container visibility (max level setting)
 	local container = self:GetParent()
-	--print("XPBarMixinBase:UpdateBarDisplay - container:", container)
 	if container then
 		local atMaxLevel = self:IsPlayerAtMaxLevel()
 		local showAtMax = Addon.db.showBarAtMaxLevel ~= false

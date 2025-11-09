@@ -54,6 +54,22 @@ function LegacyBarStyleTemplate:AnimateBarEffect(stepContext)
     else
         gainFlash:Hide()
     end
+    
+    -- Apply quest overlay alpha reduction during flash
+    if stepContext.questOverlayAlpha and self.StatusBar then
+        local questOverlayComplete = self.StatusBar.QuestOverlayComplete
+        local questOverlayIncomplete = self.StatusBar.QuestOverlayIncomplete
+        
+        if questOverlayComplete and stepContext.questOverlayCompleteInitialAlpha then
+            local newAlpha = stepContext.questOverlayCompleteInitialAlpha * stepContext.questOverlayAlpha
+            questOverlayComplete:SetAlpha(newAlpha)
+        end
+        
+        if questOverlayIncomplete and stepContext.questOverlayIncompleteInitialAlpha then
+            local newAlpha = stepContext.questOverlayIncompleteInitialAlpha * stepContext.questOverlayAlpha
+            questOverlayIncomplete:SetAlpha(newAlpha)
+        end
+    end
 end
 
 --- Get animation configuration

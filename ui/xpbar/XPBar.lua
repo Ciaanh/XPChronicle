@@ -847,7 +847,6 @@ function XPBar:SetBarStyle(style, skipSave)
     end
     
     if not isValid then
-        print("XPBar: Invalid style: " .. tostring(style))
         return
     end
     

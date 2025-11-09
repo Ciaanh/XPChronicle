@@ -58,6 +58,19 @@ function FlatBarStyleTemplate:AnimateBarEffect(stepContext)
 		-- Hide flash when not active, complete, or alpha is 0
 		self.GainFlash:Hide()
 	end
+	
+	-- Apply quest overlay alpha reduction during flash
+	if stepContext.questOverlayAlpha then
+		if self.QuestOverlayComplete and stepContext.questOverlayCompleteInitialAlpha then
+			local newAlpha = stepContext.questOverlayCompleteInitialAlpha * stepContext.questOverlayAlpha
+			self.QuestOverlayComplete:SetAlpha(newAlpha)
+		end
+		
+		if self.QuestOverlayIncomplete and stepContext.questOverlayIncompleteInitialAlpha then
+			local newAlpha = stepContext.questOverlayIncompleteInitialAlpha * stepContext.questOverlayAlpha
+			self.QuestOverlayIncomplete:SetAlpha(newAlpha)
+		end
+	end
 end
 
 --- Get animation configuration from database

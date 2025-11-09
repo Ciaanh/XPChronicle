@@ -128,6 +128,22 @@ function AnimationUtils.BuildStepContext(bar, now, config, xpContext)
 		}
 	end
 	
+	-- Calculate quest overlay alpha reduction during flash (inverse of flash)
+	-- When flash is active, reduce quest overlay alpha to make flash more visible
+	local questOverlayAlpha = nil
+	if anim.isFlashing and (anim.questOverlayCompleteInitialAlpha or anim.questOverlayIncompleteInitialAlpha) then
+		local flashElapsed = now - anim.flashStartTime
+		local flashDuration = anim.flashDuration
+		
+		-- Calculate reduction factor: start low (0.3), fade in to initial (1.0), then stay at initial
+		-- Min alpha = 0.3 (30% of initial), fades in to initial over full duration
+		local MIN_ALPHA_MULTIPLIER = 0.3
+		local fadeProgress = math.min(flashElapsed / flashDuration, 1.0)
+		local reductionFactor = MIN_ALPHA_MULTIPLIER + (1.0 - MIN_ALPHA_MULTIPLIER) * fadeProgress
+		
+		questOverlayAlpha = reductionFactor
+	end
+	
 	-- Build step context
 	local stepContext = {
 		-- Core interpolated values
@@ -145,6 +161,11 @@ function AnimationUtils.BuildStepContext(bar, now, config, xpContext)
 		-- Flash data (nil if not flashing)
 		flashData = flashData,
 		isFlashing = anim.isFlashing,
+		
+		-- Quest overlay alpha multiplier (nil if not flashing)
+		questOverlayAlpha = questOverlayAlpha,
+		questOverlayCompleteInitialAlpha = anim.questOverlayCompleteInitialAlpha,
+		questOverlayIncompleteInitialAlpha = anim.questOverlayIncompleteInitialAlpha,
 		
 		-- Configuration
 		config = config,

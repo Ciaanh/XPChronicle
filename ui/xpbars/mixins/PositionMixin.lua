@@ -122,15 +122,6 @@ function PositionMixin:RestorePosition()
 		return
 	end
 
-	-- print(
-	-- 	"PositionMixin: Restoring position for key '" ..
-	-- 		tostring(self.__position_key) ..
-	-- 			"' - point: " ..
-	-- 				tostring(savedPos.point) ..
-	-- 					", relativePoint: " ..
-	-- 						tostring(savedPos.relativePoint) .. ", x: " .. tostring(savedPos.x) .. ", y: " .. tostring(savedPos.y)
-	-- )
-
 	-- Restore saved position
 	self:ClearAllPoints()
 	self:SetPoint(savedPos.point, UIParent, savedPos.relativePoint or "TOPLEFT", savedPos.x or 0, savedPos.y or 0)
