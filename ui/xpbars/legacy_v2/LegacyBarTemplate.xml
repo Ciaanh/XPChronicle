@@ -1,0 +1,232 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/
+..\..\Blizzard_SharedXML\UI.xsd">
+
+    <!-- XP Bar Enhanced - Legacy Bar Template v2 -->
+    <!-- Blizzard-style XP bar with border frame and atlas textures -->
+    <!-- No container wrapper - border as texture layer on main frame -->
+
+    <Script file="LegacyBarStyle.lua"/>
+
+    <Frame name="LegacyBarTemplate" virtual="true" mixin="LegacyBarXPBarMixin" frameStrata="LOW" enableMouse="true" fixedFrameStrata="true">
+        <Size x="566" y="12"/>
+        <Frames>
+            <!-- Border frame - separate frame on top of StatusBar -->
+            <Frame parentKey="BackgroundFrame" enableMouse="false">
+                <Anchors>
+                    <Anchor point="TOPLEFT"/>
+                    <Anchor point="BOTTOMRIGHT"/>
+                </Anchors>
+                <Layers>
+                    <Layer level="BACKGROUND">
+                        <Texture parentKey="Background" file="Interface\AddOns\XPBarEnhanced\assets\legacy-background">
+                            <Anchors>
+                                <Anchor point="TOPLEFT"/>
+                                <Anchor point="BOTTOMRIGHT"/>
+                            </Anchors>
+                        </Texture>
+                    </Layer>
+                </Layers>
+            </Frame>
+
+            <!-- StatusBar offset inside frame to accommodate border -->
+            <StatusBar parentKey="StatusBar" minValue="0" maxValue="1" defaultValue="0">
+                <Size x="566" y="10"/>
+                <Anchors>
+                    <Anchor point="CENTER" x="0" y="0"/>
+                </Anchors>
+                <!-- StatusBar texture: file path -->
+                <BarTexture file="Interface\AddOns\XPBarEnhanced\assets\xp-bar"/>
+                <BarColor r="1" g="1" b="1"/>
+                <Layers>
+                    <!-- Rested XP overlay (solid texture for customization) previously Interface\Buttons\WHITE8X8-->
+                    <Layer level="OVERLAY" textureSubLevel="1">
+                        <Texture parentKey="ExhaustionLevelFillBar" hidden="true" file="Interface\AddOns\XPBarEnhanced\assets\xp-bar">
+                            <Size x="0" y="11"/>
+                            <Anchors>
+                                <Anchor point="LEFT" x="0" y="0"/>
+                            </Anchors>
+                            <Color r="0.0" g="0.5" b="1.0" a="0.5"/>
+                        </Texture>
+                    </Layer>
+
+                    <!-- Quest XP overlay - incomplete quests -->
+                    <Layer level="OVERLAY" textureSubLevel="2">
+                        <Texture parentKey="QuestOverlayIncomplete" hidden="true" file="Interface\AddOns\XPBarEnhanced\assets\xp-bar">
+                            <Size x="0" y="11"/>
+                            <Anchors>
+                                <Anchor point="LEFT" x="0" y="0"/>
+                            </Anchors>
+                            <Color r="1.0" g="0.82" b="0.31" a="0.6"/>
+                        </Texture>
+                    </Layer>
+
+                    <!-- Quest XP overlay - complete quests -->
+                    <Layer level="OVERLAY" textureSubLevel="3">
+                        <Texture parentKey="QuestOverlayComplete" hidden="true" file="Interface\AddOns\XPBarEnhanced\assets\xp-bar">
+                            <Size x="0" y="11"/>
+                            <Anchors>
+                                <Anchor point="LEFT" x="0" y="0"/>
+                            </Anchors>
+                            <Color r="1.0" g="0.59" b="0.0" a="0.8"/>
+                        </Texture>
+                    </Layer>
+
+                    <!-- Flash effect overlay - MOVED from main frame to StatusBar for proper rendering -->
+                    <Layer level="OVERLAY" textureSubLevel="7">
+                        <Texture parentKey="GainFlash" hidden="true" alphaMode="BLEND">
+                            <Anchors>
+                                <Anchor point="TOPLEFT" x="0" y="1"/>
+                                <Anchor point="BOTTOMRIGHT" x="0" y="-1"/>
+                            </Anchors>
+                        </Texture>
+                    </Layer>
+                </Layers>
+
+                <Frames>
+                    <!-- Exhaustion Tick (rested XP marker) -->
+                    <Button parentKey="ExhaustionTick" hidden="true" frameStrata="MEDIUM" mixin="ExhaustionTickMixin">
+                        <Size x="10" y="14"/>
+                        <Anchors>
+                            <Anchor point="CENTER" relativeKey="$parent.ExhaustionLevelFillBar" relativePoint="RIGHT"/>
+                        </Anchors>
+                        <NormalTexture parentKey="Normal" file="Interface\AddOns\XPBarEnhanced\assets\tick"/>
+                        <HighlightTexture parentKey="Highlight" file="Interface\AddOns\XPBarEnhanced\assets\tick-highlight" alphaMode="ADD"/>
+                        <Scripts>
+                            <OnEnter method="OnEnter"/>
+                            <OnLeave function="GameTooltip_Hide"/>
+                        </Scripts>
+                    </Button>
+                </Frames>
+            </StatusBar>
+
+            <!-- Flash effect frame - renders on top of StatusBar but under BorderFrame -->
+            <!-- <Frame parentKey="AnimationFrame" enableMouse="false">
+                <Size x="563" y="11"/>
+                <Anchors>
+                    <Anchor point="BOTTOMLEFT" x="2" y="5"/>
+                </Anchors>
+                <Layers>
+                    <Layer level="OVERLAY">
+                        <Texture parentKey="FlashTexture" hidden="true">
+                            <Anchors>
+                                <Anchor point="TOPLEFT"/>
+                                <Anchor point="BOTTOMRIGHT"/>
+                            </Anchors>
+                        </Texture>
+                    </Layer>
+                </Layers>
+            </Frame> -->
+
+            <!-- Overlay frame for ON-BAR text (separate from StatusBar for proper layering) -->
+            <Frame parentKey="OverlayFrameTextContainer" frameStrata="MEDIUM" setAllPoints="true">
+                <Size x="571" y="11"/>
+                <Anchors>
+                    <Anchor point="CENTER" x="0" y="0"/>
+                </Anchors>
+                <Layers>
+                    <Layer level="ARTWORK" textureSubLevel="5">
+                        <!-- Level text - left side -->
+                        <FontString parentKey="LevelText" inherits="TextStatusBarText" hidden="true">
+                            <Anchors>
+                                <Anchor point="LEFT" x="8" y="0"/>
+                            </Anchors>
+                            <Color r="1.0" g="1.0" b="1.0"/>
+                            <Shadow>
+                                <Offset x="2" y="-2"/>
+                                <Color r="0" g="0" b="0" a="0.8"/>
+                            </Shadow>
+                        </FontString>
+
+                        <!-- XP text - center -->
+                        <FontString parentKey="XPText" inherits="TextStatusBarText" hidden="true">
+                            <Anchors>
+                                <Anchor point="CENTER" x="0" y="0"/>
+                            </Anchors>
+                            <Color r="1.0" g="1.0" b="1.0"/>
+                            <Shadow>
+                                <Offset x="2" y="-2"/>
+                                <Color r="0" g="0" b="0" a="0.8"/>
+                            </Shadow>
+                        </FontString>
+
+                        <!-- Percent text - right side -->
+                        <FontString parentKey="PercentText" inherits="TextStatusBarText" hidden="true">
+                            <Anchors>
+                                <Anchor point="RIGHT" x="-8" y="0"/>
+                            </Anchors>
+                            <Color r="1.0" g="1.0" b="1.0"/>
+                            <Shadow>
+                                <Offset x="2" y="-2"/>
+                                <Color r="0" g="0" b="0" a="0.8"/>
+                            </Shadow>
+                        </FontString>
+                    </Layer>
+                </Layers>
+            </Frame>
+
+            <!-- BELOW-BAR text container (matches BaseMixin expectations) -->
+            <Frame parentKey="BelowBarTextContainer" frameStrata="MEDIUM">
+                <Size x="565" y="30"/>
+                <Anchors>
+                    <Anchor point="TOPLEFT" relativePoint="BOTTOMLEFT" x="0" y="-2"/>
+                </Anchors>
+                <Layers>
+                    <Layer level="ARTWORK">
+                        <!-- Rate text (XP/hour + time to level) - below bar on left -->
+                        <FontString parentKey="RateText" inherits="GameFontNormal" hidden="true">
+                            <Anchors>
+                                <Anchor point="TOPLEFT" x="0" y="0"/>
+                            </Anchors>
+                            <Color r="0.8" g="0.8" b="0.8"/>
+                        </FontString>
+
+                        <!-- Session text (session time + level time) - below bar on right -->
+                        <FontString parentKey="SessionText" inherits="GameFontNormal" hidden="true">
+                            <Anchors>
+                                <Anchor point="TOPRIGHT" x="0" y="0"/>
+                            </Anchors>
+                            <Color r="0.8" g="0.8" b="0.8"/>
+                        </FontString>
+
+                        <!-- Quest summary text (quests + rested) - below bar center -->
+                        <FontString parentKey="QuestSummaryText" inherits="GameFontNormal" hidden="true">
+                            <Anchors>
+                                <Anchor point="TOP" x="0" y="-12"/>
+                            </Anchors>
+                            <Color r="0.8" g="0.8" b="0.8"/>
+                        </FontString>
+                    </Layer>
+                </Layers>
+            </Frame>
+
+            <!-- Border frame - separate frame on top of StatusBar -->
+            <Frame parentKey="BorderFrame" frameStrata="MEDIUM" enableMouse="false">
+                <Anchors>
+                    <Anchor point="TOPLEFT"/>
+                    <Anchor point="BOTTOMRIGHT"/>
+                </Anchors>
+                <Layers>
+                    <Layer level="ARTWORK">
+                        <Texture parentKey="Texture" file="Interface\AddOns\XPBarEnhanced\assets\legacy-border">
+                            <Anchors>
+                                <Anchor point="TOPLEFT"/>
+                                <Anchor point="BOTTOMRIGHT"/>
+                            </Anchors>
+                        </Texture>
+                    </Layer>
+                </Layers>
+            </Frame>
+        </Frames>
+        <Scripts>
+            <OnLoad method="OnLoad"/>
+            <OnEvent method="OnEvent"/>
+            <OnShow method="OnShow"/>
+            <OnHide method="OnHide"/>
+            <OnEnter method="OnEnter"/>
+            <OnLeave method="OnLeave"/>
+            <OnMouseUp method="OnMouseUp"/>
+        </Scripts>
+    </Frame>
+
+</Ui>

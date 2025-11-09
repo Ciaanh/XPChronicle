@@ -31,7 +31,7 @@
 
 			<!-- Flash effect overlay -->
 			<Layer level="OVERLAY" textureSubLevel="3">
-				<Texture parentKey="GainFlash" hidden="true">
+				<Texture parentKey="GainFlash" hidden="true" alphaMode="BLEND">
 					<Anchors>
 						<Anchor point="TOPLEFT"/>
 						<Anchor point="BOTTOMRIGHT"/>
@@ -44,8 +44,7 @@
 			<StatusBar parentKey="StatusBar" minValue="0" maxValue="1" defaultValue="0">
 				<Size x="565" y="30"/>
 				<Anchors>
-					<Anchor point="BOTTOMLEFT" x="0" y="0"/>
-					<Anchor point="BOTTOMRIGHT" x="0" y="0"/>
+					<Anchor point="CENTER" x="0" y="0"/>
 				</Anchors>
 				<!-- Initial color matches Config.lua defaults.colors.xpBar -->
 				<BarColor r="0.58" g="0.0" b="0.55"/>

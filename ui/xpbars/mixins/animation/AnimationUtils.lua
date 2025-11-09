@@ -81,6 +81,8 @@ end
 -- @return table: stepContext with currentRatio, targetRatio, progress, timing, flash data, config, xpContext
 function AnimationUtils.BuildStepContext(bar, now, config, xpContext)
 	local anim = bar.animation
+
+    -- no debug logs here in normal test
 	
 	-- Calculate progress
 	local elapsedTime = now - anim.startTime
