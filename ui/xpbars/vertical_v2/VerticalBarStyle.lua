@@ -1,5 +1,5 @@
 -- XP Bar Enhanced - VerticalBar Style v2
--- Vertical XP bar with smooth bottom-to-top fill animation
+-- Vertical XP bar with StatusBar widget using vertical orientation
 -- Integrates with V2 AnimationManager for standard effects
 
 -------------------------------------------------------------------
@@ -13,33 +13,10 @@ if not XPBarStyleBuilder or not XPBarMixinBase_v2 then
 end
 
 -------------------------------------------------------------------
--- CONSTANTS
--------------------------------------------------------------------
-
--- (No custom animation constants needed - using standard AnimationManager)
-
--------------------------------------------------------------------
 -- STYLE TEMPLATE
 -------------------------------------------------------------------
 
 local VerticalBarStyleTemplate = {}
-
--------------------------------------------------------------------
--- INITIALIZATION
--------------------------------------------------------------------
-
--- --- Initialize vertical bar style-specific state
--- function VerticalBarStyleTemplate:OnLoad()
---     -- Call base OnLoad first (from BaseMixin)
---     if XPBarMixinBase_v2 and XPBarMixinBase_v2.OnLoad then
---         XPBarMixinBase_v2.OnLoad(self)
---     end
-
---     -- Vertical bar specific setup
---     self.orientation = "VERTICAL"
---     self._barStyle = "Vertical"
---     self.fillDirection = "BOTTOM_TO_TOP"
--- end
 
 -------------------------------------------------------------------
 -- V2 ANIMATION IMPLEMENTATION (AnimationManager integration)
@@ -49,14 +26,13 @@ local VerticalBarStyleTemplate = {}
 -- @param stepContext table: Step context with currentRatio, xpContext
 -- Note: This is called by AnimationManager for standard smooth bar fill
 function VerticalBarStyleTemplate:AnimateBarPosition(stepContext)
-    if not self.FilledTexture then
+    if not self.StatusBar then
         return
     end
 
-    -- Update the base fill bar (bottom-to-top fill)
-    local barHeight = self:GetHeight()
-    local fillHeight = barHeight * stepContext.currentRatio
-    self.FilledTexture:SetHeight(fillHeight)
+    -- Update the StatusBar value (0 to 1 ratio)
+    -- StatusBar with vertical orientation handles the visual rendering
+    self.StatusBar:SetValue(stepContext.currentRatio)
 end
 
 --- Update visual effects - flash overlay animation
@@ -117,9 +93,9 @@ end
 -- OVERRIDES for the vertical layout
 -------------------------------------------------------------------
 
---- Override main bar layout for vertical orientation (uses FilledTexture, not StatusBar)
+--- Override main bar layout for vertical orientation (uses StatusBar with vertical orientation)
 function VerticalBarStyleTemplate:UpdateBarLayout(context, barName)
-    if not self.FilledTexture then
+    if not self.StatusBar then
         return
     end
     
@@ -149,9 +125,7 @@ function VerticalBarStyleTemplate:UpdateBarLayout(context, barName)
         self:StartAnimation(targetRatio, xpContext, config)
     else
         -- Fallback: instant update if animation system not available
-        local barHeight = self:GetHeight()
-        local fillHeight = barHeight * targetRatio
-        self.FilledTexture:SetHeight(fillHeight)
+        self.StatusBar:SetValue(targetRatio)
     end
     
     -- Update bar colors (non-animated visuals)
@@ -160,9 +134,9 @@ function VerticalBarStyleTemplate:UpdateBarLayout(context, barName)
     end
 end
 
---- Override main bar color for vertical orientation (uses SetVertexColor for WHITE8X8 texture)
+--- Override main bar color for vertical orientation (uses StatusBar SetStatusBarColor)
 function VerticalBarStyleTemplate:UpdateBarColors(context, barName)
-    if not self.FilledTexture then
+    if not self.StatusBar then
         return
     end
     
@@ -172,8 +146,8 @@ function VerticalBarStyleTemplate:UpdateBarColors(context, barName)
     local colorKey = hasRestedXP and Color.XpBarRested or Color.XpBar
     local color = XPBarColors:GetUserColor(colorKey)
     
-    -- Use SetVertexColor for WHITE8X8 texture (tints the white texture)
-    self.FilledTexture:SetVertexColor(color.r, color.g, color.b, color.a or 1)
+    -- Use SetStatusBarColor for StatusBar widget
+    self.StatusBar:SetStatusBarColor(color.r, color.g, color.b, color.a or 1)
 end
 
 --- Override rested overlay color for vertical orientation
@@ -195,7 +169,7 @@ end
 --- Override quest complete overlay color
 function VerticalBarStyleTemplate:UpdateQuestCompleteOverlayColor(overlayName)
     overlayName = overlayName or "QuestOverlayComplete"
-    local overlay = self[overlayName]
+    local overlay = self.StatusBar and self.StatusBar[overlayName]
     
     if not overlay then
         return
@@ -209,7 +183,7 @@ end
 --- Override quest incomplete overlay color
 function VerticalBarStyleTemplate:UpdateQuestIncompleteOverlayColor(overlayName)
     overlayName = overlayName or "QuestOverlayIncomplete"
-    local overlay = self[overlayName]
+    local overlay = self.StatusBar and self.StatusBar[overlayName]
     
     if not overlay then
         return
@@ -223,7 +197,7 @@ end
 --- Override quest complete overlay layout for vertical orientation
 function VerticalBarStyleTemplate:UpdateQuestCompleteOverlayLayout(context, overlayName)
     overlayName = overlayName or "QuestOverlayComplete"
-    local overlay = self[overlayName]
+    local overlay = self.StatusBar and self.StatusBar[overlayName]
     
     if not overlay then
         return
@@ -250,8 +224,8 @@ function VerticalBarStyleTemplate:UpdateQuestCompleteOverlayLayout(context, over
             local height = barHeight * ratio
             
             overlay:ClearAllPoints()
-            overlay:SetPoint("BOTTOMLEFT", self, "BOTTOMLEFT", 0, yOffset)
-            overlay:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", 0, yOffset)
+            overlay:SetPoint("BOTTOMLEFT", self.StatusBar, "BOTTOMLEFT", 0, yOffset)
+            overlay:SetPoint("BOTTOMRIGHT", self.StatusBar, "BOTTOMRIGHT", 0, yOffset)
             overlay:SetHeight(math.max(1, height))
             visible = true
         end
@@ -263,7 +237,7 @@ end
 --- Override quest incomplete overlay layout for vertical orientation
 function VerticalBarStyleTemplate:UpdateQuestIncompleteOverlayLayout(context, overlayName)
     overlayName = overlayName or "QuestOverlayIncomplete"
-    local overlay = self[overlayName]
+    local overlay = self.StatusBar and self.StatusBar[overlayName]
     
     if not overlay then
         return
@@ -302,8 +276,8 @@ function VerticalBarStyleTemplate:UpdateQuestIncompleteOverlayLayout(context, ov
             local height = barHeight * ratio
             
             overlay:ClearAllPoints()
-            overlay:SetPoint("BOTTOMLEFT", self, "BOTTOMLEFT", 0, yOffset)
-            overlay:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", 0, yOffset)
+            overlay:SetPoint("BOTTOMLEFT", self.StatusBar, "BOTTOMLEFT", 0, yOffset)
+            overlay:SetPoint("BOTTOMRIGHT", self.StatusBar, "BOTTOMRIGHT", 0, yOffset)
             overlay:SetHeight(math.max(1, height))
             visible = true
         end
@@ -333,14 +307,13 @@ function VerticalBarStyleTemplate:UpdateRestedOverlayLayout(context)
         if ratio >= 0.01 then
             local barHeight = self:GetHeight()
             
-            -- Vertical: start at current XP and grow upward
-            local currentRatio = currentXP / maxXP
-            local yOffset = barHeight * currentRatio
-            local height = barHeight * ratio
+            -- Vertical: total height from bottom (current XP + rested XP)
+            local totalRatio = (currentXP + restedXPClamped) / maxXP
+            local height = barHeight * totalRatio
             
             self.RestedOverlay:ClearAllPoints()
-            self.RestedOverlay:SetPoint("BOTTOMLEFT", self, "BOTTOMLEFT", 0, yOffset)
-            self.RestedOverlay:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", 0, yOffset)
+            self.RestedOverlay:SetPoint("BOTTOMLEFT", self, "BOTTOMLEFT", 0, 0)
+            self.RestedOverlay:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", 0, 0)
             self.RestedOverlay:SetHeight(math.max(1, height))
             visible = true
         end
