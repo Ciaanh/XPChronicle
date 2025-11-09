@@ -4,9 +4,9 @@
 
 The V2 architecture proof-of-concept for the flat bar style has been validated and is production-ready. This document outlines the complete migration plan to port all remaining bar styles (Legacy, Vertical, Circular) from the old architecture (V1) to the new mixin-based composition system (V2).
 
-**Status**: Phase 3 in progress - Vertical bar V2 implementation complete, ready for testing and validation.
+**Status**: Phase 3 complete - Vertical bar V2 implemented. Legacy bar V2 also complete.
 
-### Key V2 Achievements (Phase 1)
+### Key V2 Achievements (Phases 1-2)
 
 ✅ **New Animation System** - Frame-perfect centralized animation driver
 - `AnimationManager.lua` (479 lines) - Centralized OnUpdate driver with bar registration
@@ -20,6 +20,18 @@ The V2 architecture proof-of-concept for the flat bar style has been validated a
 - Uses AnimationManager for all standard effects
 - Implements `ApplyAnimationStep` for frame updates
 - Clean separation: style handles visuals, AnimationManager handles timing
+
+✅ **Legacy Bar V2** - Production ready (192 lines, down from 469 in V1)
+- Static positioning (anchored to Blizzard bar)
+- StatusBar-based rendering with AnimationManager
+- Container elimination strategy validated
+- Code reduction: -59%
+
+✅ **Vertical Bar V2** - Implementation complete (380 lines, down from 894 in V1)
+- Custom gravity animation with particle effects
+- Follows Pattern 2: AnimationManager + Custom OnUpdate
+- Code reduction: -57%
+- Ready for: Integration testing, validation
 
 ✅ **Debug Infrastructure** - Comprehensive troubleshooting commands
 - `/animdebug` - Animation debug messages
