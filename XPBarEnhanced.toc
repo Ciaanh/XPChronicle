@@ -84,11 +84,12 @@ ui\xpbars\mixins\TooltipMixin.lua
 ui\xpbars\mixins\PositionMixin.lua
 
 # v2 Styles
-ui\xpbars\flatbar_v2\FlatBarStyle.lua
 ui\xpbars\flatbar_v2\FlatBarTemplate.xml
 
 # Legacy Bar V2
-ui\xpbars\legacy_v2\LegacyBarStyle.lua
 ui\xpbars\legacy_v2\LegacyBarTemplate.xml
+
+# Vertical Bar V2
+ui\xpbars\vertical_v2\VerticalBarTemplate.xml
 
 ui\xpbars\tests\test_v2.lua

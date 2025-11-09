@@ -1,0 +1,404 @@
+-- XP Bar Enhanced - VerticalBar Style v2
+-- Vertical XP bar with smooth bottom-to-top fill animation
+-- Integrates with V2 AnimationManager for standard effects
+
+-------------------------------------------------------------------
+-- DEPENDENCIES
+-------------------------------------------------------------------
+
+if not XPBarStyleBuilder or not XPBarMixinBase_v2 then
+    error(
+        "VerticalBarStyle: v2 core (StyleBuilder/BaseMixin) not loaded. Ensure ui/xpbars core files are earlier in the .toc."
+    )
+end
+
+-------------------------------------------------------------------
+-- CONSTANTS
+-------------------------------------------------------------------
+
+-- (No custom animation constants needed - using standard AnimationManager)
+
+-------------------------------------------------------------------
+-- STYLE TEMPLATE
+-------------------------------------------------------------------
+
+local VerticalBarStyleTemplate = {}
+
+-------------------------------------------------------------------
+-- INITIALIZATION
+-------------------------------------------------------------------
+
+-- --- Initialize vertical bar style-specific state
+-- function VerticalBarStyleTemplate:OnLoad()
+--     -- Call base OnLoad first (from BaseMixin)
+--     if XPBarMixinBase_v2 and XPBarMixinBase_v2.OnLoad then
+--         XPBarMixinBase_v2.OnLoad(self)
+--     end
+
+--     -- Vertical bar specific setup
+--     self.orientation = "VERTICAL"
+--     self._barStyle = "Vertical"
+--     self.fillDirection = "BOTTOM_TO_TOP"
+-- end
+
+-------------------------------------------------------------------
+-- V2 ANIMATION IMPLEMENTATION (AnimationManager integration)
+-------------------------------------------------------------------
+
+--- Update bar position - smooth fill animation
+-- @param stepContext table: Step context with currentRatio, xpContext
+-- Note: This is called by AnimationManager for standard smooth bar fill
+function VerticalBarStyleTemplate:AnimateBarPosition(stepContext)
+    if not self.FilledTexture then
+        return
+    end
+
+    -- Update the base fill bar (bottom-to-top fill)
+    local barHeight = self:GetHeight()
+    local fillHeight = barHeight * stepContext.currentRatio
+    self.FilledTexture:SetHeight(fillHeight)
+end
+
+--- Update visual effects - flash overlay animation
+-- @param stepContext table: Step context with flashData
+function VerticalBarStyleTemplate:AnimateBarEffect(stepContext)
+    if not self.GainFlash then
+        return
+    end
+
+    local flashData = stepContext.flashData
+    if flashData and flashData.active and flashData.currentAlpha > 0 then
+        -- Get user-defined color based on rested state
+        local XPBarColors = _G.XPBarColors
+        local hasRestedXP = stepContext.xpContext and stepContext.xpContext.hasRestedXP
+        local colorKey = hasRestedXP and Color.Rested or Color.XpBar
+        local color = XPBarColors:GetUserColor(colorKey)
+
+        -- Show flash with user color and animated alpha
+        self.GainFlash:SetColorTexture(color.r, color.g, color.b, flashData.currentAlpha)
+        self.GainFlash:Show()
+    else
+        self.GainFlash:Hide()
+    end
+end
+
+--- Get animation configuration
+-- Checks frame-specific config first, then global database, then defaults
+function VerticalBarStyleTemplate:GetAnimationConfig()
+    -- First check for frame-specific config
+    local frameConfig = self.__xpbar_config
+    if frameConfig and frameConfig.animation then
+        local anim = frameConfig.animation
+        return {
+            enableAnimations = anim.enableAnimations ~= false, -- Default true
+            flashOnGain = anim.flashOnGain ~= false -- Default true
+        }
+    end
+
+    -- Fall back to global database
+    local Addon = XPBarEnhanced
+    local db = Addon and Addon.Database and Addon.Database:GetDB()
+
+    if db then
+        return {
+            enableAnimations = db.enableAnimations ~= false, -- Default true
+            flashOnGain = db.flashOnGain ~= false -- Default true
+        }
+    end
+
+    -- Fallback default config
+    return {
+        enableAnimations = true,
+        flashOnGain = true
+    }
+end
+
+-------------------------------------------------------------------
+-- OVERRIDES for the vertical layout
+-------------------------------------------------------------------
+
+--- Override main bar layout for vertical orientation (uses FilledTexture, not StatusBar)
+function VerticalBarStyleTemplate:UpdateBarLayout(context, barName)
+    if not self.FilledTexture then
+        return
+    end
+    
+    -- Calculate target fill ratio
+    local currentXP = context.currentXP or 0
+    local maxXP = context.xpMax or 1
+    local targetRatio = maxXP > 0 and (currentXP / maxXP) or 0
+    
+    -- Build XP context for animation system
+    local xpContext = {
+        xpBefore = context.xpBefore or context.currentXP or 0,
+        xpAfter = context.xpAfter or context.currentXP or 0,
+        xpMax = context.xpMax or 1,
+        xpGained = context.xpGained or 0,
+        restedXP = context.restedXP or 0,
+        isResting = context.isResting or false,
+        hasRestedXP = context.hasRestedXP or false,
+        level = context.level or 1,
+        timestamp = GetTime()
+    }
+    
+    -- Get animation config
+    local config = self:GetAnimationConfig()
+    
+    -- Start animation (delegates to AnimationManager via AnimationBase)
+    if self.StartAnimation then
+        self:StartAnimation(targetRatio, xpContext, config)
+    else
+        -- Fallback: instant update if animation system not available
+        local barHeight = self:GetHeight()
+        local fillHeight = barHeight * targetRatio
+        self.FilledTexture:SetHeight(fillHeight)
+    end
+    
+    -- Update bar colors (non-animated visuals)
+    if self.UpdateBarColors then
+        self:UpdateBarColors(context)
+    end
+end
+
+--- Override main bar color for vertical orientation (uses SetVertexColor for WHITE8X8 texture)
+function VerticalBarStyleTemplate:UpdateBarColors(context, barName)
+    if not self.FilledTexture then
+        return
+    end
+    
+    -- Select color based on whether player has rested XP
+    local XPBarColors = _G.XPBarColors
+    local hasRestedXP = context.hasRestedXP or (context.restedXP and context.restedXP > 0)
+    local colorKey = hasRestedXP and Color.XpBarRested or Color.XpBar
+    local color = XPBarColors:GetUserColor(colorKey)
+    
+    -- Use SetVertexColor for WHITE8X8 texture (tints the white texture)
+    self.FilledTexture:SetVertexColor(color.r, color.g, color.b, color.a or 1)
+end
+
+--- Override rested overlay color for vertical orientation
+function VerticalBarStyleTemplate:UpdateRestedOverlayColor(overlayName)
+    overlayName = overlayName or "RestedOverlay"
+    local overlay = self[overlayName]
+    
+    if not overlay then
+        return
+    end
+    
+    local XPBarColors = _G.XPBarColors
+    local color = XPBarColors:GetUserColor(Color.Rested)
+    
+    -- Use SetVertexColor for WHITE8X8 texture
+    overlay:SetVertexColor(color.r, color.g, color.b, color.a or 0.3)
+end
+
+--- Override quest complete overlay color
+function VerticalBarStyleTemplate:UpdateQuestCompleteOverlayColor(overlayName)
+    overlayName = overlayName or "QuestOverlayComplete"
+    local overlay = self[overlayName]
+    
+    if not overlay then
+        return
+    end
+    
+    local XPBarColors = _G.XPBarColors
+    local color = XPBarColors:GetUserColor(Color.QuestComplete)
+    overlay:SetVertexColor(color.r, color.g, color.b, color.a or 0.85)
+end
+
+--- Override quest incomplete overlay color
+function VerticalBarStyleTemplate:UpdateQuestIncompleteOverlayColor(overlayName)
+    overlayName = overlayName or "QuestOverlayIncomplete"
+    local overlay = self[overlayName]
+    
+    if not overlay then
+        return
+    end
+    
+    local XPBarColors = _G.XPBarColors
+    local color = XPBarColors:GetUserColor(Color.QuestIncomplete)
+    overlay:SetVertexColor(color.r, color.g, color.b, color.a or 0.85)
+end
+
+--- Override quest complete overlay layout for vertical orientation
+function VerticalBarStyleTemplate:UpdateQuestCompleteOverlayLayout(context, overlayName)
+    overlayName = overlayName or "QuestOverlayComplete"
+    local overlay = self[overlayName]
+    
+    if not overlay then
+        return
+    end
+    
+    local Addon = XPBarEnhanced
+    local completeXP = context.completeQuestXP or 0
+    local showComplete = Addon.ConfigHelper.GetShowCompleteQuestOverlay(context)
+    
+    local visible = false
+    if showComplete and (completeXP and completeXP > 0) then
+        local currentXP = context.currentXP or 0
+        local maxXP = context.xpMax or 1
+        local remainingXP = math.max(0, maxXP - currentXP)
+        local questXPClamped = math.min(completeXP, remainingXP)
+        local ratio = questXPClamped / maxXP
+        
+        if ratio >= 0.01 then
+            local barHeight = self:GetHeight()
+            
+            -- Vertical: calculate Y offset and height
+            local currentRatio = currentXP / maxXP
+            local yOffset = barHeight * currentRatio -- Start at top of current XP
+            local height = barHeight * ratio
+            
+            overlay:ClearAllPoints()
+            overlay:SetPoint("BOTTOMLEFT", self, "BOTTOMLEFT", 0, yOffset)
+            overlay:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", 0, yOffset)
+            overlay:SetHeight(math.max(1, height))
+            visible = true
+        end
+    end
+    
+    overlay:SetShown(visible)
+end
+
+--- Override quest incomplete overlay layout for vertical orientation
+function VerticalBarStyleTemplate:UpdateQuestIncompleteOverlayLayout(context, overlayName)
+    overlayName = overlayName or "QuestOverlayIncomplete"
+    local overlay = self[overlayName]
+    
+    if not overlay then
+        return
+    end
+    
+    local Addon = XPBarEnhanced
+    local completeQuestXP = context.completeQuestXP or 0
+    local incompleteQuestXP = context.incompleteQuestXP or 0
+    local showIncomplete = Addon.ConfigHelper.GetShowIncompleteQuestOverlay(context)
+    
+    local visible = false
+    if showIncomplete and incompleteQuestXP > 0 then
+        local currentXP = context.currentXP or 0
+        local maxXP = context.xpMax or 1
+        local remainingXP = math.max(0, maxXP - currentXP)
+        
+        -- Only subtract complete quest XP if that overlay is actually showing
+        if context.showCompleteQuestOverlay and completeQuestXP > 0 then
+            remainingXP = math.max(0, remainingXP - completeQuestXP)
+        end
+        
+        local questXPClamped = math.min(incompleteQuestXP, remainingXP)
+        local ratio = questXPClamped / maxXP
+        
+        if ratio >= 0.01 then
+            local barHeight = self:GetHeight()
+            
+            -- Vertical: calculate start Y position (current XP + complete quest XP if showing)
+            local startXP = currentXP
+            if context.showCompleteQuestOverlay and completeQuestXP > 0 then
+                startXP = startXP + completeQuestXP
+            end
+            
+            local startRatio = startXP / maxXP
+            local yOffset = barHeight * startRatio
+            local height = barHeight * ratio
+            
+            overlay:ClearAllPoints()
+            overlay:SetPoint("BOTTOMLEFT", self, "BOTTOMLEFT", 0, yOffset)
+            overlay:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", 0, yOffset)
+            overlay:SetHeight(math.max(1, height))
+            visible = true
+        end
+    end
+    
+    overlay:SetShown(visible)
+end
+
+--- Override rested overlay layout for vertical orientation
+function VerticalBarStyleTemplate:UpdateRestedOverlayLayout(context)
+    if not self.RestedOverlay then
+        return
+    end
+    
+    local Addon = XPBarEnhanced
+    local restedXP = context.restedXP or 0
+    local showRested = Addon.ConfigHelper.GetShowRestedOverlay(context)
+    
+    local visible = false
+    if showRested and restedXP > 0 then
+        local currentXP = context.currentXP or 0
+        local maxXP = context.xpMax or 1
+        local remainingXP = math.max(0, maxXP - currentXP)
+        local restedXPClamped = math.min(restedXP, remainingXP)
+        local ratio = restedXPClamped / maxXP
+        
+        if ratio >= 0.01 then
+            local barHeight = self:GetHeight()
+            
+            -- Vertical: start at current XP and grow upward
+            local currentRatio = currentXP / maxXP
+            local yOffset = barHeight * currentRatio
+            local height = barHeight * ratio
+            
+            self.RestedOverlay:ClearAllPoints()
+            self.RestedOverlay:SetPoint("BOTTOMLEFT", self, "BOTTOMLEFT", 0, yOffset)
+            self.RestedOverlay:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", 0, yOffset)
+            self.RestedOverlay:SetHeight(math.max(1, height))
+            visible = true
+        end
+    end
+    
+    self.RestedOverlay:SetShown(visible)
+end
+
+--- Override percent text to show only current XP percentage (no quest percent)
+function VerticalBarStyleTemplate:UpdatePercentText(context)
+    if not self.PercentText then
+        return
+    end
+    
+    local currentXP = context.currentXP or 0
+    local maxXP = context.xpMax or 1
+    local percent = maxXP > 0 and ((currentXP / maxXP) * 100) or 0
+    
+    -- Simple format: just the current XP percentage
+    self.PercentText:SetFormattedText("%.1f%%", percent)
+end
+
+-------------------------------------------------------------------
+-- DEFAULT CONFIG
+-------------------------------------------------------------------
+
+-- Default configuration for vertical bar
+local DefaultConfig = {
+    interaction = {enabled = true},
+    tooltip = {enabled = true},
+    animation = {
+        enableAnimations = true,
+        flashOnGain = true
+    },
+    position = {mode = "DRAGGABLE", positionKey = "VerticalBar_v2"},
+    style = {}
+}
+
+-------------------------------------------------------------------
+-- STYLE CREATION
+-------------------------------------------------------------------
+
+-- Create composed mixin (Base + Behaviors + Style)
+VerticalBarXPBarMixin = XPBarStyleBuilder:Create(XPBarMixinBase_v2, VerticalBarStyleTemplate, DefaultConfig)
+XPBarStyleBuilder:RegisterStyle("vertical", VerticalBarXPBarMixin)
+
+-------------------------------------------------------------------
+-- PROGRAMMATIC HELPER
+-------------------------------------------------------------------
+
+--- Create VerticalBar frame programmatically.
+function XPBarEnhanced_CreateVerticalBarFrame()
+    local styleKey = "vertical"
+
+    local frame = XPBarStyleBuilder:CreateFrameForStyle(styleKey, DefaultConfig, "VerticalBarTemplate_v2")
+    frame:Show()
+
+    _G.VerticalBar_v2 = frame -- Global reference
+
+    return frame
+end

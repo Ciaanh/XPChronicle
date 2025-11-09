@@ -457,13 +457,43 @@ function TooltipMixin:AddHintSection(content, ctx, cfg)
 		return
 	end
 
-	-- Add a blank line and hint text if available
-	if XPBarTextFormatter and XPBarTextFormatter.GetHintText then
-		local hintText = XPBarTextFormatter:GetHintText(self)
-
+	-- Generate hint text based on bar capabilities
+	local hintText = self:GetHintText()
+	
+	if hintText and hintText ~= "" then
 		table.insert(content.lines, " ")
 		table.insert(content.lines, hintText)
 	end
+end
+
+--- Get hint text for V2 bars
+-- Returns appropriate hint based on position mode and interaction config
+function TooltipMixin:GetHintText()
+	local L = XPBarEnhanced and XPBarEnhanced.L or {}
+	
+	-- Check position mode
+	local isDraggable = false
+	if self.GetPositionMode then
+		local positionMode = self:GetPositionMode()
+		isDraggable = (positionMode == "DRAGGABLE")
+	end
+	
+	-- Build hint parts
+	local hints = {}
+	
+	-- Drag hint (if draggable)
+	if isDraggable then
+		table.insert(hints, L["TT_HINT_DRAG"] or "Shift+Drag to move")
+	end
+	
+	-- Alt+Click to open options
+	table.insert(hints, L["TT_HINT_ALT_OPTIONS"] or "Alt+Click for options")
+	
+	-- Ctrl+Click to toggle stats
+	table.insert(hints, L["TT_HINT_CTRL_STATS"] or "Ctrl+Click to toggle stats")
+	
+	-- Join with line breaks
+	return table.concat(hints, "\n")
 end
 
 -------------------------------------------------------------------
@@ -472,6 +502,12 @@ end
 
 --- OnEnter - Show tooltip on mouse enter
 function TooltipMixin:OnEnter()
+	-- Safety check: only show tooltip if mouse is actually over the frame
+	-- (prevents spurious OnEnter calls during frame initialization)
+	if not self:IsMouseOver() then
+		return
+	end
+	
 	local config = self.__xpbar_config or {}
 	local tooltipConfig = config.tooltip or {}
 	local global = GetGlobalDB()

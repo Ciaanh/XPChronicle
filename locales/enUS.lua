@@ -54,10 +54,14 @@ L["TT_RESTING"] = "Resting"
 
 -- Tooltip hints and formatting
 L["TT_HINTS"] = "Alt+Click to reset; Shift+Drag to move; Ctrl+Click for options."
+L["TT_HINT_DRAG"] = "Shift+Drag to move"
+L["TT_HINT_ALT_OPTIONS"] = "Alt+Click for options"
+L["TT_HINT_CTRL_STATS"] = "Ctrl+Click to toggle stats"
+
 L["TT_LEVEL_FMT"] = "Level %d"
 -- Tooltip hints
 L["TT_HINT_CONFIG"] = "Right-click to configure XP Bar"
-L["TT_HINT_DRAG"] = "Hold %s and drag to move the bar"
+
 -- Modifier display names
 L["KEY_SHIFT"] = "Shift"
 L["KEY_CTRL"] = "Ctrl"

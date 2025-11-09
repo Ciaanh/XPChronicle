@@ -584,8 +584,7 @@ function XPBar:GetHintText(frame)
                 modifierName = AddonL["KEY_ALT"] or "Alt"
             end
         end
-        local dragFmt = AddonL["TT_HINT_DRAG"] or "Hold %s and drag to move the bar"
-        return string.format("%s | %s", baseHint, string.format(dragFmt, modifierName))
+        return AddonL["TT_HINT_DRAG"]
     end
 
     return baseHint

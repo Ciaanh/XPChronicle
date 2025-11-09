@@ -1,0 +1,173 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/
+..\..\Blizzard_SharedXML\UI.xsd">
+
+	<!-- XP Bar Enhanced - VerticalBar Template v2 -->
+	<!-- Vertical XP bar with smooth animation -->
+
+	<Script file="VerticalBarStyle.lua"/>
+
+	<Frame name="VerticalBarTemplate_v2" virtual="true" mixin="VerticalBarXPBarMixin" frameStrata="LOW" enableMouse="true" fixedFrameStrata="true">
+		<Size x="60" y="300"/>
+		<Layers>
+			<!-- Background layer -->
+			<Layer level="BACKGROUND" textureSubLevel="1">
+				<Texture parentKey="Background" setAllPoints="true">
+					<Color r="0" g="0" b="0" a="0.5"/>
+				</Texture>
+			</Layer>
+
+			<!-- Filled texture (current XP - grows from bottom to top) -->
+			<Layer level="ARTWORK" textureSubLevel="1">
+				<Texture parentKey="FilledTexture" file="Interface\Buttons\WHITE8X8">
+					<Size y="0"/>
+					<Anchors>
+						<Anchor point="BOTTOMLEFT"/>
+						<Anchor point="BOTTOMRIGHT"/>
+					</Anchors>
+					<!-- Initial color matches Config.lua defaults.colors.xpBar -->
+					<Color r="0.58" g="0.0" b="0.55" a="1.0"/>
+				</Texture>
+			</Layer>
+
+			<!-- Rested overlay (behind quest overlays - grows from current XP) -->
+			<Layer level="ARTWORK" textureSubLevel="2">
+				<Texture parentKey="RestedOverlay" hidden="true" file="Interface\Buttons\WHITE8X8">
+					<Anchors>
+						<Anchor point="BOTTOMLEFT"/>
+						<Anchor point="BOTTOMRIGHT"/>
+					</Anchors>
+					<!-- Initial color matches Config.lua defaults.colors.rested -->
+					<Color r="0.07" g="0.58" b="0.95" a="0.3"/>
+				</Texture>
+			</Layer>
+
+			<!-- Quest overlay - complete quests (grows from bottom) -->
+			<Layer level="ARTWORK" textureSubLevel="3">
+				<Texture parentKey="QuestOverlayComplete" hidden="true" file="Interface\Buttons\WHITE8X8">
+					<Anchors>
+						<Anchor point="BOTTOMLEFT"/>
+						<Anchor point="BOTTOMRIGHT"/>
+					</Anchors>
+					<!-- Initial color matches Config.lua defaults.colors.questComplete -->
+					<Color r="1.0" g="0.65" b="0.0" a="0.85"/>
+				</Texture>
+			</Layer>
+
+			<!-- Quest overlay - incomplete quests (grows from bottom) -->
+			<Layer level="ARTWORK" textureSubLevel="3">
+				<Texture parentKey="QuestOverlayIncomplete" hidden="true" file="Interface\Buttons\WHITE8X8">
+					<Anchors>
+						<Anchor point="BOTTOMLEFT"/>
+						<Anchor point="BOTTOMRIGHT"/>
+					</Anchors>
+					<!-- Initial color matches Config.lua defaults.colors.questIncomplete -->
+					<Color r="0.5" g="1.0" b="0.2" a="0.85"/>
+				</Texture>
+			</Layer>
+
+			<!-- Flash effect overlay (full bar coverage) -->
+			<Layer level="OVERLAY" textureSubLevel="1">
+				<Texture parentKey="GainFlash" hidden="true" alphaMode="BLEND">
+					<Anchors>
+						<Anchor point="TOPLEFT"/>
+						<Anchor point="BOTTOMRIGHT"/>
+					</Anchors>
+				</Texture>
+			</Layer>
+
+			<!-- Overlay text elements (on top of everything) -->
+			<Layer level="OVERLAY" textureSubLevel="2">
+				<!-- Level text - top of bar -->
+				<FontString parentKey="LevelText" inherits="GameFontNormal" hidden="true">
+					<Anchors>
+						<Anchor point="TOP" x="0" y="-10"/>
+					</Anchors>
+					<Color r="1.0" g="1.0" b="1.0"/>
+					<Shadow>
+						<Offset x="1" y="-1"/>
+						<Color r="0" g="0" b="0" a="0.8"/>
+					</Shadow>
+				</FontString>
+
+				<!-- Percent text - center of bar -->
+				<FontString parentKey="PercentText" inherits="GameFontNormalLarge" hidden="true">
+					<Anchors>
+						<Anchor point="CENTER" x="0" y="0"/>
+					</Anchors>
+					<Color r="1.0" g="1.0" b="1.0"/>
+					<Shadow>
+						<Offset x="1" y="-1"/>
+						<Color r="0" g="0" b="0" a="0.8"/>
+					</Shadow>
+				</FontString>
+
+				<!-- XP/hour text - bottom of bar -->
+				<FontString parentKey="XPPerHourText" inherits="GameFontNormalSmall" hidden="true">
+					<Anchors>
+						<Anchor point="BOTTOM" x="0" y="10"/>
+					</Anchors>
+					<Color r="1.0" g="1.0" b="1.0"/>
+					<Shadow>
+						<Offset x="1" y="-1"/>
+						<Color r="0" g="0" b="0" a="0.8"/>
+					</Shadow>
+				</FontString>
+			</Layer>
+		</Layers>
+		<Frames>
+			<!-- BELOW-BAR text container (to the right of bar for vertical layout) -->
+			<Frame parentKey="BelowBarTextContainer" frameStrata="MEDIUM">
+				<Size x="200" y="300"/>
+				<Anchors>
+					<Anchor point="TOPLEFT" relativePoint="TOPRIGHT" x="5" y="0"/>
+				</Anchors>
+				<Layers>
+					<Layer level="ARTWORK">
+						<!-- Rate text (XP/hour + time to level) - right of bar at top -->
+						<FontString parentKey="RateText" inherits="GameFontNormalSmall" hidden="true">
+							<Anchors>
+								<Anchor point="TOPLEFT" x="0" y="0"/>
+							</Anchors>
+							<Color r="0.8" g="0.8" b="0.8"/>
+						</FontString>
+
+						<!-- Session text (session time + level time) - right of bar at bottom -->
+						<FontString parentKey="SessionText" inherits="GameFontNormalSmall" hidden="true">
+							<Anchors>
+								<Anchor point="BOTTOMLEFT" x="0" y="0"/>
+							</Anchors>
+							<Color r="0.8" g="0.8" b="0.8"/>
+						</FontString>
+						
+						<!-- Quest summary text (quests + rested) - right of bar center -->
+						<FontString parentKey="QuestSummaryText" inherits="GameFontNormalSmall" hidden="true">
+							<Anchors>
+								<Anchor point="LEFT" x="0" y="0"/>
+							</Anchors>
+							<Color r="0.8" g="0.8" b="0.8"/>
+						</FontString>
+						
+						<!-- XP text - right of bar near center -->
+						<FontString parentKey="XPText" inherits="GameFontNormalSmall" hidden="true">
+							<Anchors>
+								<Anchor point="LEFT" x="0" y="30"/>
+							</Anchors>
+							<Color r="0.8" g="0.8" b="0.8"/>
+						</FontString>
+					</Layer>
+				</Layers>
+			</Frame>
+		</Frames>
+		<Scripts>
+			<OnLoad method="OnLoad"/>
+			<OnEvent method="OnEvent"/>
+			<OnShow method="OnShow"/>
+			<OnHide method="OnHide"/>
+			<OnEnter method="OnEnter"/>
+			<OnLeave method="OnLeave"/>
+			<OnMouseDown method="OnMouseDown"/>
+			<OnMouseUp method="OnMouseUp"/>
+		</Scripts>
+	</Frame>
+
+</Ui>
