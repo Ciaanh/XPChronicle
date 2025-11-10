@@ -92,18 +92,14 @@ end
 
 function CircularBarStyleTemplate:CreateRingSegments()
     -- Create single set of segments (no separate arrays for rested/quest)
+    local color = EMPTY_SEGMENT_COLOR
     for i = 1, RING_SEGMENTS do
         local segment = self:CreateTexture(nil, "ARTWORK")
-        -- segment:SetTexture("Interface\\Buttons\\WHITE8X8")
-        segment:SetTexture("Interface\\AddOns\\XPBarEnhanced\\assets\\xp-bar")
+        segment:SetTexture("Interface\\Buttons\\WHITE8X8")
+        -- segment:SetTexture("Interface\\AddOns\\XPBarEnhanced\\assets\\xp-bar")
         segment:SetSize(CIRCULAR_BAR_STYLE.SEGMENT_WIDTH_PX, CIRCULAR_BAR_STYLE.SEGMENT_HEIGHT_PX)
         -- Initialize with background color to show ring structure
-        segment:SetColorTexture(
-            EMPTY_SEGMENT_COLOR.r,
-            EMPTY_SEGMENT_COLOR.g,
-            EMPTY_SEGMENT_COLOR.b,
-            EMPTY_SEGMENT_COLOR.a
-        )
+        segment:SetVertexColor(color.r, color.g, color.b, color.a)
         segment:Show()
         self.segments[i] = segment
         self.segmentTypes[i] = SEGMENT_TYPE.EMPTY
@@ -161,8 +157,9 @@ end
 -- @param stepContext table: Step context with currentRatio, xpContext
 function CircularBarStyleTemplate:AnimateBarPosition(stepContext)
     -- Update the arc progress with current ratio
-    -- Overlay data comes from cached values set by overlay update methods
-    self:SetArcProgress(stepContext.currentRatio)
+    -- Pass hasRestedXP from xpContext to ensure correct coloring
+    local hasRestedXP = stepContext.xpContext and stepContext.xpContext.hasRestedXP or false
+    self:SetArcProgress(stepContext.currentRatio, hasRestedXP)
 end
 
 --- Update visual effects - glow overlay animation
@@ -218,7 +215,8 @@ end
 
 --- Set arc progress and calculate all segment types in one pass
 -- @param progress number: Progress ratio (0-1)
-function CircularBarStyleTemplate:SetArcProgress(progress)
+-- @param hasRestedXP boolean: Whether player has rested XP available
+function CircularBarStyleTemplate:SetArcProgress(progress, hasRestedXP)
     -- Calculate current XP segments (1 segment = 1%)
     local currentXPSegments = math.floor(progress * 100 + 0.5)
 
@@ -332,11 +330,12 @@ function CircularBarStyleTemplate:SetArcProgress(progress)
     end
 
     -- Now apply colors to all segments based on their type
-    self:UpdateSegmentColors()
+    self:UpdateSegmentColors(hasRestedXP)
 end
 
 --- Apply colors to segments based on their type
-function CircularBarStyleTemplate:UpdateSegmentColors()
+-- @param hasRestedXP boolean: Whether player has rested XP available
+function CircularBarStyleTemplate:UpdateSegmentColors(hasRestedXP)
     local XPBarColors = _G.XPBarColors
     local colorNormal = XPBarColors:GetUserColor(Color.XpBar)
     local colorRested = XPBarColors:GetUserColor(Color.Rested)
@@ -344,17 +343,16 @@ function CircularBarStyleTemplate:UpdateSegmentColors()
     local colorQuestComplete = XPBarColors:GetUserColor(Color.QuestComplete)
     local colorQuestIncomplete = XPBarColors:GetUserColor(Color.QuestIncomplete)
 
-    -- Check if player has rested XP for current XP coloring
-    local hasRestedXP = self.cachedHasRestedXP or false
+    -- Use parameter or fallback to cached value
+    hasRestedXP = hasRestedXP or self.cachedHasRestedXP or false
 
     -- Use Rested color for current XP bar when player has rested XP (matches flatbar_v2)
-    local currentXPColor = hasRestedXP and colorRested or colorNormal
+    local currentXPColor = hasRestedXP and colorXpBarRested or colorNormal
 
     -- Determine progress (prefer current ratio from animation, fall back to lastProgress)
     local progress = self._currentRatio or self.lastProgress or 0
     local totalSegments = RING_SEGMENTS
-    local filled = math.floor(progress * totalSegments)
-    local fractional = (progress * totalSegments) - filled
+    local filled = math.floor(progress * totalSegments + 0.5)
 
     for i = 1, totalSegments do
         local segment = self.segments[i]
@@ -362,73 +360,38 @@ function CircularBarStyleTemplate:UpdateSegmentColors()
             -- missing texture, skip
         else
             -- default empty appearance
-            local r, g, b, a =
-                EMPTY_SEGMENT_COLOR.r,
-                EMPTY_SEGMENT_COLOR.g,
-                EMPTY_SEGMENT_COLOR.b,
-                EMPTY_SEGMENT_COLOR.a
-            local blend = "BLEND"
+            local color = EMPTY_SEGMENT_COLOR
 
             if i <= filled then
                 -- fully filled by current XP - use exact color from config
                 if currentXPColor and currentXPColor.r then
-                    r, g, b, a = currentXPColor.r, currentXPColor.g, currentXPColor.b, currentXPColor.a or 1
-                else
-                    r, g, b, a = 0.2, 0.6, 1.0, 1
+                    color = currentXPColor
                 end
-                blend = "BLEND"
-            elseif i == (filled + 1) and fractional > 0 then
-                -- partially filled segment - use exact color but with fractional alpha
-                if currentXPColor and currentXPColor.r then
-                    r, g, b = currentXPColor.r, currentXPColor.g, currentXPColor.b
-                else
-                    r, g, b = 0.2, 0.6, 1.0
-                end
-                blend = "BLEND"
             else
                 -- not part of main fill; check overlay type
                 local segType = self.segmentTypes[i]
                 if segType == SEGMENT_TYPE.QUEST_COMPLETE then
                     -- Use exact color from config
                     if colorQuestComplete and colorQuestComplete.r then
-                        r, g, b, a =
-                            colorQuestComplete.r,
-                            colorQuestComplete.g,
-                            colorQuestComplete.b,
-                            colorQuestComplete.a or 1
-                    else
-                        r, g, b, a = 0.2, 1.0, 0.2, 1
+                        color = colorQuestComplete
                     end
-                    blend = "BLEND"
                 elseif segType == SEGMENT_TYPE.QUEST_INCOMPLETE then
                     -- Use exact color from config
                     if colorQuestIncomplete and colorQuestIncomplete.r then
-                        r, g, b, a =
-                            colorQuestIncomplete.r,
-                            colorQuestIncomplete.g,
-                            colorQuestIncomplete.b,
-                            colorQuestIncomplete.a or 1
-                    else
-                        r, g, b, a = 1.0, 0.6, 0.2, 1
+                        color = colorQuestIncomplete
                     end
-                    blend = "BLEND"
                 elseif segType == SEGMENT_TYPE.RESTED then
-                    -- Use exact color from config
-                    if colorXpBarRested and colorXpBarRested.r then
-                        r, g, b, a = colorXpBarRested.r, colorXpBarRested.g, colorXpBarRested.b, colorXpBarRested.a or 1
-                    else
-                        r, g, b, a = 0.6, 0.4, 1.0, 1
+                    -- Use exact color from config with ADD blend mode (v1 behavior)
+                    if colorRested and colorRested.r then
+                        color = colorRested
                     end
-                    blend = "ADD"
                 else
                     -- EMPTY remains default
                 end
             end
 
-            -- Apply appearance
-            segment:SetColorTexture(r, g, b, a)
-            segment:SetAlpha(1)
-            segment:SetBlendMode(blend)
+            -- Apply appearance: SetColorTexture for RGB only, SetAlpha separately
+            segment:SetVertexColor(color.r, color.g, color.b, color.a)
             segment:Show()
         end
     end
@@ -491,8 +454,9 @@ function CircularBarStyleTemplate:FullUpdate(context)
     local currentXP = context.xpAfter or context.currentXP or 0
     local maxXP = context.xpMax or 1
     local ratio = maxXP > 0 and (currentXP / maxXP) or 0
+    local hasRestedXP = context.hasRestedXP or false
 
-    self:SetArcProgress(ratio)
+    self:SetArcProgress(ratio, hasRestedXP)
 
     -- Update visuals (text, etc.)
     if self.UpdateVisuals then
@@ -535,7 +499,8 @@ function CircularBarStyleTemplate:UpdateCurrentXPBar(context)
             self:SetCurrentRatio(initialRatio)
         end
         -- Set initial visual state using cached overlay data
-        self:SetArcProgress(initialRatio)
+        local hasRestedXP = context.hasRestedXP or false
+        self:SetArcProgress(initialRatio, hasRestedXP)
     end
 
     -- Build XP context for animation system (like flatbar - NO quest data here)
