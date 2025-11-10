@@ -58,14 +58,14 @@ function FlatBarStyleTemplate:AnimateBarEffect(stepContext)
 		-- Hide flash when not active, complete, or alpha is 0
 		self.GainFlash:Hide()
 	end
-	
+
 	-- Apply quest overlay alpha reduction during flash
 	if stepContext.questOverlayAlpha then
 		if self.QuestOverlayComplete and stepContext.questOverlayCompleteInitialAlpha then
 			local newAlpha = stepContext.questOverlayCompleteInitialAlpha * stepContext.questOverlayAlpha
 			self.QuestOverlayComplete:SetAlpha(newAlpha)
 		end
-		
+
 		if self.QuestOverlayIncomplete and stepContext.questOverlayIncompleteInitialAlpha then
 			local newAlpha = stepContext.questOverlayIncompleteInitialAlpha * stepContext.questOverlayAlpha
 			self.QuestOverlayIncomplete:SetAlpha(newAlpha)
@@ -121,15 +121,15 @@ function FlatBarStyleTemplate:UpdateCurrentXPBar(context)
 		targetRatio = (context.currentXP or 0) / context.xpMax
 	end
 
-	-- Initialize current ratio if not set (first update)
-	if not self._currentRatio or self._currentRatio == 0 then
+	-- Initialize current ratio if not set (TRULY first update, not just currentRatio == 0)
+	if not self._initializedBar then
+		self._initializedBar = true
+
 		-- Get current StatusBar value as starting point
 		if self.StatusBar then
 			local currentValue = self.StatusBar:GetValue()
-			if currentValue and currentValue > 0 then
-				if self.SetCurrentRatio then
-					self:SetCurrentRatio(currentValue)
-				end
+			if currentValue and currentValue > 0 and self.SetCurrentRatio then
+				self:SetCurrentRatio(currentValue)
 			end
 		end
 	end

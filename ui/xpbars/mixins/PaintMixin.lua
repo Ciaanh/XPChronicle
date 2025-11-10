@@ -100,20 +100,29 @@ end
 --- Validate XML contract and initialize element state
 --- BaseMixin does NOT create UI elements - it validates the XML contract
 function XPBarPaintMixin:BuildVisuals()
-	-- Require StatusBar (XML contract)
-	if not self.StatusBar then
-		return
+	-- Alias overlays and text elements.
+	-- Note: some styles (e.g., circular) do not use a StatusBar; they place
+	-- on-bar text elements directly on the frame. Support both cases.
+
+	-- Alias overlays expected as children of StatusBar when present
+	if self.StatusBar then
+		self.RestedOverlay = self.RestedOverlay or (self.StatusBar and self.StatusBar.RestedOverlay)
+		self.QuestOverlayComplete = self.QuestOverlayComplete or (self.StatusBar and self.StatusBar.QuestOverlayComplete)
+		self.QuestOverlayIncomplete =
+		self.QuestOverlayIncomplete or (self.StatusBar and self.StatusBar.QuestOverlayIncomplete)
+		self.ExhaustionTick = self.ExhaustionTick or (self.StatusBar and self.StatusBar.ExhaustionTick)
+		self.GainFlash = self.GainFlash or (self.StatusBar and self.StatusBar.GainFlash)
+	else
+		-- Attempt to alias frame-level overlays if style put them on the frame
+		self.RestedOverlay = self.RestedOverlay or self.RestedOverlay
+		self.QuestOverlayComplete = self.QuestOverlayComplete or self.QuestOverlayComplete
+		self.QuestOverlayIncomplete = self.QuestOverlayIncomplete or self.QuestOverlayIncomplete
+		self.ExhaustionTick = self.ExhaustionTick or self.ExhaustionTick
+		self.GainFlash = self.GainFlash or self.GainFlash
 	end
 
-	-- Alias overlays expected as children of StatusBar
-	self.RestedOverlay = self.RestedOverlay or (self.StatusBar and self.StatusBar.RestedOverlay)
-	self.QuestOverlayComplete = self.QuestOverlayComplete or (self.StatusBar and self.StatusBar.QuestOverlayComplete)
-	self.QuestOverlayIncomplete = self.QuestOverlayIncomplete or (self.StatusBar and self.StatusBar.QuestOverlayIncomplete)
-	self.ExhaustionTick = self.ExhaustionTick or (self.StatusBar and self.StatusBar.ExhaustionTick)
-	self.GainFlash = self.GainFlash or (self.StatusBar and self.StatusBar.GainFlash)
-
-	-- Alias ON-BAR text children
-	local onBarTextContainer = self.OverlayFrameTextContainer
+	-- Alias ON-BAR text children. Prefer an explicit container; fall back to the frame
+	local onBarTextContainer = self.OverlayFrameTextContainer or self
 	if onBarTextContainer then
 		if not self.XPText and onBarTextContainer.XPText then
 			self.XPText = onBarTextContainer.XPText
