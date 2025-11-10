@@ -302,13 +302,32 @@ function VerticalBarStyleTemplate:UpdateRestedOverlayLayout(context)
         local maxXP = context.xpMax or 1
         local remainingXP = math.max(0, maxXP - currentXP)
         local restedXPClamped = math.min(restedXP, remainingXP)
-        local ratio = restedXPClamped / maxXP
         
-        if ratio >= 0.01 then
+        -- Calculate quest offset (how much space quest overlays take)
+        local questOffset = 0
+        local completeQuestXP = context.completeQuestXP or 0
+        local incompleteQuestXP = context.incompleteQuestXP or 0
+        
+        -- Add complete quest XP if showing
+        if context.showCompleteQuestOverlay and completeQuestXP > 0 then
+            local completeQuestClamped = math.min(completeQuestXP, remainingXP)
+            questOffset = questOffset + completeQuestClamped
+        end
+        
+        -- Add incomplete quest XP if showing
+        if context.showIncompleteQuestOverlay and incompleteQuestXP > 0 then
+            local remainingAfterComplete = math.max(0, remainingXP - questOffset)
+            local incompleteQuestClamped = math.min(incompleteQuestXP, remainingAfterComplete)
+            questOffset = questOffset + incompleteQuestClamped
+        end
+        
+        -- Vertical: total height from bottom (current XP + quest overlays + rested XP)
+        -- The rested overlay is behind everything, so it extends from 0 to (current + quests + rested)
+        local totalXP = currentXP + questOffset + restedXPClamped
+        local totalRatio = math.min(totalXP / maxXP, 1.0)
+        
+        if totalRatio >= 0.01 then
             local barHeight = self:GetHeight()
-            
-            -- Vertical: total height from bottom (current XP + rested XP)
-            local totalRatio = (currentXP + restedXPClamped) / maxXP
             local height = barHeight * totalRatio
             
             self.RestedOverlay:ClearAllPoints()

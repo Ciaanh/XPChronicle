@@ -90,12 +90,4 @@ function XPBarVisualsMixin:UpdateOverlays(context)
     end
 end
 
--- BuildVisuals is implemented by PaintMixin - don't override it here
--- function XPBarVisualsMixin:BuildVisuals()
--- end
-
--- ApplyStyle is implemented by PaintMixin - don't override it here
--- function XPBarVisualsMixin:ApplyStyle(styleConfig)
--- end
-
 return XPBarVisualsMixin

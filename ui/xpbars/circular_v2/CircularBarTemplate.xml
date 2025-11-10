@@ -1,0 +1,80 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/
+..\..\Blizzard_SharedXML\UI.xsd">
+
+	<!-- XP Bar Enhanced - CircularBar Template v2 -->
+	<!-- Circular progress ring with optimized segment system -->
+
+	<Script file="CircularBarStyle.lua"/>
+
+	<Frame name="CircularBarTemplate_v2" virtual="true" mixin="CircularBarXPBarMixin" frameStrata="LOW" enableMouse="true" fixedFrameStrata="true">
+		<Size x="256" y="256"/>
+		<Layers>
+			<!-- Border PNG -->
+			<Layer level="BACKGROUND" textureSubLevel="0">
+				<Texture parentKey="BorderRing" setAllPoints="true" file="Interface\AddOns\XPBarEnhanced\assets\border.png"/>
+			</Layer>
+
+			<!-- Center PNG background -->
+			<Layer level="BACKGROUND" textureSubLevel="1">
+				<Texture parentKey="CenterBG" setAllPoints="true" file="Interface\AddOns\XPBarEnhanced\assets\center.png">
+					<Color r="1.0" g="1.0" b="1.0" a="0.8"/>
+				</Texture>
+			</Layer>
+
+			<!-- Glow overlay (hidden by default) -->
+			<Layer level="OVERLAY" textureSubLevel="1">
+				<Texture parentKey="GlowOverlay" setAllPoints="true" hidden="true" file="Interface\AddOns\XPBarEnhanced\assets\glow.png"/>
+			</Layer>
+
+			<!-- Center text elements -->
+			<Layer level="OVERLAY" textureSubLevel="2">
+				<!-- Level text (large, center-top) -->
+				<FontString parentKey="LevelText" inherits="GameFontNormalHuge" hidden="true">
+					<Anchors>
+						<Anchor point="CENTER" x="0" y="15"/>
+					</Anchors>
+					<Color r="1.0" g="1.0" b="1.0"/>
+					<Shadow>
+						<Offset x="2" y="-2"/>
+						<Color r="0" g="0" b="0" a="0.8"/>
+					</Shadow>
+				</FontString>
+
+				<!-- Percentage text (center) -->
+				<FontString parentKey="PercentText" inherits="GameFontNormalLarge" hidden="true">
+					<Anchors>
+						<Anchor point="CENTER" x="0" y="-5"/>
+					</Anchors>
+					<Color r="1.0" g="1.0" b="1.0"/>
+					<Shadow>
+						<Offset x="2" y="-2"/>
+						<Color r="0" g="0" b="0" a="0.8"/>
+					</Shadow>
+				</FontString>
+
+				<!-- Time to level text (small, center-bottom) -->
+				<FontString parentKey="RateText" inherits="GameFontNormalSmall" hidden="true">
+					<Anchors>
+						<Anchor point="CENTER" x="0" y="-25"/>
+					</Anchors>
+					<Color r="1.0" g="1.0" b="1.0"/>
+					<Shadow>
+						<Offset x="1" y="-1"/>
+						<Color r="0" g="0" b="0" a="0.8"/>
+					</Shadow>
+				</FontString>
+			</Layer>
+		</Layers>
+		<Scripts>
+			<OnLoad method="OnLoad"/>
+			<OnEvent method="OnEvent"/>
+			<OnShow method="OnShow"/>
+			<OnHide method="OnHide"/>
+			<OnEnter method="OnEnter"/>
+			<OnLeave method="OnLeave"/>
+			<OnMouseDown method="OnMouseDown"/>
+			<OnMouseUp method="OnMouseUp"/>
+		</Scripts>
+	</Frame>
+
+</Ui>

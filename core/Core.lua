@@ -411,11 +411,32 @@ SlashCmdList["XPTEST"] = function(msg)
         elseif cmd == "verticaldestroy" and Addon.Tests.DestroyVerticalTestBar then
             Addon.Tests.DestroyVerticalTestBar()
             return
+        elseif cmd == "circular" and Addon.Tests.CreateCircularTestBar then
+            Addon.Tests.CreateCircularTestBar()
+            return
+        elseif cmd == "circulardestroy" and Addon.Tests.DestroyCircularTestBar then
+            Addon.Tests.DestroyCircularTestBar()
+            return
         elseif cmd == "context" and Addon.Tests.PrintContext then
             Addon.Tests.PrintContext()
             return
         elseif cmd == "flash" and Addon.Tests.TriggerFlash then
             Addon.Tests.TriggerFlash()
+            return
+        end
+    end
+    -- Fallback manual handlers when Addon.Tests is not available
+    if cmd == "circular" then
+        -- Create circular v2 frame programmatically
+        if XPBarEnhanced_CreateCircularBarFrame then
+            XPBarEnhanced_CreateCircularBarFrame()
+            return
+        end
+    elseif cmd == "circulardestroy" then
+        -- Destroy circular v2 frame if exists
+        if _G.CircularBar_v2 and type(_G.CircularBar_v2.Hide) == "function" then
+            _G.CircularBar_v2:Hide()
+            _G.CircularBar_v2 = nil
             return
         end
     end

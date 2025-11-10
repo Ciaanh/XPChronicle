@@ -42,7 +42,7 @@ function ContextBuilder.GetQuestXP()
 	local incompleteQuestXP = 0
 
 	if XPBarEnhanced and XPBarEnhanced.XPBar then
-		local _, complete, incomplete = XPBarEnhanced.XPBar:GetQuestXP()
+		local total, complete, incomplete = XPBarEnhanced.XPBar:GetQuestXP()
 		completeQuestXP = complete or 0
 		incompleteQuestXP = incomplete or 0
 	end

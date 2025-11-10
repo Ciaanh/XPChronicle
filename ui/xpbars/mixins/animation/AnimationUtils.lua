@@ -12,9 +12,11 @@ local ANIMATION_CONSTANTS = {
 	MAX_ANIMATION_DURATION = 2.0, -- Maximum animation time (seconds)
 	ENFORCED_MIN_DURATION = 0.25, -- Clearly visible at 60 FPS (15 frames)
 	
-	-- Flash effect
-	GAIN_FLASH_HALF_PERIOD_SECONDS = 0.25, -- Fade in time
-	GAIN_FLASH_MAX_ALPHA = 0.5, -- Maximum flash opacity
+	-- Flash effect (matches V1 glow pattern)
+	GAIN_FLASH_FADE_IN_DURATION = 0.2, -- Fade in time (200ms)
+	GAIN_FLASH_FADE_OUT_DURATION = 0.3, -- Fade out time (300ms)
+	GAIN_FLASH_HOLD_DURATION = 0.5, -- Hold at max alpha (500ms)
+	GAIN_FLASH_MAX_ALPHA = 0.6, -- Maximum flash opacity (60%)
 	
 	-- Thresholds
 	ANIMATION_THRESHOLD = 0.001, -- Minimum change to animate (0.1%)
@@ -101,19 +103,28 @@ function AnimationUtils.BuildStepContext(bar, now, config, xpContext)
 	if anim.isFlashing then
 		local flashElapsed = now - anim.flashStartTime
 		local flashDuration = anim.flashDuration
-		local flashHalfPeriod = ANIMATION_CONSTANTS.GAIN_FLASH_HALF_PERIOD_SECONDS
+		local fadeInDuration = ANIMATION_CONSTANTS.GAIN_FLASH_FADE_IN_DURATION
+		local holdDuration = ANIMATION_CONSTANTS.GAIN_FLASH_HOLD_DURATION
+		local fadeOutDuration = ANIMATION_CONSTANTS.GAIN_FLASH_FADE_OUT_DURATION
+		local maxAlpha = ANIMATION_CONSTANTS.GAIN_FLASH_MAX_ALPHA
 		
-		-- Calculate flash alpha (fade in, then fade out)
+		-- Calculate flash alpha with three phases: fade in, hold, fade out
 		local flashAlpha = 0
 		local phase = "none"
-		if flashElapsed < flashHalfPeriod then
-			-- Fade in
-			flashAlpha = (flashElapsed / flashHalfPeriod) * ANIMATION_CONSTANTS.GAIN_FLASH_MAX_ALPHA
+		
+		if flashElapsed < fadeInDuration then
+			-- Phase 1: Fade in
+			local fadeInProgress = flashElapsed / fadeInDuration
+			flashAlpha = fadeInProgress * maxAlpha
 			phase = "fade_in"
-		elseif flashElapsed < flashDuration then
-			-- Fade out
-			local fadeOutProgress = (flashElapsed - flashHalfPeriod) / flashHalfPeriod
-			flashAlpha = ANIMATION_CONSTANTS.GAIN_FLASH_MAX_ALPHA * (1 - fadeOutProgress)
+		elseif flashElapsed < fadeInDuration + holdDuration then
+			-- Phase 2: Hold at max
+			flashAlpha = maxAlpha
+			phase = "hold"
+		elseif flashElapsed < fadeInDuration + holdDuration + fadeOutDuration then
+			-- Phase 3: Fade out
+			local fadeOutProgress = (flashElapsed - fadeInDuration - holdDuration) / fadeOutDuration
+			flashAlpha = maxAlpha * (1 - fadeOutProgress)
 			phase = "fade_out"
 		end
 		
@@ -123,8 +134,10 @@ function AnimationUtils.BuildStepContext(bar, now, config, xpContext)
 			startTime = anim.flashStartTime,
 			duration = flashDuration,
 			elapsed = flashElapsed,
-			phase = phase, -- Added for debugging
-			halfPeriod = flashHalfPeriod, -- Added for debugging
+			phase = phase,
+			fadeInDuration = fadeInDuration,
+			holdDuration = holdDuration,
+			fadeOutDuration = fadeOutDuration,
 		}
 	end
 	
@@ -219,6 +232,14 @@ end
 -- @return boolean: true if level-up detected
 function AnimationUtils.DetectLevelUp(context)
 	return context.xpAfter < context.xpBefore
+end
+
+--- Get total flash duration (fade in + hold + fade out)
+-- @return number: Total flash duration in seconds
+function AnimationUtils.GetFlashTotalDuration()
+	return ANIMATION_CONSTANTS.GAIN_FLASH_FADE_IN_DURATION +
+	       ANIMATION_CONSTANTS.GAIN_FLASH_HOLD_DURATION +
+	       ANIMATION_CONSTANTS.GAIN_FLASH_FADE_OUT_DURATION
 end
 
 --- Get animation constants

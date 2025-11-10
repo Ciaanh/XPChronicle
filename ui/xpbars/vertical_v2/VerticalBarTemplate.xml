@@ -127,36 +127,36 @@
 				<Layers>
 					<Layer level="ARTWORK">
 						<!-- Rate text (XP/hour + time to level) - right of bar at top -->
-						<FontString parentKey="RateText" inherits="GameFontNormalSmall" hidden="true">
+						<!-- <FontString parentKey="RateText" inherits="GameFontNormalSmall" hidden="true">
 							<Anchors>
 								<Anchor point="TOPLEFT" x="0" y="0"/>
 							</Anchors>
 							<Color r="0.8" g="0.8" b="0.8"/>
-						</FontString>
+						</FontString> -->
 
 						<!-- Session text (session time + level time) - right of bar at bottom -->
-						<FontString parentKey="SessionText" inherits="GameFontNormalSmall" hidden="true">
+						<!-- <FontString parentKey="SessionText" inherits="GameFontNormalSmall" hidden="true">
 							<Anchors>
 								<Anchor point="BOTTOMLEFT" x="0" y="0"/>
 							</Anchors>
 							<Color r="0.8" g="0.8" b="0.8"/>
-						</FontString>
+						</FontString> -->
 						
 						<!-- Quest summary text (quests + rested) - right of bar center -->
-						<FontString parentKey="QuestSummaryText" inherits="GameFontNormalSmall" hidden="true">
+						<!-- <FontString parentKey="QuestSummaryText" inherits="GameFontNormalSmall" hidden="true">
 							<Anchors>
 								<Anchor point="LEFT" x="0" y="0"/>
 							</Anchors>
 							<Color r="0.8" g="0.8" b="0.8"/>
-						</FontString>
+						</FontString> -->
 						
 						<!-- XP text - right of bar near center -->
-						<FontString parentKey="XPText" inherits="GameFontNormalSmall" hidden="true">
+						<!-- <FontString parentKey="XPText" inherits="GameFontNormalSmall" hidden="true">
 							<Anchors>
 								<Anchor point="LEFT" x="0" y="30"/>
 							</Anchors>
 							<Color r="0.8" g="0.8" b="0.8"/>
-						</FontString>
+						</FontString> -->
 					</Layer>
 				</Layers>
 			</Frame>

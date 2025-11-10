@@ -16,19 +16,6 @@
 				</Texture>
 			</Layer>
 
-			<!-- Rested XP overlay - BEHIND status bar, starts from 0 -->
-			<!-- Width = currentXP + restedXP, so visible portion shows beyond filled bar -->
-			<Layer level="BACKGROUND" textureSubLevel="2">
-				<Texture parentKey="RestedOverlay" hidden="true" file="Interface\Buttons\WHITE8X8">
-					<Size x="0" y="30"/>
-					<Anchors>
-						<Anchor point="BOTTOMLEFT" x="0" y="0"/>
-					</Anchors>
-					<!-- Initial color matches Config.lua defaults.colors.rested -->
-					<Color r="0.07" g="0.58" b="0.95" a="0.5"/>
-				</Texture>
-			</Layer>
-
 			<!-- Flash effect overlay -->
 			<Layer level="OVERLAY" textureSubLevel="3">
 				<Texture parentKey="GainFlash" hidden="true" alphaMode="BLEND">
@@ -50,6 +37,19 @@
 				<BarColor r="0.58" g="0.0" b="0.55"/>
 				<BarTexture file="Interface\Buttons\WHITE8X8"/>
 				<Layers>
+					<!-- Rested XP overlay - BEHIND status bar fill, starts from 0 -->
+					<!-- Width = currentXP + restedXP, positioned in BACKGROUND so it's behind the bar fill -->
+					<Layer level="BACKGROUND" textureSubLevel="-1">
+						<Texture parentKey="RestedOverlay" hidden="true" file="Interface\Buttons\WHITE8X8">
+							<Size x="0" y="30"/>
+							<Anchors>
+								<Anchor point="BOTTOMLEFT" relativeKey="$parent" relativePoint="BOTTOMLEFT" x="0" y="0"/>
+							</Anchors>
+							<!-- Initial color matches Config.lua defaults.colors.rested -->
+							<Color r="0.07" g="0.58" b="0.95" a="0.5"/>
+						</Texture>
+					</Layer>
+					
 					<!-- Quest overlay - complete quests - on top of StatusBar fill -->
 					<Layer level="ARTWORK" textureSubLevel="1">
 						<Texture parentKey="QuestOverlayComplete" hidden="true" file="Interface\Buttons\WHITE8X8">

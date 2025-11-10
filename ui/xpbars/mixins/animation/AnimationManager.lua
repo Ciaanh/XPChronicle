@@ -191,7 +191,8 @@ function AnimationManager:AnimateTo(bar, targetRatio, xpContext, config)
 			if not anim.isFlashing and not inCooldown then
 				anim.isFlashing = true
 				anim.flashStartTime = now
-				anim.flashDuration = 0.5 -- Standard flash duration (V1 compatible)
+				-- Total flash duration = fade in + hold + fade out (1.0 second total)
+				anim.flashDuration = AnimationUtils.GetFlashTotalDuration()
 				-- Register so OnUpdate drives the flash
 				self:Register(bar)
 			end
@@ -231,7 +232,8 @@ function AnimationManager:AnimateTo(bar, targetRatio, xpContext, config)
 		if not anim.isFlashing and not inCooldown then
 			anim.isFlashing = true
 			anim.flashStartTime = now
-			anim.flashDuration = 0.5 -- Standard flash duration (V1 compatible)
+			-- Total flash duration = fade in + hold + fade out (1.0 second total)
+			anim.flashDuration = AnimationUtils.GetFlashTotalDuration()
 			
 			-- Capture initial quest overlay alphas to restore after flash (only if not already captured)
 			if not anim.questOverlayCompleteInitialAlpha and not anim.questOverlayIncompleteInitialAlpha then

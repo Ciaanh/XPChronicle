@@ -55,7 +55,7 @@ function XPBarLayoutMixin:CalculateRestedBounds(context, barWidth)
 	local isFullyRested = context.isFullyRested or false
 	
 	-- V2 approach: Rested overlay BEHIND StatusBar, starts from 0
-	-- Width = currentXP + restedXP, so the visible portion shows beyond filled bar
+	-- Width = currentXP + questOverlays + restedXP, so the visible portion shows beyond filled bar and quests
 	-- This way it animates automatically as currentXP changes
 	
 	-- Hide if no rested XP or fully rested (>= 150% threshold)
@@ -63,23 +63,43 @@ function XPBarLayoutMixin:CalculateRestedBounds(context, barWidth)
 		return 0, 0, false
 	end
 	
-	-- Calculate total width: current XP + rested XP
-	-- This positions the rested overlay to extend beyond the current filled bar
-	local totalXP = currentXP + restedXP
+	-- Calculate quest offset: how much space the quest overlays take up
+	local questOffset = 0
+	local completeQuestXP = context.completeQuestXP or 0
+	local incompleteQuestXP = context.incompleteQuestXP or 0
+	
+	-- Add complete quest XP if that overlay is showing
+	if context.showCompleteQuestOverlay and completeQuestXP > 0 then
+		local remainingXP = math.max(0, maxXP - currentXP)
+		local completeQuestClamped = math.min(completeQuestXP, remainingXP)
+		questOffset = questOffset + completeQuestClamped
+	end
+	
+	-- Add incomplete quest XP if that overlay is showing
+	if context.showIncompleteQuestOverlay and incompleteQuestXP > 0 then
+		local remainingXP = math.max(0, maxXP - currentXP - questOffset)
+		local incompleteQuestClamped = math.min(incompleteQuestXP, remainingXP)
+		questOffset = questOffset + incompleteQuestClamped
+	end
+	
+	-- Calculate total width: current XP + quest overlays + rested XP
+	-- This positions the rested overlay to extend beyond both current bar and quest overlays
+	local totalXP = currentXP + questOffset + restedXP
 	
 	-- Clamp to max XP (can't show beyond 100%)
 	local totalXPClamped = math.min(totalXP, maxXP)
 	
-	-- Calculate pixel width from 0 to (currentXP + restedXP)
+	-- Calculate pixel width from 0 to (currentXP + questOffset + restedXP)
 	local totalRatio = totalXPClamped / maxXP
 	local totalPixels = math.floor(totalRatio * barWidth)
 	
-	-- Must be wider than current XP to be visible
-	local currentRatio = currentXP / maxXP
-	local currentPixels = math.floor(currentRatio * barWidth)
+	-- Must be wider than current XP + quests to be visible
+	local currentPlusQuestsXP = currentXP + questOffset
+	local currentPlusQuestsRatio = currentPlusQuestsXP / maxXP
+	local currentPlusQuestsPixels = math.floor(currentPlusQuestsRatio * barWidth)
 	
-	if totalPixels > currentPixels then
-		-- Start from 0 (BOTTOMLEFT anchor), width extends to currentXP + restedXP
+	if totalPixels > currentPlusQuestsPixels then
+		-- Start from 0 (BOTTOMLEFT anchor), width extends to currentXP + questOffset + restedXP
 		return 0, math.max(1, totalPixels), true
 	else
 		return 0, 0, false
@@ -133,7 +153,8 @@ end
 ---@param overlayName string|nil Overlay name (default: "RestedOverlay")
 function XPBarLayoutMixin:UpdateRestedOverlayLayout(context, overlayName)
 	overlayName = overlayName or "RestedOverlay"
-	local overlay = self[overlayName]
+	-- Try main frame first, then StatusBar (for flatbar_v2 compatibility)
+	local overlay = self[overlayName] or (self.StatusBar and self.StatusBar[overlayName])
 	
 	if not overlay then
 		return
@@ -153,7 +174,7 @@ function XPBarLayoutMixin:UpdateRestedOverlayLayout(context, overlayName)
 	
 	if visible then
 		-- V2: No offset needed, always starts from BOTTOMLEFT (0,0)
-		-- Width = currentXP + restedXP
+		-- Width = currentXP + questOffset + restedXP
 		overlay:SetWidth(widthPixels)
 	end
 end
@@ -249,7 +270,8 @@ end
 ---@param tickName string|nil Tick name (default: "ExhaustionTick")
 function XPBarLayoutMixin:UpdateExhaustionTickLayout(context, tickName)
 	tickName = tickName or "ExhaustionTick"
-	local tick = self[tickName]
+	-- Try main frame first, then StatusBar (for legacy_v2 compatibility)
+	local tick = self[tickName] or (self.StatusBar and self.StatusBar[tickName])
 	
 	if not tick then
 		return
@@ -276,10 +298,20 @@ function XPBarLayoutMixin:UpdateExhaustionTickLayout(context, tickName)
 	
 	if visible then
 		-- Position at the end of rested overlay
-		local restedOverlay = self.RestedOverlay or self.RestedLevel or self.ExhaustionLevelFillBar
+		-- Try multiple locations: main frame, StatusBar, or legacy names
+		local restedOverlay = self.RestedOverlay 
+			or (self.StatusBar and self.StatusBar.RestedOverlay)
+			or self.RestedLevel 
+			or self.ExhaustionLevelFillBar
+			or (self.StatusBar and self.StatusBar.ExhaustionLevelFillBar)
+		
 		if restedOverlay then
+			-- Preserve any offsets set by XML anchors (e.g., y-offset) so designer tweaks aren't lost
+			local origPoint, origRelTo, origRelPoint, origX, origY = tick:GetPoint(1)
+			local xOff = origX or 0
+			local yOff = origY or 0
 			tick:ClearAllPoints()
-			tick:SetPoint("CENTER", restedOverlay, "RIGHT", 0, 0)
+			tick:SetPoint("CENTER", restedOverlay, "RIGHT", xOff, yOff)
 		end
 	end
 end

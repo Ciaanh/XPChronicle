@@ -34,7 +34,8 @@ end
 ---@param overlayName string|nil Overlay name (default: "RestedOverlay")
 function XPBarPaintMixin:UpdateRestedOverlayColor(overlayName)
 	overlayName = overlayName or "RestedOverlay"
-	local overlay = self[overlayName]
+	-- Try main frame first, then StatusBar (for flatbar_v2 compatibility)
+	local overlay = self[overlayName] or (self.StatusBar and self.StatusBar[overlayName])
 
 	if not overlay then
 		return

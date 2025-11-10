@@ -41,7 +41,7 @@
                 <Layers>
                     <!-- Rested XP overlay (solid texture for customization) previously Interface\Buttons\WHITE8X8-->
                     <Layer level="OVERLAY" textureSubLevel="1">
-                        <Texture parentKey="ExhaustionLevelFillBar" hidden="true" file="Interface\AddOns\XPBarEnhanced\assets\xp-bar">
+                        <Texture parentKey="RestedOverlay" hidden="true" file="Interface\AddOns\XPBarEnhanced\assets\xp-bar">
                             <Size x="0" y="11"/>
                             <Anchors>
                                 <Anchor point="LEFT" x="0" y="0"/>
@@ -88,7 +88,7 @@
                     <Button parentKey="ExhaustionTick" hidden="true" frameStrata="MEDIUM" mixin="ExhaustionTickMixin">
                         <Size x="10" y="14"/>
                         <Anchors>
-                            <Anchor point="CENTER" relativeKey="$parent.ExhaustionLevelFillBar" relativePoint="RIGHT"/>
+                            <Anchor point="CENTER" relativeKey="$parent.RestedOverlay" relativePoint="RIGHT" x="0" y="1"/>
                         </Anchors>
                         <NormalTexture parentKey="Normal" file="Interface\AddOns\XPBarEnhanced\assets\tick"/>
                         <HighlightTexture parentKey="Highlight" file="Interface\AddOns\XPBarEnhanced\assets\tick-highlight" alphaMode="ADD"/>
@@ -99,24 +99,6 @@
                     </Button>
                 </Frames>
             </StatusBar>
-
-            <!-- Flash effect frame - renders on top of StatusBar but under BorderFrame -->
-            <!-- <Frame parentKey="AnimationFrame" enableMouse="false">
-                <Size x="563" y="11"/>
-                <Anchors>
-                    <Anchor point="BOTTOMLEFT" x="2" y="5"/>
-                </Anchors>
-                <Layers>
-                    <Layer level="OVERLAY">
-                        <Texture parentKey="FlashTexture" hidden="true">
-                            <Anchors>
-                                <Anchor point="TOPLEFT"/>
-                                <Anchor point="BOTTOMRIGHT"/>
-                            </Anchors>
-                        </Texture>
-                    </Layer>
-                </Layers>
-            </Frame> -->
 
             <!-- Overlay frame for ON-BAR text (separate from StatusBar for proper layering) -->
             <Frame parentKey="OverlayFrameTextContainer" frameStrata="MEDIUM" setAllPoints="true">

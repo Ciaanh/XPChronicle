@@ -65,7 +65,6 @@ ui/stats/Stats.lua
 
 Frames.xml
 
-
 # v2 Architecture
 ui\xpbars\ContextBuilder.lua
 ui\xpbars\StyleBuilder.lua
@@ -85,11 +84,9 @@ ui\xpbars\mixins\PositionMixin.lua
 
 # v2 Styles
 ui\xpbars\flatbar_v2\FlatBarTemplate.xml
-
-# Legacy Bar V2
 ui\xpbars\legacy_v2\LegacyBarTemplate.xml
-
-# Vertical Bar V2
 ui\xpbars\vertical_v2\VerticalBarTemplate.xml
+ui\xpbars\circular_v2\CircularBarTemplate.xml
+ui\xpbars\circular_v2\CircularBarStyle.lua
 
 ui\xpbars\tests\test_v2.lua
