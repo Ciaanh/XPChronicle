@@ -417,6 +417,79 @@ function CircularBarStyleTemplate:FullUpdate(context)
 end
 
 -------------------------------------------------------------------
+-- V2 UNIFIED RENDER PATTERN (Phase 2: Refactor)
+-------------------------------------------------------------------
+
+--- Single render method for circular bar (NEW unified pattern)
+--- Handles layout, colors, animation, and text in one pass
+---@param context table Immutable context with all state and flags
+function CircularBarStyleTemplate:RenderBar(context)
+	if not context then
+		error("RenderBar requires an explicit immutable context")
+	end
+
+	-- Determine target ratio
+	local curXP = context.xpAfter or context.currentXP or 0
+	local maxXP = context.xpMax or 1
+	local targetRatio = (maxXP > 0) and (curXP / maxXP) or 0
+
+	-- Initialize current ratio if not set (first update after creation)
+	if not self._currentRatio then
+		if self.SetCurrentRatio then
+			self:SetCurrentRatio(targetRatio)
+		end
+		-- Render instant for first time
+		self:RenderBarFrame(targetRatio, context)
+		return
+	end
+
+	-- ANIMATION DECISION (use context flags)
+	if context.shouldAnimate then
+		-- Start animation - AnimationManager will call RenderBarFrame on each tick
+		local xpContext = {
+			xpBefore = context.xpBefore or context.previousXP or 0,
+			xpAfter = context.xpAfter or context.currentXP or 0,
+			xpMax = context.xpMax or 1,
+			xpGained = context.xpGained or 0,
+			restedXP = context.restedXP or 0,
+			isResting = context.isResting or false,
+			hasRestedXP = context.hasRestedXP or false,
+			level = context.level or 1,
+			timestamp = GetTime()
+		}
+		local config = self:GetAnimationConfig()
+		self:StartAnimation(targetRatio, xpContext, config)
+	else
+		-- Instant update - render all elements at final position
+		self:RenderBarFrame(targetRatio, context)
+	end
+end
+
+--- Render all bar elements for a single animation frame
+--- Called by AnimationManager on each tick, or once for instant updates
+---@param currentRatio number Current animation progress (0-1), or final ratio for instant
+---@param context table Immutable context with all state and flags
+function CircularBarStyleTemplate:RenderBarFrame(currentRatio, context)
+	-- 1. MAIN BAR (at current animation position)
+	local hasRestedXP = context.hasRestedXP or false
+	self:SetArcProgress(currentRatio, hasRestedXP)
+
+	-- Update current ratio tracking
+	if self.SetCurrentRatio then
+		self:SetCurrentRatio(currentRatio)
+	end
+
+	-- 2. TEXT (updates every frame to show animated values)
+	if self.UpdateTexts then
+		self:UpdateTexts(context)
+	end
+
+	-- Note: Overlays are handled inside SetArcProgress for circular bar
+	-- SetArcProgress calculates segment types for: current XP, rested, quest complete, quest incomplete
+	-- This is the IDEAL pattern - all segments calculated and colored in one pass!
+end
+
+-------------------------------------------------------------------
 -- OVERRIDE: Bar Update with V2 Animation
 -------------------------------------------------------------------
 

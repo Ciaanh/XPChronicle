@@ -18,10 +18,10 @@ local Addon = XPBarEnhanced
 -- PUBLIC API SURFACE
 -------------------------------------------------------------------
 
---- Refresh bar state from game data
+--- Refresh bar state from game data (V2 unified pattern)
 function BaseMixin:Refresh()
 	local context = XPBarContextBuilder.BuildXPChangeContext("MANUAL_REFRESH")
-	self:TriggerXPChanged(context)
+	self:TriggerBarRefresh(context)
 end
 
 --- Full update - Called by XPBar controller for option/color changes
@@ -39,15 +39,8 @@ function BaseMixin:FullUpdate(context)
 		context = XPBarContextBuilder.BuildXPChangeContext("FULL_UPDATE")
 	end
 	
-	-- Update all visual elements (bars, overlays, text)
-	if self.UpdateVisuals then
-		self:UpdateVisuals(context)
-	end
-	
-	-- Update text visibility in case options changed
-	if self.UpdateTextVisibility then
-		self:UpdateTextVisibility(context)
-	end
+	-- Use unified render pattern
+	self:TriggerBarRefresh(context)
 
 	self._isUpdating = nil
 end
@@ -193,35 +186,34 @@ end
 -- EVENT ORCHESTRATION (Trigger/Action Pattern)
 -------------------------------------------------------------------
 
---- Event dispatcher - calls ContextBuilder and Trigger methods
+--- Event dispatcher - calls ContextBuilder and TriggerBarRefresh (V2 unified pattern)
 ---@param event string Event name
 ---@param ... any Event arguments
 function BaseMixin:OnEvent(event, ...)
-	if event == "PLAYER_ENTERING_WORLD" then
-		local isInitialLogin, isReloadingUI = ...
-		local context = XPBarContextBuilder.BuildXPChangeContext(event, ...)
-		self:TriggerXPChanged(context)
-	elseif event == "PLAYER_XP_UPDATE" then
-		local context = XPBarContextBuilder.BuildXPChangeContext(event, ...)
-		self:TriggerXPChanged(context)
+	local context
+	
+	if event == "PLAYER_ENTERING_WORLD" or event == "PLAYER_XP_UPDATE" then
+		context = XPBarContextBuilder.BuildXPChangeContext(event, ...)
+		
 	elseif event == "PLAYER_LEVEL_UP" then
 		local newLevel = ...
-		local context = XPBarContextBuilder.BuildLevelUpContext(event, newLevel)
-		self:TriggerLevelUp(context)
+		context = XPBarContextBuilder.BuildLevelUpContext(event, newLevel)
+		
 	elseif event == "UPDATE_EXHAUSTION" or event == "PLAYER_UPDATE_RESTING" then
-		local context = XPBarContextBuilder.BuildRestedContext(event, ...)
-		self:TriggerRestedChanged(context)
-	elseif
-		event == "QUEST_ACCEPTED" or event == "QUEST_REMOVED" or event == "QUEST_TURNED_IN" or event == "QUEST_LOG_UPDATE" or
-			event == "UNIT_QUEST_LOG_CHANGED" or
-			event == "QUEST_WATCH_UPDATE"
-	 then
-		local context = XPBarContextBuilder.BuildQuestContext(event, ...)
-		self:TriggerQuestChanged(context)
+		context = XPBarContextBuilder.BuildRestedContext(event, ...)
+		
+	elseif event == "QUEST_ACCEPTED" or event == "QUEST_REMOVED" or 
+	       event == "QUEST_TURNED_IN" or event == "QUEST_LOG_UPDATE" or
+	       event == "UNIT_QUEST_LOG_CHANGED" or event == "QUEST_WATCH_UPDATE" then
+		context = XPBarContextBuilder.BuildQuestContext(event, ...)
+		
 	elseif event == "TIME_PLAYED_MSG" then
-		-- Store time played data for session calculations
-		local totalTime, levelTime = ...
-	-- ContextBuilder will use this indirectly through UnitXP calculations
+		-- Store time played data, no visual update needed
+		return
+	end
+	
+	if context then
+		self:TriggerBarRefresh(context)
 	end
 end
 
@@ -229,115 +221,36 @@ end
 -- TRIGGER METHODS (Orchestrate Actions - NOT overridable)
 -------------------------------------------------------------------
 
---- Trigger XP change response
----@param context table Immutable context from ContextBuilder
-function BaseMixin:TriggerXPChanged(context)
-	-- explicit context required for all downstream updates
-	if self.UpdateCurrentXPBar then
-		self:UpdateCurrentXPBar(context)
-	end
-	if self.UpdateRestedOverlay then
-		self:UpdateRestedOverlay(context)
-	end
-	if self.UpdateQuestCompleteOverlay then
-		self:UpdateQuestCompleteOverlay(context)
-	end
-	if self.UpdateQuestIncompleteOverlay then
-		self:UpdateQuestIncompleteOverlay(context)
-	end
-	if self.UpdateExhaustionTick then
-		self:UpdateExhaustionTick(context)
-	end
-	if self.UpdateVisuals then
-		self:UpdateVisuals(context)
-	end
-end
+-------------------------------------------------------------------
+-- V2 UNIFIED RENDER PATTERN (Phase 3: Refactor)
+-------------------------------------------------------------------
 
---- Trigger level-up response
----@param context table Immutable context from ContextBuilder
-function BaseMixin:TriggerLevelUp(context)
-	if self.UpdateCurrentXPBar then
-		self:UpdateCurrentXPBar(context)
+--- Single entry point for all bar updates (NEW unified pattern)
+--- Calls style-specific RenderBar method with immutable context
+---@param context table Immutable context from ContextBuilder with event flags
+function BaseMixin:TriggerBarRefresh(context)
+	-- Explicit context required
+	if not context then
+		error("TriggerBarRefresh requires an explicit immutable context")
 	end
-	if self.UpdateRestedOverlay then
-		self:UpdateRestedOverlay(context)
+	
+	-- Call style-specific render method (MUST be implemented by style)
+	if not self.RenderBar then
+		error("Style must implement RenderBar(context) method")
 	end
-	if self.UpdateVisuals then
-		self:UpdateVisuals(context)
-	end
-end
-
---- Trigger rested state change response
----@param context table Immutable context from ContextBuilder
-function BaseMixin:TriggerRestedChanged(context)
-	if self.UpdateRestedOverlay then
-		self:UpdateRestedOverlay(context)
-	end
-	if self.UpdateExhaustionTick then
-		self:UpdateExhaustionTick(context)
-	end
-	if self.UpdateVisuals then
-		self:UpdateVisuals(context)
-	end
-end
-
---- Trigger quest overlay update response
----@param context table Immutable context from ContextBuilder
-function BaseMixin:TriggerQuestChanged(context)
-	if self.UpdateQuestCompleteOverlay then
-		self:UpdateQuestCompleteOverlay(context)
-	end
-	if self.UpdateQuestIncompleteOverlay then
-		self:UpdateQuestIncompleteOverlay(context)
-	end
-	if self.UpdateVisuals then
-		self:UpdateVisuals(context)
-	end
+	
+	self:RenderBar(context)
 end
 
 -------------------------------------------------------------------
 -- ACTION METHODS
--- Now provided by XPBarVisualsMixin and XPBarTextMixin (injected in OnLoad)
--- Styles can still override these methods - injection only fills missing methods
+-- Visual methods provided by XPBarTextMixin (injected in OnLoad)
+-- Styles can override these methods - injection only fills missing methods
 -------------------------------------------------------------------
-
--- UpdateCurrentXPBar, UpdateRestedOverlay, UpdateQuestCompleteOverlay,
--- UpdateQuestIncompleteOverlay, UpdateExhaustionTick, UpdateFlashOverlay,
--- UpdateOverlays, UpdateBars, BuildVisuals, ApplyStyle
--- → Provided by XPBarVisualsMixin
 
 -- UpdateTextVisibility, UpdateTexts, UpdateXPText, UpdatePercentText,
 -- UpdateLevelText, UpdateRateText, UpdateSessionText, UpdateQuestSummaryText
 -- → Provided by XPBarTextMixin
-
--------------------------------------------------------------------
--- VISUAL ORCHESTRATION (delegates to mixin methods)
--------------------------------------------------------------------
-
---- Update visuals (delegates to granular overridable methods).
--- Styles may override UpdateBars, UpdateTexts, or UpdateOverlays individually.
----@param context table|nil Immutable context (recommended)
-function BaseMixin:UpdateVisuals(context)
-	-- require explicit context
-	if not context then
-		error("UpdateVisuals requires an explicit immutable context")
-	end
-
-	-- Update bar values and appearance
-	if self.UpdateBars then
-		self:UpdateBars(context)
-	end
-
-	-- Update overlay visuals
-	if self.UpdateOverlays then
-		self:UpdateOverlays(context)
-	end
-
-	-- Update text elements
-	if self.UpdateTexts then
-		self:UpdateTexts(context)
-	end
-end
 
 -------------------------------------------------------------------
 -- ABSTRACT VISUAL METHODS (END) - now in mixins

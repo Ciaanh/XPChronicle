@@ -264,7 +264,14 @@ function ContextBuilder.BuildXPChangeContext(event, ...)
 		levelSeconds = levelSeconds, -- Real level time from Session service
 		sessionStart = sessionStart,
 		xpPerHour = xpPerHour,
-		timeToLevel = ContextBuilder.CalculateTimeToLevel(core.currentXP, core.xpMax, xpPerHour)
+		timeToLevel = ContextBuilder.CalculateTimeToLevel(core.currentXP, core.xpMax, xpPerHour),
+		-- Event behavior flags (Phase 1: Refactor)
+		hasGainedXP = (xpGained and xpGained > 0),
+		hasLeveledUp = false,
+		shouldAnimate = (xpGained and xpGained > 0),
+		shouldFlash = (xpGained and xpGained > 0),
+		restedChanged = false,
+		questsChanged = false
 	})
 	
 	return ContextBuilder.MakeImmutable(ctx)
@@ -322,7 +329,15 @@ function ContextBuilder.BuildLevelUpContext(event, newLevel)
 		xpPerHour = xpPerHour,
 		timeToLevel = timeToLevel,
 		sessionSeconds = sessionDuration,
-		levelSeconds = 0 -- Reset for new level
+		levelSeconds = 0, -- Reset for new level
+		-- Event behavior flags (Phase 1: Refactor)
+		-- Level-up DOES gain XP: from 0 to currentXP at new level (wraparound XP)
+		hasGainedXP = (core.currentXP and core.currentXP > 0),
+		hasLeveledUp = true,
+		shouldAnimate = true,
+		shouldFlash = (core.currentXP and core.currentXP > 0), -- Flash only if we have XP at new level
+		restedChanged = false,
+		questsChanged = false
 	})
 	
 	return ContextBuilder.MakeImmutable(ctx)
@@ -340,7 +355,14 @@ function ContextBuilder.BuildRestedContext(event, ...)
 	-- Extend with quest XP data
 	local ctx = ContextBuilder.ExtendContext(baseContext, {
 		completeQuestXP = completeQuestXP,
-		incompleteQuestXP = incompleteQuestXP
+		incompleteQuestXP = incompleteQuestXP,
+		-- Event behavior flags (Phase 1: Refactor)
+		hasGainedXP = false,
+		hasLeveledUp = false,
+		shouldAnimate = false, -- No bar animation for rested change
+		shouldFlash = false,
+		restedChanged = true,
+		questsChanged = false
 	})
 	
 	return ContextBuilder.MakeImmutable(ctx)
@@ -358,7 +380,14 @@ function ContextBuilder.BuildQuestContext(event, ...)
 	-- Extend with quest XP data
 	local ctx = ContextBuilder.ExtendContext(baseContext, {
 		completeQuestXP = completeQuestXP,
-		incompleteQuestXP = incompleteQuestXP
+		incompleteQuestXP = incompleteQuestXP,
+		-- Event behavior flags (Phase 1: Refactor)
+		hasGainedXP = false,
+		hasLeveledUp = false,
+		shouldAnimate = false, -- No bar animation for quest overlay change
+		shouldFlash = false,
+		restedChanged = false,
+		questsChanged = true
 	})
 	
 	return ContextBuilder.MakeImmutable(ctx)

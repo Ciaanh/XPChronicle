@@ -59,6 +59,88 @@ function VerticalBarStyleTemplate:AnimateBarEffect(stepContext)
 end
 
 -------------------------------------------------------------------
+-- V2 UNIFIED RENDER PATTERN (Phase 2: Refactor)
+-------------------------------------------------------------------
+
+--- Single render method for vertical bar (NEW unified pattern)
+--- Handles layout, colors, animation, and text in one pass
+---@param context table Immutable context with all state and flags
+function VerticalBarStyleTemplate:RenderBar(context)
+    if not context then
+        error("RenderBar requires an explicit immutable context")
+    end
+
+    -- Calculate target ratio
+    local targetRatio = 0
+    if context.xpMax and context.xpMax > 0 then
+        targetRatio = (context.currentXP or 0) / context.xpMax
+    end
+
+    -- ANIMATION DECISION (use context flags)
+    if context.shouldAnimate then
+        -- Start animation - AnimationManager will call AnimateBarPosition on each tick
+        local xpContext = {
+            xpBefore = context.xpBefore or context.previousXP or 0,
+            xpAfter = context.xpAfter or context.currentXP or 0,
+            xpMax = context.xpMax or 1,
+            xpGained = context.xpGained or 0,
+            restedXP = context.restedXP or 0,
+            isResting = context.isResting or false,
+            hasRestedXP = context.hasRestedXP or false,
+            level = context.level or 1,
+            timestamp = GetTime()
+        }
+        local config = self:GetAnimationConfig()
+        self:StartAnimation(targetRatio, xpContext, config)
+    else
+        -- Instant update - render all elements at final position
+        self:RenderBarFrame(targetRatio, context)
+    end
+
+    -- Update overlays (always update, even during animation)
+    if self.UpdateRestedOverlay then
+        self:UpdateRestedOverlay(context)
+    end
+    if self.UpdateQuestCompleteOverlay then
+        self:UpdateQuestCompleteOverlay(context)
+    end
+    if self.UpdateQuestIncompleteOverlay then
+        self:UpdateQuestIncompleteOverlay(context)
+    end
+    if self.UpdateExhaustionTick then
+        self:UpdateExhaustionTick(context)
+    end
+
+    -- Update text
+    if self.UpdateTexts then
+        self:UpdateTexts(context)
+    end
+end
+
+--- Render all bar elements for a single animation frame
+--- Called once for instant updates
+---@param currentRatio number Current animation progress (0-1), or final ratio for instant
+---@param context table Immutable context with all state and flags
+function VerticalBarStyleTemplate:RenderBarFrame(currentRatio, context)
+    -- 1. MAIN BAR (at current animation position)
+    if self.StatusBar then
+        self.StatusBar:SetValue(currentRatio)
+    end
+
+    -- Update tracked ratio
+    if self.SetCurrentRatio then
+        self:SetCurrentRatio(currentRatio)
+    end
+
+    -- 2. BAR COLORS (apply based on rested state)
+    if self.UpdateBarColors then
+        self:UpdateBarColors(context)
+    end
+
+    -- Note: Overlays and text are currently updated outside this method
+end
+
+-------------------------------------------------------------------
 -- OVERRIDES for the vertical layout
 -------------------------------------------------------------------
 

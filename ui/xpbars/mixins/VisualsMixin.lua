@@ -1,36 +1,12 @@
 -- XPBarEnhanced - XPBarVisualsMixin
--- Aggregates LayoutMixin and PaintMixin for backwards compatibility
+-- Provides overlay update methods (layout + color combined)
+-- Used by style RenderBar methods to update individual overlays
 
 XPBarVisualsMixin = {}
 
 local Addon = XPBarEnhanced
 
-function XPBarVisualsMixin:UpdateCurrentXPBar(context, barName)
-    if self.UpdateBarLayout then
-        self:UpdateBarLayout(context, barName)
-    end
-    if self.UpdateBarColors then
-        self:UpdateBarColors(context, barName)
-    end
-end
-
-function XPBarVisualsMixin:UpdateBars(context)
-    if not context then
-        error("UpdateBars requires an explicit immutable context")
-    end
-    if self.UpdateCurrentXPBar then
-        self:UpdateCurrentXPBar(context)
-        return
-    end
-    if self.StatusBar then
-        local ratio = 0
-        if context.xpMax and context.xpMax > 0 then
-            ratio = (context.currentXP or 0) / context.xpMax
-        end
-        self.StatusBar:SetValue(ratio)
-    end
-end
-
+--- Update rested overlay (layout + color)
 function XPBarVisualsMixin:UpdateRestedOverlay(context, overlayName)
     if self.UpdateRestedOverlayLayout then
         self:UpdateRestedOverlayLayout(context, overlayName)
@@ -40,6 +16,7 @@ function XPBarVisualsMixin:UpdateRestedOverlay(context, overlayName)
     end
 end
 
+--- Update quest complete overlay (layout + color)
 function XPBarVisualsMixin:UpdateQuestCompleteOverlay(context, overlayName)
     if self.UpdateQuestCompleteOverlayLayout then
         self:UpdateQuestCompleteOverlayLayout(context, overlayName)
@@ -49,6 +26,7 @@ function XPBarVisualsMixin:UpdateQuestCompleteOverlay(context, overlayName)
     end
 end
 
+--- Update quest incomplete overlay (layout + color)
 function XPBarVisualsMixin:UpdateQuestIncompleteOverlay(context, overlayName)
     if self.UpdateQuestIncompleteOverlayLayout then
         self:UpdateQuestIncompleteOverlayLayout(context, overlayName)
@@ -58,35 +36,10 @@ function XPBarVisualsMixin:UpdateQuestIncompleteOverlay(context, overlayName)
     end
 end
 
+--- Update exhaustion tick position
 function XPBarVisualsMixin:UpdateExhaustionTick(context, tickName)
     if self.UpdateExhaustionTickLayout then
         self:UpdateExhaustionTickLayout(context, tickName)
-    end
-end
-
-function XPBarVisualsMixin:UpdateFlashOverlay(context, flashName)
-    flashName = flashName or "GainFlash"
-    local flash = self[flashName]
-    if not flash then
-        return
-    end
-end
-
-function XPBarVisualsMixin:UpdateOverlays(context)
-    if not context then
-        return
-    end
-    if self.UpdateRestedOverlay then
-        self:UpdateRestedOverlay(context)
-    end
-    if self.UpdateQuestCompleteOverlay then
-        self:UpdateQuestCompleteOverlay(context)
-    end
-    if self.UpdateQuestIncompleteOverlay then
-        self:UpdateQuestIncompleteOverlay(context)
-    end
-    if self.UpdateExhaustionTick then
-        self:UpdateExhaustionTick(context)
     end
 end
 
