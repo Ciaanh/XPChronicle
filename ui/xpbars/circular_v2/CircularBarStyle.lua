@@ -62,8 +62,22 @@ function CircularBarStyleTemplate:OnLoad()
     -- Create ring segments (initialized with background color)
     self:CreateRingSegments()
 
+    -- Call base OnLoad first (initializes animation system)
     if XPBarMixinBase_v2 and XPBarMixinBase_v2.OnLoad then
         XPBarMixinBase_v2.OnLoad(self)
+    end
+    
+    -- Initialize static config from database
+    if XPBarStaticConfig and XPBarStaticConfig.UpdateStaticConfig then
+        XPBarStaticConfig.UpdateStaticConfig()
+    end
+    
+    -- Build initial context and render
+    if XPBarContextBuilder then
+        local context = XPBarContextBuilder.BuildXPChangeContext("PLAYER_ENTERING_WORLD")
+        if context and self.RenderBar then
+            self:RenderBar(context)
+        end
     end
 end
 
@@ -126,24 +140,26 @@ end
 -------------------------------------------------------------------
 
 --- Update bar position - smooth fill animation
--- @param stepContext table: Step context with currentRatio, xpContext
-function CircularBarStyleTemplate:AnimateBarPosition(stepContext)
+-- @param iterationData table: Per-frame iteration data with currentRatio
+-- @param eventContext table: Immutable event context
+function CircularBarStyleTemplate:AnimateBarPosition(iterationData, eventContext)
     -- Update the arc progress with current ratio
-    -- Pass hasRestedXP from xpContext to ensure correct coloring
-    local hasRestedXP = stepContext.xpContext and stepContext.xpContext.hasRestedXP or false
-    self:SetArcProgress(stepContext.currentRatio, hasRestedXP)
+    -- Pass hasRestedXP from eventContext to ensure correct coloring
+    local hasRestedXP = eventContext and eventContext.hasRestedXP or false
+    self:SetArcProgress(iterationData.currentRatio, hasRestedXP)
 end
 
 --- Update visual effects - glow overlay animation
--- @param stepContext table: Step context with flashData
-function CircularBarStyleTemplate:AnimateBarEffect(stepContext)
+-- @param iterationData table: Per-frame iteration data with flashData
+-- @param eventContext table: Immutable event context
+function CircularBarStyleTemplate:AnimateBarEffect(iterationData, eventContext)
     -- Access GainFlash with fallback pattern (StatusBar.GainFlash or main frame GainFlash)
     local gainFlash = (self.StatusBar and self.StatusBar.GainFlash) or self.GainFlash
     if not gainFlash then
         return
     end
 
-    local flashData = stepContext.flashData
+    local flashData = iterationData.flashData
     if flashData and flashData.active and flashData.currentAlpha > 0 then
         -- Show glow with animated alpha
         self.GainFlash:SetAlpha(flashData.currentAlpha)

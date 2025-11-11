@@ -63,20 +63,35 @@ function XPBarLayoutMixin:CalculateRestedBounds(context, barWidth)
 		return 0, 0, false
 	end
 	
+	-- Read directly from database for consistency with circular bar
+	-- (context inheritance chain through immutable wrapper is not reliable)
+	local Addon = XPBarEnhanced
+	local showQuestXP = true
+	local showComplete = true
+	local showIncomplete = false
+	if Addon and Addon.Database then
+		local db = Addon.Database:GetDB()
+		if db then
+			showQuestXP = db.showQuestXP ~= false
+			showComplete = db.showCompleteQuestOverlay ~= false
+			showIncomplete = db.showIncompleteQuestOverlay == true
+		end
+	end
+	
 	-- Calculate quest offset: how much space the quest overlays take up
 	local questOffset = 0
 	local completeQuestXP = context.completeQuestXP or 0
 	local incompleteQuestXP = context.incompleteQuestXP or 0
 	
 	-- Add complete quest XP if that overlay is showing
-	if context.showCompleteQuestOverlay and completeQuestXP > 0 then
+	if showQuestXP and showComplete and completeQuestXP > 0 then
 		local remainingXP = math.max(0, maxXP - currentXP)
 		local completeQuestClamped = math.min(completeQuestXP, remainingXP)
 		questOffset = questOffset + completeQuestClamped
 	end
 	
 	-- Add incomplete quest XP if that overlay is showing
-	if context.showIncompleteQuestOverlay and incompleteQuestXP > 0 then
+	if showQuestXP and showIncomplete and incompleteQuestXP > 0 then
 		local remainingXP = math.max(0, maxXP - currentXP - questOffset)
 		local incompleteQuestClamped = math.min(incompleteQuestXP, remainingXP)
 		questOffset = questOffset + incompleteQuestClamped
@@ -192,10 +207,24 @@ function XPBarLayoutMixin:UpdateQuestCompleteOverlayLayout(context, overlayName)
 	
 	local completeXP = context.completeQuestXP or 0
 	
-	local showComplete = Addon.ConfigHelper.GetShowCompleteQuestOverlay(context)
+	-- Read directly from database for consistency with circular bar
+	-- (context inheritance chain through immutable wrapper is not reliable)
+	local showQuestXP = true
+	local showComplete = true
+	if Addon and Addon.Database then
+		local db = Addon.Database:GetDB()
+		if db then
+			showQuestXP = db.showQuestXP ~= false
+			showComplete = db.showCompleteQuestOverlay ~= false
+		end
+	end
+	
+	-- DEBUG: Log values being checked
+	print(string.format("[QuestOverlay] showQuestXP=%s, showComplete=%s, completeXP=%d", 
+		tostring(showQuestXP), tostring(showComplete), completeXP))
 	
 	local visible = false
-	if showComplete and (completeXP and completeXP > 0) then
+	if showQuestXP and showComplete and (completeXP and completeXP > 0) then
 		local currentXP = context.currentXP or 0
 		local maxXP = context.xpMax or 1
 		local remainingXP = math.max(0, maxXP - currentXP)
@@ -229,16 +258,32 @@ function XPBarLayoutMixin:UpdateQuestIncompleteOverlayLayout(context, overlayNam
 	local completeQuestXP = context.completeQuestXP or 0
 	local incompleteQuestXP = context.incompleteQuestXP or 0
 	
-	local showIncomplete = Addon.ConfigHelper.GetShowIncompleteQuestOverlay(context)
+	-- Read directly from database for consistency with circular bar
+	-- (context inheritance chain through immutable wrapper is not reliable)
+	local showQuestXP = true
+	local showIncomplete = false
+	local showComplete = true  -- Need this to check if complete overlay is visible
+	if Addon and Addon.Database then
+		local db = Addon.Database:GetDB()
+		if db then
+			showQuestXP = db.showQuestXP ~= false
+			showIncomplete = db.showIncompleteQuestOverlay == true
+			showComplete = db.showCompleteQuestOverlay ~= false
+		end
+	end
+	
+	-- DEBUG: Log values being checked
+	print(string.format("[QuestOverlay INCOMPLETE] Overlay=%s exists=%s, showQuestXP=%s, showComplete=%s, showIncomplete=%s, completeXP=%d, incompleteXP=%d", 
+		overlayName, tostring(overlay ~= nil), tostring(showQuestXP), tostring(showComplete), tostring(showIncomplete), completeQuestXP, incompleteQuestXP))
 	
 	local visible = false
-	if showIncomplete and incompleteQuestXP > 0 then
+	if showQuestXP and showIncomplete and incompleteQuestXP > 0 then
 		local currentXP = context.currentXP or 0
 		local maxXP = context.xpMax or 1
 		local remainingXP = math.max(0, maxXP - currentXP)
 		
 		-- Only subtract complete quest XP if that overlay is actually showing
-		if context.showCompleteQuestOverlay and completeQuestXP > 0 then
+		if showQuestXP and showComplete and completeQuestXP > 0 then
 			remainingXP = math.max(0, remainingXP - completeQuestXP)
 		end
 		
@@ -250,7 +295,7 @@ function XPBarLayoutMixin:UpdateQuestIncompleteOverlayLayout(context, overlayNam
 			
 			-- Calculate start position: current XP + complete quest XP (only if complete overlay showing)
 			local startXP = currentXP
-			if context.showCompleteQuestOverlay and completeQuestXP > 0 then
+			if showQuestXP and showComplete and completeQuestXP > 0 then
 				startXP = startXP + completeQuestXP
 			end
 			
@@ -259,10 +304,15 @@ function XPBarLayoutMixin:UpdateQuestIncompleteOverlayLayout(context, overlayNam
 			overlay:SetPoint("BOTTOMLEFT", offsetPixels, 0)
 			overlay:SetWidth(math.max(1, widthPixels))
 			visible = true
+			
+			-- DEBUG: Log positioning
+			print(string.format("[QuestOverlay INCOMPLETE] Positioned at offset=%d, width=%d, startXP=%d, questXPClamped=%d", 
+				offsetPixels, widthPixels, startXP, questXPClamped))
 		end
 	end
 	
 	overlay:SetShown(visible)
+	print(string.format("[QuestOverlay INCOMPLETE] Final visible=%s", tostring(visible)))
 end
 
 --- Update exhaustion tick marker position/visibility (not color)

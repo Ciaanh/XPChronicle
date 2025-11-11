@@ -23,30 +23,32 @@ local VerticalBarStyleTemplate = {}
 -------------------------------------------------------------------
 
 --- Update bar position - smooth fill animation
--- @param stepContext table: Step context with currentRatio, xpContext
+-- @param iterationData table: Per-frame iteration data with currentRatio
+-- @param eventContext table: Immutable event context
 -- Note: This is called by AnimationManager for standard smooth bar fill
-function VerticalBarStyleTemplate:AnimateBarPosition(stepContext)
+function VerticalBarStyleTemplate:AnimateBarPosition(iterationData, eventContext)
     if not self.StatusBar then
         return
     end
 
     -- Update the StatusBar value (0 to 1 ratio)
     -- StatusBar with vertical orientation handles the visual rendering
-    self.StatusBar:SetValue(stepContext.currentRatio)
+    self.StatusBar:SetValue(iterationData.currentRatio)
 end
 
 --- Update visual effects - flash overlay animation
--- @param stepContext table: Step context with flashData
-function VerticalBarStyleTemplate:AnimateBarEffect(stepContext)
+-- @param iterationData table: Per-frame iteration data with flashData
+-- @param eventContext table: Immutable event context
+function VerticalBarStyleTemplate:AnimateBarEffect(iterationData, eventContext)
     if not self.GainFlash then
         return
     end
 
-    local flashData = stepContext.flashData
+    local flashData = iterationData.flashData
     if flashData and flashData.active and flashData.currentAlpha > 0 then
         -- Get user-defined color based on rested state
         local XPBarColors = _G.XPBarColors
-        local hasRestedXP = stepContext.xpContext and stepContext.xpContext.hasRestedXP
+        local hasRestedXP = eventContext and eventContext.hasRestedXP
         local colorKey = hasRestedXP and Color.Rested or Color.XpBar
         local color = XPBarColors:GetUserColor(colorKey)
 
@@ -256,10 +258,21 @@ function VerticalBarStyleTemplate:UpdateQuestCompleteOverlayLayout(context, over
     
     local Addon = XPBarEnhanced
     local completeXP = context.completeQuestXP or 0
-    local showComplete = Addon.ConfigHelper.GetShowCompleteQuestOverlay(context)
+    
+    -- Read directly from database for consistency with circular bar
+    -- (context inheritance chain through immutable wrapper is not reliable)
+    local showQuestXP = true
+    local showComplete = true
+    if Addon and Addon.Database then
+        local db = Addon.Database:GetDB()
+        if db then
+            showQuestXP = db.showQuestXP ~= false
+            showComplete = db.showCompleteQuestOverlay ~= false
+        end
+    end
     
     local visible = false
-    if showComplete and (completeXP and completeXP > 0) then
+    if showQuestXP and showComplete and (completeXP and completeXP > 0) then
         local currentXP = context.currentXP or 0
         local maxXP = context.xpMax or 1
         local remainingXP = math.max(0, maxXP - currentXP)
@@ -297,16 +310,29 @@ function VerticalBarStyleTemplate:UpdateQuestIncompleteOverlayLayout(context, ov
     local Addon = XPBarEnhanced
     local completeQuestXP = context.completeQuestXP or 0
     local incompleteQuestXP = context.incompleteQuestXP or 0
-    local showIncomplete = Addon.ConfigHelper.GetShowIncompleteQuestOverlay(context)
+    
+    -- Read directly from database for consistency with circular bar
+    -- (context inheritance chain through immutable wrapper is not reliable)
+    local showQuestXP = true
+    local showComplete = true
+    local showIncomplete = false
+    if Addon and Addon.Database then
+        local db = Addon.Database:GetDB()
+        if db then
+            showQuestXP = db.showQuestXP ~= false
+            showComplete = db.showCompleteQuestOverlay ~= false
+            showIncomplete = db.showIncompleteQuestOverlay == true
+        end
+    end
     
     local visible = false
-    if showIncomplete and incompleteQuestXP > 0 then
+    if showQuestXP and showIncomplete and incompleteQuestXP > 0 then
         local currentXP = context.currentXP or 0
         local maxXP = context.xpMax or 1
         local remainingXP = math.max(0, maxXP - currentXP)
         
         -- Only subtract complete quest XP if that overlay is actually showing
-        if context.showCompleteQuestOverlay and completeQuestXP > 0 then
+        if showQuestXP and showComplete and completeQuestXP > 0 then
             remainingXP = math.max(0, remainingXP - completeQuestXP)
         end
         
@@ -318,7 +344,7 @@ function VerticalBarStyleTemplate:UpdateQuestIncompleteOverlayLayout(context, ov
             
             -- Vertical: calculate start Y position (current XP + complete quest XP if showing)
             local startXP = currentXP
-            if context.showCompleteQuestOverlay and completeQuestXP > 0 then
+            if showQuestXP and showComplete and completeQuestXP > 0 then
                 startXP = startXP + completeQuestXP
             end
             
@@ -347,6 +373,20 @@ function VerticalBarStyleTemplate:UpdateRestedOverlayLayout(context)
     local restedXP = context.restedXP or 0
     local showRested = Addon.ConfigHelper.GetShowRestedOverlay(context)
     
+    -- Read directly from database for consistency with circular bar
+    -- (context inheritance chain through immutable wrapper is not reliable)
+    local showQuestXP = true
+    local showComplete = true
+    local showIncomplete = false
+    if Addon and Addon.Database then
+        local db = Addon.Database:GetDB()
+        if db then
+            showQuestXP = db.showQuestXP ~= false
+            showComplete = db.showCompleteQuestOverlay ~= false
+            showIncomplete = db.showIncompleteQuestOverlay == true
+        end
+    end
+    
     local visible = false
     if showRested and restedXP > 0 then
         local currentXP = context.currentXP or 0
@@ -360,13 +400,13 @@ function VerticalBarStyleTemplate:UpdateRestedOverlayLayout(context)
         local incompleteQuestXP = context.incompleteQuestXP or 0
         
         -- Add complete quest XP if showing
-        if context.showCompleteQuestOverlay and completeQuestXP > 0 then
+        if showQuestXP and showComplete and completeQuestXP > 0 then
             local completeQuestClamped = math.min(completeQuestXP, remainingXP)
             questOffset = questOffset + completeQuestClamped
         end
         
         -- Add incomplete quest XP if showing
-        if context.showIncompleteQuestOverlay and incompleteQuestXP > 0 then
+        if showQuestXP and showIncomplete and incompleteQuestXP > 0 then
             local remainingAfterComplete = math.max(0, remainingXP - questOffset)
             local incompleteQuestClamped = math.min(incompleteQuestXP, remainingAfterComplete)
             questOffset = questOffset + incompleteQuestClamped

@@ -24,27 +24,29 @@ local LegacyBarStyleTemplate = {}
 -------------------------------------------------------------------
 
 --- Update bar position - smooth fill animation
--- @param stepContext table: Step context with currentRatio
-function LegacyBarStyleTemplate:AnimateBarPosition(stepContext)
+-- @param iterationData table: Per-frame iteration data with currentRatio
+-- @param eventContext table: Immutable event context
+function LegacyBarStyleTemplate:AnimateBarPosition(iterationData, eventContext)
     if self.StatusBar then
-        self.StatusBar:SetValue(stepContext.currentRatio)
+        self.StatusBar:SetValue(iterationData.currentRatio)
     end
 end
 
 --- Update visual effects - flash overlay animation
--- @param stepContext table: Step context with flashData
-function LegacyBarStyleTemplate:AnimateBarEffect(stepContext)
+-- @param iterationData table: Per-frame iteration data with flashData
+-- @param eventContext table: Immutable event context
+function LegacyBarStyleTemplate:AnimateBarEffect(iterationData, eventContext)
     -- Access GainFlash with fallback pattern (StatusBar.GainFlash or main frame GainFlash)
     local gainFlash = (self.StatusBar and self.StatusBar.GainFlash) or self.GainFlash
     if not gainFlash then
         return
     end
 
-    local flashData = stepContext.flashData
+    local flashData = iterationData.flashData
     if flashData and flashData.active and flashData.currentAlpha > 0 then
         -- Get user-defined color based on rested state (matches V1 behavior)
         local XPBarColors = _G.XPBarColors
-        local hasRestedXP = stepContext.xpContext and stepContext.xpContext.hasRestedXP
+        local hasRestedXP = eventContext and eventContext.hasRestedXP
         local colorKey = hasRestedXP and Color.Rested or Color.XpBar
         local color = XPBarColors:GetUserColor(colorKey)
 
@@ -56,17 +58,17 @@ function LegacyBarStyleTemplate:AnimateBarEffect(stepContext)
     end
     
     -- Apply quest overlay alpha reduction during flash
-    if stepContext.questOverlayAlpha and self.StatusBar then
+    if iterationData.questOverlayAlpha and self.StatusBar then
         local questOverlayComplete = self.StatusBar.QuestOverlayComplete
         local questOverlayIncomplete = self.StatusBar.QuestOverlayIncomplete
         
-        if questOverlayComplete and stepContext.questOverlayCompleteInitialAlpha then
-            local newAlpha = stepContext.questOverlayCompleteInitialAlpha * stepContext.questOverlayAlpha
+        if questOverlayComplete and iterationData.questOverlayCompleteInitialAlpha then
+            local newAlpha = iterationData.questOverlayCompleteInitialAlpha * iterationData.questOverlayAlpha
             questOverlayComplete:SetAlpha(newAlpha)
         end
         
-        if questOverlayIncomplete and stepContext.questOverlayIncompleteInitialAlpha then
-            local newAlpha = stepContext.questOverlayIncompleteInitialAlpha * stepContext.questOverlayAlpha
+        if questOverlayIncomplete and iterationData.questOverlayIncompleteInitialAlpha then
+            local newAlpha = iterationData.questOverlayIncompleteInitialAlpha * iterationData.questOverlayAlpha
             questOverlayIncomplete:SetAlpha(newAlpha)
         end
     end

@@ -762,6 +762,14 @@ end
 --- This allows multiple bars to coexist and receive updates simultaneously
 --- @param context table Optional pre-built context to use for all observers
 function XPBar:BroadcastUpdate(context)
+	-- Update static config from database BEFORE building context
+	-- This ensures all observers get a context with fresh settings
+	if XPBarStaticConfig and XPBarStaticConfig.UpdateStaticConfig then
+		XPBarStaticConfig.UpdateStaticConfig()
+		print(string.format("[BroadcastUpdate] Updated static config: showQuestXP=%s, showCompleteQuestOverlay=%s", 
+			tostring(XPBarStaticConfig.showQuestXP), tostring(XPBarStaticConfig.showCompleteQuestOverlay)))
+	end
+	
 	-- Build context once if not provided
 	if not context and XPBarContextBuilder and XPBarContextBuilder.BuildXPChangeContext then
 		context = XPBarContextBuilder.BuildXPChangeContext("BROADCAST_UPDATE")

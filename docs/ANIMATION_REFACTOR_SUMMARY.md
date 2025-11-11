@@ -1,9 +1,40 @@
-# Animation Refactor Implementation Summary
-## Complete Plan with AnimationBase/AnimationUtils Optimization
+# Animation System Refactor Implementation Summary
+## Unified RenderBarFrame Integration with Immutable Context
 
 **Created**: November 11, 2025  
 **Status**: Ready for Implementation  
 **Estimated Timeline**: 4 weeks  
+
+---
+
+## Animation Workflows
+
+XPBarEnhanced has **two independent animation workflows**:
+
+### Workflow 1: Bar Position Animation
+
+- **Purpose**: Smooth bar fill from current position to target position
+- **Trigger**: XP change events (PLAYER_XP_UPDATE)
+- **Duration**: Calculated based on ratio delta (0.5-2.0 seconds)
+- **Lifecycle**: Starts → Updates every frame → Completes when progress >= 1.0
+- **Iteration Data**: `currentRatio` (calculated via easing function each frame)
+
+### Workflow 2: Flash Gain Effect
+
+- **Purpose**: Visual feedback for XP gain
+- **Trigger**: XP gain events with `xpGained > 0` AND `config.flashOnGain`
+- **Duration**: Fixed 1.0 second (fade in 0.2s + hold 0.3s + fade out 0.5s)
+- **Lifecycle**: Starts → Updates every frame → Completes when elapsed >= duration
+- **Iteration Data**: `flashAlpha`, `flashPhase` (calculated each frame)
+- **Independence**: Can continue after bar animation completes
+
+### Key Facts
+
+- Both workflows can run simultaneously
+- Both workflows can run independently (instant bar + flash, or animate bar only)
+- Both workflows are driven by AnimationManager:OnUpdate (60 FPS)
+- Flash has cooldown (100ms) to prevent rapid restart
+- Each workflow has its own completion condition
 
 ---
 
@@ -14,29 +45,30 @@
 1. **Context Structure** (Week 1)
    - Static config shared across contexts (17 fields → reference)
    - Inheritance chain reduces duplication (45 fields → 18 fields)
-   - Frame contexts only add 4 fields (vs 45 before)
-   - **Result**: 83-86% size reduction
+   - Immutable event context created once per animation
+   - **Result**: 86% size reduction, zero allocation per frame
 
 2. **AnimationManager Integration** (Week 2)
-   - Store full event context (not subset)
-   - Call `RenderBarFrame(currentRatio, context)` directly
-   - Use ContextBuilder for frame context creation
-   - **Result**: Unified rendering pattern
+   - Store immutable event context (not subset)
+   - Calculate iteration data per frame (`currentRatio`, `flashAlpha`, `flashPhase`)
+   - Call `RenderBarFrame(currentRatio, context, flashAlpha, flashPhase)` directly
+   - Pass iteration data as parameters (not in context)
+   - **Result**: Unified rendering pattern, zero allocation per frame
 
 3. **AnimationBase Optimization** (Week 2)
    - Remove abstract methods (ApplyAnimationStep, AnimateBarPosition, AnimateBarEffect)
-   - Remove fallback logic (fail fast)
+   - No fallback logic - fail fast if AnimationManager missing
    - Simplify to pure interface (~40 lines)
    - **Result**: 77% smaller (174 → 40 lines)
 
 4. **AnimationUtils Optimization** (Week 2)
-   - Move context building to ContextBuilder
-   - Remove aggregation logic (not needed)
+   - Remove context building (moved to ContextBuilder - not needed, use parameters)
+   - Remove aggregation logic (not needed with immutable context)
    - Keep only math utilities (duration, easing, constants)
    - **Result**: 69% smaller (255 → 80 lines)
 
 5. **Bar Style Updates** (Week 3)
-   - Implement dynamic `RenderBarFrame(currentRatio, context)`
+   - Implement `RenderBarFrame(currentRatio, context, flashAlpha, flashPhase)`
    - Remove old abstract method implementations
    - All elements render together (bar + overlays + text + flash)
    - **Result**: Dynamic overlays, 30 lines removed per style
@@ -71,24 +103,28 @@
 **Files**: `AnimationManager.lua`, Bar styles
 
 **AnimationManager.lua**:
+
 - [ ] Update `AnimateTo` signature to accept `eventContext` (not `xpContext`)
-- [ ] Store `eventContext` in `bar.animation.eventContext`
-- [ ] Update `UpdateBarAnimation` to call `ContextBuilder.BuildAnimationFrameContext`
-- [ ] Update `UpdateBarAnimation` to call `bar:RenderBarFrame(currentRatio, frameContext)`
-- [ ] Add fallback to old `ApplyAnimationStep` pattern (backward compat)
-- [ ] Remove fallback after all styles updated
+- [ ] Store `eventContext` in `bar.animation.eventContext` (immutable)
+- [ ] Update `UpdateBarAnimation` to calculate iteration data per frame:
+  - Calculate `currentRatio` from easing function
+  - Calculate `flashAlpha` and `flashPhase` from flash elapsed time
+- [ ] Update `UpdateBarAnimation` to call `bar:RenderBarFrame(currentRatio, eventContext, flashAlpha, flashPhase)`
+- [ ] No fallback pattern - RenderBarFrame is required
 
 **Bar Styles** (RenderBar methods):
+
 - [ ] CircularBarStyle: Pass full `context` to `StartAnimation` (not xpContext subset)
 - [ ] FlatBarStyle: Pass full `context` to `StartAnimation`
 - [ ] LegacyBarStyle: Pass full `context` to `StartAnimation`
 - [ ] VerticalBarStyle: Pass full `context` to `StartAnimation`
 
 **Validation**:
-- AnimationManager stores full context
-- Frame context created with only 4 new fields
-- RenderBarFrame called during animation
-- Old ApplyAnimationStep still works (fallback)
+
+- AnimationManager stores immutable event context
+- Iteration data calculated per frame (`currentRatio`, `flashAlpha`, `flashPhase`)
+- RenderBarFrame called with parameters (no frame context objects created)
+- No fallback patterns exist
 
 ---
 
@@ -148,16 +184,18 @@
 #### Update RenderBarFrame (Dynamic Rendering)
 
 **CircularBarStyle.lua**:
-- [ ] Update `RenderBarFrame(currentRatio, context)` to use `context.flashAlpha`
+
+- [ ] Update `RenderBarFrame(currentRatio, context, flashAlpha, flashPhase)` signature
 - [ ] Pass `animContext` (with animated currentXP) to `SetArcProgress`
-- [ ] Render flash based on `context.isFlashing` and `context.flashAlpha`
+- [ ] Render flash based on `flashAlpha > 0`
 - [ ] Update text every frame during animation
 
 **FlatBarStyle.lua** (and Legacy/Vertical):
-- [ ] Update `RenderBarFrame(currentRatio, context)` implementation:
+
+- [ ] Update `RenderBarFrame(currentRatio, context, flashAlpha, flashPhase)` signature
   - Set bar value to `currentRatio`
-  - Render flash based on `context.flashAlpha`
-  - Dim quest overlays during flash
+  - Render flash based on `flashAlpha`
+  - Dim quest overlays during flash (`flashAlpha * 0.5`)
   - Calculate animated XP (`currentRatio * context.xpMax`)
   - Update overlays with animated XP (dynamic!)
   - Update text every frame
@@ -166,11 +204,13 @@
 #### Remove Old Abstract Methods
 
 **All styles**:
+
 - [ ] Remove `ApplyAnimationStep` implementation
 - [ ] Remove `AnimateBarPosition` implementation
 - [ ] Remove `AnimateBarEffect` implementation
 
 **Validation** (per style):
+
 - RenderBarFrame works for instant updates
 - RenderBarFrame works during animation (called 60 times/sec)
 - Overlays react to animated bar position
@@ -183,29 +223,35 @@
 ### ✅ Phase 6: Cleanup and Testing (Week 4)
 
 **Day 1-2: Code Cleanup**:
-- [ ] Remove backward compatibility fallback in AnimationManager
+
 - [ ] Verify no references to removed methods (ApplyAnimationStep, etc.)
 - [ ] Update code comments and documentation
 - [ ] Run static analysis (grep for removed method names)
 
 **Day 3-4: Performance Testing**:
-- [ ] Measure context size (should be 144 bytes for event, 176 for frame)
-- [ ] Measure memory allocation during animation (~10KB/sec)
+
+- [ ] Measure context size (should be 144 bytes for event)
+- [ ] Measure memory allocation during animation (~0 per frame)
 - [ ] Measure FPS during animation (should maintain 60 FPS)
-- [ ] Profile method call depth (should be 3 calls per frame)
+- [ ] Profile method call depth (should be 1 call per frame to RenderBarFrame)
 - [ ] Compare with before metrics
 
 **Day 5-6: Functional Testing**:
+
 - [ ] Test XP gain animation (small, medium, large gains)
 - [ ] Test level-up animation (wraparound)
 - [ ] Test rapid XP gains (retargeting)
 - [ ] Test rested state change (instant, no animation)
 - [ ] Test quest overlay updates
 - [ ] Test flash cooldown
+- [ ] Test flash-only (instant bar update with flash)
+- [ ] Test bar-only (animate without flash)
+- [ ] Test both workflows simultaneously
 - [ ] Test all 4 bar styles (Circular, Flat, Legacy, Vertical)
 - [ ] Test with animations disabled
 
 **Day 7: Final Validation**:
+
 - [ ] Review all documentation
 - [ ] Check for edge cases
 - [ ] Verify backward compatibility (user settings preserved)
@@ -260,28 +306,37 @@
 ## Risk Mitigation
 
 ### Risk: Breaking Existing Animations
-**Mitigation**: 
-- Maintain fallback to old ApplyAnimationStep during transition
-- Test each style individually before removing fallback
+
+**Mitigation**:
+
+- Clean break - all styles updated simultaneously
+- Test each style individually before integration
 - Version control allows rollback if needed
 
 ### Risk: Performance Regression
+
 **Mitigation**:
+
 - Benchmark before/after at each phase
 - Profile with Lua profiler (debug.getinfo, collectgarbage)
 - Incremental optimization allows early detection
 
 ### Risk: Context Access Errors
+
 **Mitigation**:
+
 - Test inheritance chain thoroughly
 - Add validation in RenderBarFrame
 - Use descriptive error messages
 
 ### Risk: Flash Behavior Changes
+
 **Mitigation**:
+
 - Keep flash timing constants identical
 - Test flash separately from other changes
 - Compare visually with before recording
+- Test both independent workflows (bar-only, flash-only, both)
 
 ---
 
@@ -309,11 +364,14 @@ If you encounter issues during implementation:
 ## Final Notes
 
 This refactor achieves:
-- **83-86% smaller contexts** through inheritance
-- **77% smaller AnimationBase** (pure interface)
+
+- **86% smaller event contexts** through immutable design
+- **Zero allocation per frame** (iteration data passed as parameters)
+- **77% smaller AnimationBase** (pure interface, no fallback)
 - **69% smaller AnimationUtils** (math only)
 - **Unified rendering** (same method for instant/animated)
 - **Dynamic overlays** (react every frame)
+- **Two independent workflows** (bar animation + flash animation)
 - **~325 lines removed** (net)
 
 All while **maintaining the custom animation feature** that differentiates our addon from Blizzard's instant-update approach!

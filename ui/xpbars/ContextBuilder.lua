@@ -4,6 +4,36 @@
 -- NO DEPENDENCIES on existing Session, Database, or other core modules
 
 -------------------------------------------------------------------
+-- STATIC CONFIGURATION (SHARED)
+-------------------------------------------------------------------
+
+--- Static configuration shared by all contexts
+--- Created once on addon load, updated when settings change
+--- Referenced (not copied) by all contexts via metatable inheritance
+XPBarStaticConfig = {
+	-- Display flags (13 fields) - defaults
+	showXPText = true,
+	showLevelText = true,
+	showPercentage = true,
+	showQuestXP = true,
+	showCompleteQuestOverlay = true,
+	showIncompleteQuestOverlay = false,
+	showRestedOverlay = true,
+	showExhaustionTick = true,
+	showSessionTimeText = true,
+	showLevelTimeText = true,
+	showXPPerHourText = true,
+	showTimeToLevelText = true,
+	showRemainingXP = false,
+	showQuestPercent = false,
+	
+	-- Configuration values (3 fields)
+	percentDecimals = 1,
+	abbreviateNumbers = true,
+	flashOnGain = true -- Animation config
+}
+
+-------------------------------------------------------------------
 -- GLOBAL CONTEXT BUILDER
 -------------------------------------------------------------------
 
@@ -11,6 +41,54 @@
 XPBarContextBuilder = {}
 
 local ContextBuilder = XPBarContextBuilder
+
+--- Update static config from database
+--- Call this when user changes settings in options panel
+function ContextBuilder.UpdateStaticConfig()
+	local AddonGlobal = _G["XPBarEnhanced"]
+	local db = AddonGlobal and AddonGlobal.db
+	
+	-- Helper to get boolean from db with default fallback
+	local function getBool(key, default)
+		local dbValue = db and db[key]
+		if dbValue ~= nil then
+			if default == true then
+				return dbValue ~= false
+			else
+				return dbValue == true
+			end
+		else
+			return default == true
+		end
+	end
+	
+	-- Update display flags
+	XPBarStaticConfig.showXPText = getBool("showXPText", true)
+	XPBarStaticConfig.showLevelText = getBool("showLevelText", true)
+	XPBarStaticConfig.showPercentage = getBool("showPercentage", true)
+	XPBarStaticConfig.showQuestXP = getBool("showQuestXP", true)
+	XPBarStaticConfig.showCompleteQuestOverlay = getBool("showCompleteQuestOverlay", true)
+	XPBarStaticConfig.showIncompleteQuestOverlay = getBool("showIncompleteQuestOverlay", false)
+	XPBarStaticConfig.showRestedOverlay = getBool("showRestedOverlay", true)
+	XPBarStaticConfig.showExhaustionTick = getBool("showExhaustionTick", true)
+	XPBarStaticConfig.showSessionTimeText = getBool("showSessionTimeText", true)
+	XPBarStaticConfig.showLevelTimeText = getBool("showLevelTimeText", true)
+	XPBarStaticConfig.showXPPerHourText = getBool("showXPPerHourText", true)
+	XPBarStaticConfig.showTimeToLevelText = getBool("showTimeToLevelText", true)
+	XPBarStaticConfig.showRemainingXP = getBool("showRemainingXP", false)
+	XPBarStaticConfig.showQuestPercent = getBool("showQuestPercent", false)
+	
+	-- DEBUG: Log quest overlay settings after update
+	print(string.format("[UpdateStaticConfig] showQuestXP=%s, showCompleteQuestOverlay=%s, showIncompleteQuestOverlay=%s",
+		tostring(XPBarStaticConfig.showQuestXP),
+		tostring(XPBarStaticConfig.showCompleteQuestOverlay),
+		tostring(XPBarStaticConfig.showIncompleteQuestOverlay)))
+	
+	-- Update configuration values
+	XPBarStaticConfig.percentDecimals = (db and db.percentDecimals) or 1
+	XPBarStaticConfig.abbreviateNumbers = getBool("abbreviateNumbers", true)
+	XPBarStaticConfig.flashOnGain = getBool("flashOnGain", true)
+end
 
 -------------------------------------------------------------------
 -- INTERNAL HELPERS (factorised common computations)
@@ -81,11 +159,19 @@ end
 
 --- Make a context table immutable using metatable protection
 --- Prevents accidental modifications to context after creation
---- @param context table The context to make immutable
---- @return table immutableContext Protected context
+--- Preserves inheritance chain: wrapper -> eventContext -> coreContext -> staticConfig
+--- @param context table The context to make immutable (with inheritance chain)
+--- @return table immutableContext Protected context (transparent proxy)
 function ContextBuilder.MakeImmutable(context)
 	return setmetatable({}, {
-		__index = context,
+		__index = function(t, k)
+			-- Debug: log lookups for quest-related keys
+			if k == "showQuestXP" or k == "showCompleteQuestOverlay" or k == "showIncompleteQuestOverlay" then
+				local value = context[k]
+				print(string.format("[MakeImmutable.__index] %s = %s (from context)", k, tostring(value)))
+			end
+			return context[k]
+		end,
 		__newindex = function(t, k, v)
 			error(string.format("Attempt to modify immutable context field '%s'", tostring(k)), 2)
 		end,
@@ -216,65 +302,112 @@ function ContextBuilder.BuildBaseContext(event, source, coreState, extras)
 	return ctx
 end
 
+--- Build minimal core context with only dynamic game state
+--- Does NOT include display flags (use XPBarStaticConfig instead)
+--- @param coreState table Core XP state from GetCoreState()
+--- @return table coreContext Minimal context with 12 dynamic fields
+function ContextBuilder.BuildCoreContext(coreState)
+	local completeQuestXP, incompleteQuestXP = ContextBuilder.GetQuestXP()
+	
+	-- Get session data from Session service
+	local AddonGlobal = _G["XPBarEnhanced"]
+	local sessionStart = time()
+	local sessionXP = 0
+	local levelSeconds = 0
+	
+	if AddonGlobal and AddonGlobal.Session then
+		local session = AddonGlobal.Session:GetCurrent()
+		if session then
+			if session.sessionStart then
+				sessionStart = session.sessionStart
+			end
+			if session.gainedXP then
+				sessionXP = session.gainedXP
+			end
+			if session.realLevelTime and session.realLevelTime > 0 then
+				levelSeconds = session.realLevelTime
+				-- Add elapsed time since last TIME_PLAYED_MSG for real-time accuracy
+				if session.lastTimePlayedRequest and session.lastTimePlayedRequest > 0 then
+					local elapsed = time() - session.lastTimePlayedRequest
+					levelSeconds = levelSeconds + elapsed
+				end
+			end
+		end
+	end
+	
+	-- Core context with only 12 dynamic fields
+	return {
+		-- Core XP state (7 fields)
+		currentXP = coreState.currentXP,
+		xpMax = coreState.xpMax,
+		level = coreState.level,
+		restedXP = coreState.restedXP,
+		isResting = coreState.isResting,
+		hasRestedXP = coreState.hasRestedXP,
+		isFullyRested = coreState.isFullyRested,
+		
+		-- Quest XP (2 fields)
+		completeQuestXP = completeQuestXP,
+		incompleteQuestXP = incompleteQuestXP,
+		
+		-- Session data (3 fields)
+		sessionStart = sessionStart,
+		sessionXP = sessionXP,
+		levelSeconds = levelSeconds
+	}
+end
+
 -------------------------------------------------------------------
 -- CONTEXT BUILDING FUNCTIONS
 -------------------------------------------------------------------
 
 --- Build context for XP change events
 --- Returns immutable context with all XP-related state
+--- Uses inheritance: core context + event data + static config reference
 ---@param event string Event name (e.g., "PLAYER_XP_UPDATE")
 ---@param ... any Event arguments
 ---@return table context Immutable context object
 function ContextBuilder.BuildXPChangeContext(event, ...)
-	local core = ContextBuilder.GetCoreState()
-	local xpGained, lastXP = ContextBuilder.ComputeXPGained(core.currentXP, core.xpMax)
+	local coreState = ContextBuilder.GetCoreState()
+	local coreContext = ContextBuilder.BuildCoreContext(coreState)
+	
+	-- Calculate XP change
+	local xpGained, lastXP = ContextBuilder.ComputeXPGained(coreState.currentXP, coreState.xpMax)
 	local sessionStart, sessionXP, sessionDuration, xpPerHour = ContextBuilder.UpdateSessionWithGain(xpGained)
-	local completeQuestXP, incompleteQuestXP = ContextBuilder.GetQuestXP()
 	
-	-- Get real level time from Session service (not just session duration)
-	local levelSeconds = 0
-	local AddonGlobal = _G["XPBarEnhanced"]
-	if AddonGlobal and AddonGlobal.Session then
-		local session = AddonGlobal.Session:GetCurrent()
-		if session and session.realLevelTime and session.realLevelTime > 0 then
-			levelSeconds = session.realLevelTime
-			-- Add elapsed time since last TIME_PLAYED_MSG for real-time accuracy
-			if session.lastTimePlayedRequest and session.lastTimePlayedRequest > 0 then
-				local elapsed = time() - session.lastTimePlayedRequest
-				levelSeconds = levelSeconds + elapsed
-			end
-		end
-	end
-
-	local baseContext = ContextBuilder.BuildBaseContext(event, "PLAYER_XP_UPDATE", core, nil)
-	
-	-- Extend with XP change specific data
-	local ctx = ContextBuilder.ExtendContext(baseContext, {
-		-- XP change tracking
+	-- Event-specific context (only 6 new fields)
+	local eventContext = {
+		-- Event metadata (3 fields)
+		event = event,
+		timestamp = time(),
+		source = "PLAYER_XP_UPDATE",
+		
+		-- XP change tracking (3 fields)
 		xpBefore = lastXP,
-		xpAfter = core.currentXP,
+		xpAfter = coreState.currentXP,
 		xpGained = xpGained,
-		-- Quest XP
-		completeQuestXP = completeQuestXP,
-		incompleteQuestXP = incompleteQuestXP,
-		-- Session stats
-		sessionXP = sessionXP,
+		
+		-- Derived values
+		remainingXP = coreState.xpMax - coreState.currentXP,
 		sessionDuration = sessionDuration,
 		sessionSeconds = sessionDuration,
-		levelSeconds = levelSeconds, -- Real level time from Session service
-		sessionStart = sessionStart,
 		xpPerHour = xpPerHour,
-		timeToLevel = ContextBuilder.CalculateTimeToLevel(core.currentXP, core.xpMax, xpPerHour),
-		-- Event behavior flags (Phase 1: Refactor)
+		timeToLevel = ContextBuilder.CalculateTimeToLevel(coreState.currentXP, coreState.xpMax, xpPerHour),
+		
+		-- Event behavior flags
 		hasGainedXP = (xpGained and xpGained > 0),
 		hasLeveledUp = false,
 		shouldAnimate = (xpGained and xpGained > 0),
 		shouldFlash = (xpGained and xpGained > 0),
 		restedChanged = false,
 		questsChanged = false
-	})
+	}
 	
-	return ContextBuilder.MakeImmutable(ctx)
+	-- Create inheritance chain: eventContext -> coreContext -> staticConfig
+	setmetatable(eventContext, { __index = coreContext })
+	setmetatable(coreContext, { __index = XPBarStaticConfig })
+	
+	return ContextBuilder.MakeImmutable(eventContext)
 end
 
 --- Build context for level-up events
@@ -282,143 +415,167 @@ end
 ---@param newLevel number New player level
 ---@return table context Immutable context object
 function ContextBuilder.BuildLevelUpContext(event, newLevel)
-	local core = ContextBuilder.GetCoreState()
-	local completeQuestXP, incompleteQuestXP = ContextBuilder.GetQuestXP()
-
-	-- Use Session service's sessionStart from saved variables
+	local coreState = ContextBuilder.GetCoreState()
+	local coreContext = ContextBuilder.BuildCoreContext(coreState)
+	
+	-- Override level in core context to show the NEW level
+	coreContext.level = newLevel or coreState.level
+	
+	-- Get session stats from Session service (before reset)
 	local AddonGlobal = _G["XPBarEnhanced"]
-	local sessionStart = time() -- Fallback
-	if AddonGlobal and AddonGlobal.Session then
-		local session = AddonGlobal.Session:GetCurrent()
-		if session and session.sessionStart then
-			sessionStart = session.sessionStart
-		end
-	end
-
-	-- Calculate current session stats (use Session service's gainedXP)
-	local AddonGlobal = _G["XPBarEnhanced"]
+	local sessionStart = time()
 	local sessionXP = 0
 	if AddonGlobal and AddonGlobal.Session then
 		local session = AddonGlobal.Session:GetCurrent()
-		if session and session.gainedXP then
-			sessionXP = session.gainedXP
+		if session then
+			if session.sessionStart then
+				sessionStart = session.sessionStart
+			end
+			if session.gainedXP then
+				sessionXP = session.gainedXP
+			end
 		end
 	end
 	
 	local sessionDuration = time() - sessionStart
 	local xpPerHour = ContextBuilder.CalculateXPPerHour(sessionStart, sessionXP, 0, 0)
-	local timeToLevel = ContextBuilder.CalculateTimeToLevel(core.currentXP, core.xpMax, xpPerHour)
+	local timeToLevel = ContextBuilder.CalculateTimeToLevel(coreState.currentXP, coreState.xpMax, xpPerHour)
 
 	-- Reset XP tracking for new level (Session service handles its own reset)
-	ContextBuilder._lastXP = core.currentXP
-	ContextBuilder._lastMaxXP = core.xpMax
+	ContextBuilder._lastXP = coreState.currentXP
+	ContextBuilder._lastMaxXP = coreState.xpMax
 
-	local baseContext = ContextBuilder.BuildBaseContext(event, "PLAYER_LEVEL_UP", core, nil)
-	
-	-- Extend with level-up specific data
-	local ctx = ContextBuilder.ExtendContext(baseContext, {
-		oldLevel = (newLevel or core.level) - 1,
-		newLevel = newLevel or core.level,
-		-- Quest XP
-		completeQuestXP = completeQuestXP,
-		incompleteQuestXP = incompleteQuestXP,
-		-- Session stats (from before reset)
-		sessionXP = sessionXP,
+	-- Event-specific context (only 5 new fields)
+	local eventContext = {
+		-- Event metadata (3 fields)
+		event = event,
+		timestamp = time(),
+		source = "PLAYER_LEVEL_UP",
+		
+		-- Level-up semantics
+		oldLevel = (newLevel or coreState.level) - 1,
+		newLevel = newLevel or coreState.level,
+		remainingXP = coreState.xpMax - coreState.currentXP,
+		
+		-- Session stats (preserved from before reset)
 		sessionDuration = sessionDuration,
-		sessionStart = sessionStart,
+		sessionSeconds = sessionDuration,
 		xpPerHour = xpPerHour,
 		timeToLevel = timeToLevel,
-		sessionSeconds = sessionDuration,
-		levelSeconds = 0, -- Reset for new level
-		-- Event behavior flags (Phase 1: Refactor)
+		
+		-- Event behavior flags
 		-- Level-up DOES gain XP: from 0 to currentXP at new level (wraparound XP)
-		hasGainedXP = (core.currentXP and core.currentXP > 0),
+		hasGainedXP = (coreState.currentXP and coreState.currentXP > 0),
 		hasLeveledUp = true,
 		shouldAnimate = true,
-		shouldFlash = (core.currentXP and core.currentXP > 0), -- Flash only if we have XP at new level
+		shouldFlash = (coreState.currentXP and coreState.currentXP > 0),
 		restedChanged = false,
 		questsChanged = false
-	})
+	}
 	
-	return ContextBuilder.MakeImmutable(ctx)
+	-- Create inheritance chain: eventContext -> coreContext -> staticConfig
+	setmetatable(eventContext, { __index = coreContext })
+	setmetatable(coreContext, { __index = XPBarStaticConfig })
+	
+	return ContextBuilder.MakeImmutable(eventContext)
 end
 
 --- Build context for rested state change
 ---@param event string Event name (e.g., "UPDATE_EXHAUSTION", "PLAYER_UPDATE_RESTING")
 ---@return table context Immutable context object
 function ContextBuilder.BuildRestedContext(event, ...)
-	local core = ContextBuilder.GetCoreState()
-	local completeQuestXP, incompleteQuestXP = ContextBuilder.GetQuestXP()
+	local coreState = ContextBuilder.GetCoreState()
+	local coreContext = ContextBuilder.BuildCoreContext(coreState)
 
-	local baseContext = ContextBuilder.BuildBaseContext(event, "RESTED_UPDATE", core, nil)
-	
-	-- Extend with quest XP data
-	local ctx = ContextBuilder.ExtendContext(baseContext, {
-		completeQuestXP = completeQuestXP,
-		incompleteQuestXP = incompleteQuestXP,
-		-- Event behavior flags (Phase 1: Refactor)
+	-- Event-specific context (only 4 new fields)
+	local eventContext = {
+		-- Event metadata (3 fields)
+		event = event,
+		timestamp = time(),
+		source = "RESTED_UPDATE",
+		
+		-- Derived values
+		remainingXP = coreState.xpMax - coreState.currentXP,
+		
+		-- Event behavior flags
 		hasGainedXP = false,
 		hasLeveledUp = false,
 		shouldAnimate = false, -- No bar animation for rested change
 		shouldFlash = false,
 		restedChanged = true,
 		questsChanged = false
-	})
+	}
 	
-	return ContextBuilder.MakeImmutable(ctx)
+	-- Create inheritance chain: eventContext -> coreContext -> staticConfig
+	setmetatable(eventContext, { __index = coreContext })
+	setmetatable(coreContext, { __index = XPBarStaticConfig })
+	
+	return ContextBuilder.MakeImmutable(eventContext)
 end
 
 --- Build context for quest overlay updates
 ---@param event string Event name (e.g., "QUEST_LOG_UPDATE")
 ---@return table context Immutable context object
 function ContextBuilder.BuildQuestContext(event, ...)
-	local core = ContextBuilder.GetCoreState()
-	local completeQuestXP, incompleteQuestXP = ContextBuilder.GetQuestXP()
+	local coreState = ContextBuilder.GetCoreState()
+	local coreContext = ContextBuilder.BuildCoreContext(coreState)
 
-	local baseContext = ContextBuilder.BuildBaseContext(event, "QUEST_UPDATE", core, nil)
-	
-	-- Extend with quest XP data
-	local ctx = ContextBuilder.ExtendContext(baseContext, {
-		completeQuestXP = completeQuestXP,
-		incompleteQuestXP = incompleteQuestXP,
-		-- Event behavior flags (Phase 1: Refactor)
+	-- Event-specific context (only 4 new fields)
+	local eventContext = {
+		-- Event metadata (3 fields)
+		event = event,
+		timestamp = time(),
+		source = "QUEST_UPDATE",
+		
+		-- Derived values
+		remainingXP = coreState.xpMax - coreState.currentXP,
+		
+		-- Event behavior flags
 		hasGainedXP = false,
 		hasLeveledUp = false,
 		shouldAnimate = false, -- No bar animation for quest overlay change
 		shouldFlash = false,
 		restedChanged = false,
 		questsChanged = true
-	})
+	}
 	
-	return ContextBuilder.MakeImmutable(ctx)
+	-- Create inheritance chain: eventContext -> coreContext -> staticConfig
+	setmetatable(eventContext, { __index = coreContext })
+	setmetatable(coreContext, { __index = XPBarStaticConfig })
+	
+	return ContextBuilder.MakeImmutable(eventContext)
 end
 
 --- Build context for tooltip display
 ---@return table context Immutable context object
 function ContextBuilder.BuildTooltipContext()
-	local core = ContextBuilder.GetCoreState()
-	local xpGained, lastXP = ContextBuilder.ComputeXPGained(core.currentXP, core.xpMax)
-	local sessionStart, sessionXP, sessionDuration, xpPerHour = ContextBuilder.UpdateSessionWithGain(xpGained)
-	local completeQuestXP, incompleteQuestXP = ContextBuilder.GetQuestXP()
-
-	local baseContext = ContextBuilder.BuildBaseContext("TOOLTIP", "TOOLTIP_CONTEXT", core, nil)
+	local coreState = ContextBuilder.GetCoreState()
+	local coreContext = ContextBuilder.BuildCoreContext(coreState)
 	
-	-- Extend with tooltip-specific data
-	local ctx = ContextBuilder.ExtendContext(baseContext, {
-		-- Quest XP
-		completeQuestXP = completeQuestXP,
-		incompleteQuestXP = incompleteQuestXP,
-		-- Session stats
-		sessionXP = sessionXP,
-		sessionStart = sessionStart,
+	-- Calculate current session stats for tooltip display
+	local xpGained, lastXP = ContextBuilder.ComputeXPGained(coreState.currentXP, coreState.xpMax)
+	local sessionStart, sessionXP, sessionDuration, xpPerHour = ContextBuilder.UpdateSessionWithGain(xpGained)
+
+	-- Event-specific context (only 6 new fields)
+	local eventContext = {
+		-- Event metadata (3 fields)
+		event = "TOOLTIP",
+		timestamp = time(),
+		source = "TOOLTIP_CONTEXT",
+		
+		-- Derived values
+		remainingXP = coreState.xpMax - coreState.currentXP,
 		sessionDuration = sessionDuration,
 		sessionSeconds = sessionDuration,
-		levelSeconds = sessionDuration, -- For tooltip, assume level time = session time
 		xpPerHour = xpPerHour,
-		timeToLevel = ContextBuilder.CalculateTimeToLevel(core.currentXP, core.xpMax, xpPerHour)
-	})
+		timeToLevel = ContextBuilder.CalculateTimeToLevel(coreState.currentXP, coreState.xpMax, xpPerHour)
+	}
 	
-	return ContextBuilder.MakeImmutable(ctx)
+	-- Create inheritance chain: eventContext -> coreContext -> staticConfig
+	setmetatable(eventContext, { __index = coreContext })
+	setmetatable(coreContext, { __index = XPBarStaticConfig })
+	
+	return ContextBuilder.MakeImmutable(eventContext)
 end
 
 -------------------------------------------------------------------

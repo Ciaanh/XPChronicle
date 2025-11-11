@@ -2,23 +2,42 @@
 
 **Last Updated**: November 11, 2025
 
-This directory contains complete documentation for the animation system refactor, including context optimization, AnimationBase/AnimationUtils simplification, and Blizzard reference patterns.
+This directory contains complete documentation for the animation system refactor, including two independent animation workflows (bar position + flash gain), immutable context optimization, and zero-allocation per-frame rendering.
 
 ---
 
 ## 📚 Documentation Files
 
-### 1. **ANIMATION_REFACTOR_SUMMARY.md** ⭐ START HERE
+### 0. **ANIMATION_REFACTOR_CLARIFICATIONS.md** ⭐ READ THIS FIRST
+
+**Purpose**: Critical design decisions and clarifications  
+**Audience**: Everyone - essential context before reading other docs  
+**Content**:
+
+- Two independent animation workflows (bar animation + flash animation)
+- Immutable context vs iteration data pattern
+- No fallback pattern - clean break approach
+- Why context aggregation is not needed
+- RenderBarFrame signature with iteration parameters
+
+**Read this first** to understand the core design decisions that drive the refactor.
+
+---
+
+### 1. **ANIMATION_REFACTOR_SUMMARY.md** ⭐ IMPLEMENTATION GUIDE
+
 **Purpose**: Quick implementation checklist and success metrics  
 **Audience**: Developers implementing the refactor  
 **Content**:
+
+- Animation workflows overview
 - Phase-by-phase checklist
 - Validation steps
 - Success metrics
 - Risk mitigation
 - File modification summary
 
-**Read this first** for a quick overview and implementation guide.
+**Read this second** for a quick overview and implementation guide.
 
 ---
 

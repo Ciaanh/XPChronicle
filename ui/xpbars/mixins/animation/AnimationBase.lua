@@ -21,7 +21,7 @@ function AnimationBase:InitializeAnimation()
 		isFlashing = false,
 		flashStartTime = 0,
 		flashDuration = 0,
-		contexts = {} -- For context aggregation during retargeting
+		eventContext = nil -- Single immutable event context (144 bytes)
 	}
 	
 	-- Track current displayed ratio (for retargeting)
@@ -38,21 +38,24 @@ function AnimationBase:StartAnimation(targetRatio, xpContext, config)
 		-- Fallback to instant update if manager not available
 		if self.ApplyAnimationStep then
 			local now = GetTime()
-			local instantContext = {
+			local instantIterationData = {
 				currentRatio = targetRatio,
 				targetRatio = targetRatio,
 				startRatio = self._currentRatio or 0,
 				progress = 1.0,
+				easedProgress = 1.0,
 				startTime = now,
 				currentTime = now,
 				elapsedTime = 0,
 				duration = 0,
 				flashData = nil,
 				isFlashing = false,
-				config = config,
-				xpContext = xpContext
+				questOverlayAlpha = nil,
+				questOverlayCompleteInitialAlpha = nil,
+				questOverlayIncompleteInitialAlpha = nil,
+				config = config
 			}
-			self:ApplyAnimationStep(instantContext)
+			self:ApplyAnimationStep(instantIterationData, xpContext)
 		end
 		self._currentRatio = targetRatio
 		return
@@ -72,7 +75,7 @@ function AnimationBase:CleanupAnimation()
 	if self.animation then
 		self.animation.isAnimating = false
 		self.animation.isFlashing = false
-		self.animation.contexts = {}
+		self.animation.eventContext = nil
 	end
 end
 
@@ -123,32 +126,34 @@ function AnimationBase:GetAnimationConfig()
 end
 
 --- Animation step callback
--- Called every frame during animation with interpolated values
--- @param stepContext table: Step context with currentRatio, targetRatio, progress, timing, flash data, config, xpContext
-function AnimationBase:ApplyAnimationStep(stepContext)
-	  self:AnimateBarPosition(stepContext) -- Update bar fill
-	  self:AnimateBarEffect(stepContext)   -- Update visual effects (flash, etc)
+-- Called every frame during animation with separated iteration data and event context
+-- @param iterationData table: Per-frame iteration data (currentRatio, progress, easedProgress, flashData, timing, config)
+-- @param eventContext table: Immutable event context (XP state, session data, display flags - 144 bytes)
+function AnimationBase:ApplyAnimationStep(iterationData, eventContext)
+	  self:AnimateBarPosition(iterationData, eventContext) -- Update bar fill
+	  self:AnimateBarEffect(iterationData, eventContext)   -- Update visual effects (flash, etc)
 end
 
 --- Update bar position (ABSTRACT - must be implemented by style)
 -- Updates the bar fill based on currentRatio
--- @param stepContext table: Step context with currentRatio and other data
-function AnimationBase:AnimateBarPosition(stepContext)
+-- @param iterationData table: Per-frame iteration data with currentRatio
+-- @param eventContext table: Immutable event context
+function AnimationBase:AnimateBarPosition(iterationData, eventContext)
 	-- This is an abstract method that must be implemented by the style mixin
 	-- Example for StatusBar-based styles (Flat, Legacy):
-	--   self.StatusBar:SetValue(stepContext.currentRatio)
+	--   self.StatusBar:SetValue(iterationData.currentRatio)
 	error("AnimateBarPosition must be implemented by style mixin")
 end
 
 --- Update visual effects (ABSTRACT - must be implemented by style)
 -- Updates flash overlay and other visual effects
--- @param stepContext table: Step context with flashData and other data
-function AnimationBase:AnimateBarEffect(stepContext)
+-- @param iterationData table: Per-frame iteration data with flashData
+-- @param eventContext table: Immutable event context
+function AnimationBase:AnimateBarEffect(iterationData, eventContext)
 	-- This is an abstract method that must be implemented by the style mixin
 	-- Example for StatusBar-based styles (Flat, Legacy):
-	--   if stepContext.flashData and stepContext.flashData.active then
-	--     local color = stepContext.flashData.color
-	--     self.GainFlash:SetColorTexture(color.r, color.g, color.b, stepContext.flashData.currentAlpha)
+	--   if iterationData.flashData and iterationData.flashData.active then
+	--     self.GainFlash:SetColorTexture(1, 1, 1, iterationData.flashData.currentAlpha)
 	--     self.GainFlash:Show()
 	--   else
 	--     self.GainFlash:Hide()
@@ -158,8 +163,8 @@ end
 
 --- Animation completion callback (optional hook)
 -- Called when animation completes naturally (not when canceled)
--- @param xpContext table: Final XP context
-function AnimationBase:OnAnimationComplete(xpContext)
+-- @param eventContext table: Final immutable event context
+function AnimationBase:OnAnimationComplete(eventContext)
 	-- Optional hook for style-specific completion logic
 	-- Override in style mixin if needed
 end

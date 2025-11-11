@@ -90,7 +90,7 @@ function AnimationManager:AnimateTo(bar, targetRatio, xpContext, config)
 			isFlashing = false,
 			flashStartTime = 0,
 			flashDuration = 0,
-			contexts = {} -- For aggregation during retargeting
+			eventContext = nil -- Single immutable context (144 bytes)
 		}
 	end
 
@@ -105,39 +105,39 @@ function AnimationManager:AnimateTo(bar, targetRatio, xpContext, config)
 			anim.isAnimating = false
 		end
 
-		-- Reset bar to 0 immediately via instant update
-		local resetContext = {
+		-- Reset bar to 0 immediately with separated iteration data and event context
+		local resetIterationData = {
 			currentRatio = 0,
 			targetRatio = 0,
 			startRatio = 0,
 			progress = 1.0,
+			easedProgress = 1.0,
 			startTime = now,
 			currentTime = now,
 			elapsedTime = 0,
 			duration = 0,
 			flashData = nil,
 			isFlashing = false,
-			config = config,
-			xpContext = xpContext
+			questOverlayAlpha = nil,
+			questOverlayCompleteInitialAlpha = nil,
+			questOverlayIncompleteInitialAlpha = nil,
+			config = config
 		}
 
 		if bar.ApplyAnimationStep then
-			bar:ApplyAnimationStep(resetContext)
+			bar:ApplyAnimationStep(resetIterationData, xpContext)
 		end
 
 		-- Now animate to new XP position
 		-- Level-up resets XP, so xpAfter is the new position
 		targetRatio = xpContext.xpAfter / xpContext.xpMax
 		anim.startRatio = 0
-		anim.contexts = {xpContext}
+		anim.eventContext = xpContext -- Store single immutable context
 	elseif anim.isAnimating then
 		-- Retargeting: new XP gain during active animation
-		-- Aggregate contexts
-		table.insert(anim.contexts, xpContext)
-		local aggregatedContext = AnimationUtils.AggregateContexts(anim.contexts)
-		-- Use aggregated context for bar positioning (smooth retargeting)
-		-- incomingXpContext preserved at function start for flash decision
-		xpContext = aggregatedContext
+		-- With immutable context, use incoming context (no aggregation)
+		-- The most recent context reflects current state
+		anim.eventContext = incomingXpContext
 
 		-- Calculate current visual position for smooth retargeting
 		local elapsed = now - anim.startTime
@@ -157,7 +157,7 @@ function AnimationManager:AnimateTo(bar, targetRatio, xpContext, config)
 		-- Fresh animation start
 		anim.startRatio = bar:GetCurrentRatio() or 0
 		anim.targetRatio = targetRatio
-		anim.contexts = {xpContext}
+		anim.eventContext = xpContext -- Store single immutable context
 	end
 
 	-- Calculate delta for duration and animation check
@@ -167,20 +167,23 @@ function AnimationManager:AnimateTo(bar, targetRatio, xpContext, config)
 	local shouldAnimate, reason = AnimationUtils.ShouldAnimate(delta, config)
 
 	if not shouldAnimate then
-		-- Instant update via ApplyAnimationStep with final context
-		local instantContext = {
+		-- Instant update with separated iteration data and event context
+		local instantIterationData = {
 			currentRatio = targetRatio,
 			targetRatio = targetRatio,
 			startRatio = anim.startRatio,
 			progress = 1.0,
+			easedProgress = 1.0,
 			startTime = now,
 			currentTime = now,
 			elapsedTime = 0,
 			duration = 0,
 			flashData = nil,
 			isFlashing = false,
-			config = config,
-			xpContext = xpContext
+			questOverlayAlpha = nil,
+			questOverlayCompleteInitialAlpha = nil,
+			questOverlayIncompleteInitialAlpha = nil,
+			config = config
 		}
 
 		-- If this event gained XP and flash on gain is enabled, trigger the flash
@@ -193,13 +196,15 @@ function AnimationManager:AnimateTo(bar, targetRatio, xpContext, config)
 				anim.flashStartTime = now
 				-- Total flash duration = fade in + hold + fade out (1.0 second total)
 				anim.flashDuration = AnimationUtils.GetFlashTotalDuration()
+				-- Store event context for flash
+				anim.eventContext = xpContext
 				-- Register so OnUpdate drives the flash
 				self:Register(bar)
 			end
 		end
 
 		if bar.ApplyAnimationStep then
-			bar:ApplyAnimationStep(instantContext)
+			bar:ApplyAnimationStep(instantIterationData, xpContext)
 		end
 
 		-- Update bar's current ratio
@@ -281,8 +286,7 @@ end
 -- @param now number: Current time (GetTime())
 function AnimationManager:UpdateBarAnimation(bar, now)
 	local anim = bar.animation
-	local elapsedTime = now - anim.startTime
-	local progress = math.min(elapsedTime / anim.duration, 1.0)
+	
 	-- Get animation config (bar should provide this)
 	local config
 	if bar.GetAnimationConfig then
@@ -291,7 +295,7 @@ function AnimationManager:UpdateBarAnimation(bar, now)
 		config = {enableAnimations = true, flashOnGain = true}
 	end
 
-	-- Check if flash complete BEFORE building step context
+	-- Check if flash complete BEFORE building iteration data
 	if anim.isFlashing then
 		local flashElapsed = now - anim.flashStartTime
 		if flashElapsed >= anim.flashDuration then
@@ -323,43 +327,147 @@ function AnimationManager:UpdateBarAnimation(bar, now)
 		end
 	end
 	
-	-- Get XP context from aggregated contexts
-	local xpContext = AnimationUtils.AggregateContexts(anim.contexts)
+	-- Calculate iteration data per frame (progress, elapsed, easing, flash)
+	local elapsedTime = now - anim.startTime
+	local progress = math.min(elapsedTime / anim.duration, 1.0)
+	
+	-- Apply easing to get current ratio
+	local easedProgress = progress
+	if progress < 1.0 then
+		easedProgress = AnimationUtils.EaseOutQuad(progress, 0, 1, 1)
+	end
+	local currentRatio = anim.startRatio + (anim.targetRatio - anim.startRatio) * easedProgress
+	
+	-- Calculate flash state
+	local flashData = nil
+	if anim.isFlashing then
+		local flashElapsed = now - anim.flashStartTime
+		local flashDuration = anim.flashDuration
+		local constants = AnimationUtils.GetConstants()
+		local fadeInDuration = constants.GAIN_FLASH_FADE_IN_DURATION
+		local holdDuration = constants.GAIN_FLASH_HOLD_DURATION
+		local fadeOutDuration = constants.GAIN_FLASH_FADE_OUT_DURATION
+		local maxAlpha = constants.GAIN_FLASH_MAX_ALPHA
+		
+		-- Calculate flash alpha with three phases: fade in, hold, fade out
+		local flashAlpha = 0
+		local phase = "none"
+		
+		if flashElapsed < fadeInDuration then
+			flashAlpha = (flashElapsed / fadeInDuration) * maxAlpha
+			phase = "fade_in"
+		elseif flashElapsed < fadeInDuration + holdDuration then
+			flashAlpha = maxAlpha
+			phase = "hold"
+		elseif flashElapsed < fadeInDuration + holdDuration + fadeOutDuration then
+			local fadeOutProgress = (flashElapsed - fadeInDuration - holdDuration) / fadeOutDuration
+			flashAlpha = maxAlpha * (1 - fadeOutProgress)
+			phase = "fade_out"
+		end
+		
+		flashData = {
+			active = flashElapsed < flashDuration,
+			currentAlpha = flashAlpha,
+			startTime = anim.flashStartTime,
+			duration = flashDuration,
+			elapsed = flashElapsed,
+			phase = phase,
+			fadeInDuration = fadeInDuration,
+			holdDuration = holdDuration,
+			fadeOutDuration = fadeOutDuration,
+		}
+	end
+	
+	-- Calculate quest overlay alpha reduction during flash
+	local questOverlayAlpha = nil
+	if anim.isFlashing and (anim.questOverlayCompleteInitialAlpha or anim.questOverlayIncompleteInitialAlpha) then
+		local flashElapsed = now - anim.flashStartTime
+		local flashDuration = anim.flashDuration
+		local MIN_ALPHA_MULTIPLIER = 0.3
+		local fadeProgress = math.min(flashElapsed / flashDuration, 1.0)
+		local reductionFactor = MIN_ALPHA_MULTIPLIER + (1.0 - MIN_ALPHA_MULTIPLIER) * fadeProgress
+		questOverlayAlpha = reductionFactor
+	end
+	
+	-- Build iteration data (calculated per frame, zero allocation)
+	local iterationData = {
+		-- Core interpolated values
+		currentRatio = currentRatio,
+		targetRatio = anim.targetRatio,
+		startRatio = anim.startRatio,
+		progress = progress,
+		easedProgress = easedProgress,
+		
+		-- Timing information
+		startTime = anim.startTime,
+		currentTime = now,
+		elapsedTime = elapsedTime,
+		duration = anim.duration,
+		
+		-- Flash data (nil if not flashing)
+		flashData = flashData,
+		isFlashing = anim.isFlashing,
+		
+		-- Quest overlay alpha multiplier (nil if not flashing)
+		questOverlayAlpha = questOverlayAlpha,
+		questOverlayCompleteInitialAlpha = anim.questOverlayCompleteInitialAlpha,
+		questOverlayIncompleteInitialAlpha = anim.questOverlayIncompleteInitialAlpha,
+		
+		-- Configuration
+		config = config
+	}
+	
+	-- Use stored event context (single immutable context, no aggregation)
+	local eventContext = anim.eventContext
 
-	-- Build step context (will include current flash state)
-	local stepContext = AnimationUtils.BuildStepContext(bar, now, config, xpContext)
-
-	-- Apply animation step (bar implements this)
+	-- Apply animation step with separated context and iteration data
 	if bar.ApplyAnimationStep then
-		bar:ApplyAnimationStep(stepContext)
+		bar:ApplyAnimationStep(iterationData, eventContext)
 	end
 
 	-- Update bar's current ratio tracking
 	if bar.SetCurrentRatio then
-		bar:SetCurrentRatio(stepContext.currentRatio)
+		bar:SetCurrentRatio(currentRatio)
 	end
 
 	-- Check if animation complete
 	if progress >= 1.0 then
 		anim.isAnimating = false
 		-- DON'T clear isFlashing here - let flash complete independently
-		-- DON'T clear contexts yet - flash still needs xpContext
+		-- DON'T clear eventContext yet - flash still needs it
 
-		-- Send final cleanup step context (flash may still be active)
-		local cleanupContext = AnimationUtils.BuildStepContext(bar, now, config, xpContext)
+		-- Send final cleanup step with iteration data + event context
+		local cleanupIterationData = {
+			currentRatio = anim.targetRatio,
+			targetRatio = anim.targetRatio,
+			startRatio = anim.startRatio,
+			progress = 1.0,
+			easedProgress = 1.0,
+			startTime = anim.startTime,
+			currentTime = now,
+			elapsedTime = elapsedTime,
+			duration = anim.duration,
+			flashData = flashData,
+			isFlashing = anim.isFlashing,
+			questOverlayAlpha = questOverlayAlpha,
+			questOverlayCompleteInitialAlpha = anim.questOverlayCompleteInitialAlpha,
+			questOverlayIncompleteInitialAlpha = anim.questOverlayIncompleteInitialAlpha,
+			config = config
+		}
+		
 		if bar.ApplyAnimationStep then
-			bar:ApplyAnimationStep(cleanupContext)
+			bar:ApplyAnimationStep(cleanupIterationData, eventContext)
 		end
 
 		-- Call completion callback if bar provides one
 		if bar.OnAnimationComplete then
-			bar:OnAnimationComplete(xpContext)
+			bar:OnAnimationComplete(eventContext)
 		end
 	end
 
-	-- Clear contexts only when animation and flash are complete
+	-- Clear context only when animation and flash are complete
 	if not anim.isAnimating and not anim.isFlashing then
-		anim.contexts = {}
+		anim.eventContext = nil
 	end
 end
 

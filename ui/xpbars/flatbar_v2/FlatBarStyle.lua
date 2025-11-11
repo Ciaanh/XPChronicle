@@ -24,30 +24,32 @@ local FlatBarStyleTemplate = {}
 -------------------------------------------------------------------
 
 --- Update bar position - smooth fill animation
--- @param stepContext table: Step context with currentRatio
+-- @param iterationData table: Per-frame iteration data with currentRatio
+-- @param eventContext table: Immutable event context
 -- Note: Rested overlay animates automatically because it's positioned BEHIND the StatusBar
 --       with width = currentXP + restedXP (set once at animation start). As the StatusBar
 --       fill animates from old to new currentXP, it progressively reveals/covers the rested
 --       overlay beneath it, creating smooth animation without any per-frame updates.
-function FlatBarStyleTemplate:AnimateBarPosition(stepContext)
+function FlatBarStyleTemplate:AnimateBarPosition(iterationData, eventContext)
 	if self.StatusBar then
-		self.StatusBar:SetValue(stepContext.currentRatio)
+		self.StatusBar:SetValue(iterationData.currentRatio)
 	end
 end
 
 --- Update visual effects - flash overlay animation
--- @param stepContext table: Step context with flashData
-function FlatBarStyleTemplate:AnimateBarEffect(stepContext)
+-- @param iterationData table: Per-frame iteration data with flashData
+-- @param eventContext table: Immutable event context
+function FlatBarStyleTemplate:AnimateBarEffect(iterationData, eventContext)
 	if not self.GainFlash then
 		return
 	end
 
-	local flashData = stepContext.flashData
+	local flashData = iterationData.flashData
 	if flashData and flashData.active and flashData.currentAlpha > 0 then
 		-- Get user-defined color based on rested state (matches V1 behavior)
 		-- Use Rested color if player had rested XP available (meaning the gain consumed rested bonus)
 		local XPBarColors = _G.XPBarColors
-		local hasRestedXP = stepContext.xpContext and stepContext.xpContext.hasRestedXP
+		local hasRestedXP = eventContext and eventContext.hasRestedXP
 		local colorKey = hasRestedXP and Color.Rested or Color.XpBar
 		local color = XPBarColors:GetUserColor(colorKey)
 
@@ -60,14 +62,14 @@ function FlatBarStyleTemplate:AnimateBarEffect(stepContext)
 	end
 	
 	-- Apply quest overlay alpha reduction during flash
-	if stepContext.questOverlayAlpha then
-		if self.QuestOverlayComplete and stepContext.questOverlayCompleteInitialAlpha then
-			local newAlpha = stepContext.questOverlayCompleteInitialAlpha * stepContext.questOverlayAlpha
+	if iterationData.questOverlayAlpha then
+		if self.QuestOverlayComplete and iterationData.questOverlayCompleteInitialAlpha then
+			local newAlpha = iterationData.questOverlayCompleteInitialAlpha * iterationData.questOverlayAlpha
 			self.QuestOverlayComplete:SetAlpha(newAlpha)
 		end
 		
-		if self.QuestOverlayIncomplete and stepContext.questOverlayIncompleteInitialAlpha then
-			local newAlpha = stepContext.questOverlayIncompleteInitialAlpha * stepContext.questOverlayAlpha
+		if self.QuestOverlayIncomplete and iterationData.questOverlayIncompleteInitialAlpha then
+			local newAlpha = iterationData.questOverlayIncompleteInitialAlpha * iterationData.questOverlayAlpha
 			self.QuestOverlayIncomplete:SetAlpha(newAlpha)
 		end
 	end

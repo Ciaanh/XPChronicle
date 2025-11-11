@@ -31,10 +31,13 @@ local ConfigHelper = {}
 function ConfigHelper.GetBooleanValue(context, contextKey, defaultValue)
 	-- Priority 1: Context value (if context exists and has explicit value)
 	if context and context[contextKey] ~= nil then
-		return context[contextKey] == true
+		local value = context[contextKey]
+		--print(string.format("[ConfigHelper] %s from context = %s (type=%s)", contextKey, tostring(value), type(value)))
+		return value == true
 	end
 	
 	-- Priority 2: Default value
+	--print(string.format("[ConfigHelper] %s using default = %s", contextKey, tostring(defaultValue)))
 	return defaultValue == true
 end
 

@@ -1,6 +1,34 @@
 # Animation System Refactor Analysis
 ## Post-RenderBar Architecture Improvements
 
+### Animation Workflows
+
+XPBarEnhanced has **two independent animation workflows**:
+
+#### Workflow 1: Bar Position Animation
+- **Purpose**: Smooth bar fill from current position to target position
+- **Trigger**: XP change events (PLAYER_XP_UPDATE)
+- **Duration**: Calculated based on ratio delta (0.5-2.0 seconds)
+- **Lifecycle**: Starts → Updates every frame → Completes when progress >= 1.0
+- **Iteration Data**: `currentRatio` (calculated via easing function each frame)
+
+#### Workflow 2: Flash Gain Effect
+- **Purpose**: Visual feedback for XP gain
+- **Trigger**: XP gain events with `xpGained > 0` AND `config.flashOnGain`
+- **Duration**: Fixed 1.0 second (fade in 0.2s + hold 0.3s + fade out 0.5s)
+- **Lifecycle**: Starts → Updates every frame → Completes when elapsed >= duration
+- **Iteration Data**: `flashAlpha`, `flashPhase` (calculated each frame)
+- **Independence**: Can continue after bar animation completes
+
+#### Key Facts
+- Both workflows can run simultaneously
+- Both workflows can run independently (instant bar + flash, or animate bar only)
+- Both workflows are driven by AnimationManager:OnUpdate (60 FPS)
+- Flash has cooldown (100ms) to prevent rapid restart
+- Each workflow has its own completion condition
+
+---
+
 ### Current Animation Architecture
 
 #### Flow (Current)
@@ -91,10 +119,30 @@ Replace `ApplyAnimationStep` → `AnimateBarPosition` + `AnimateBarEffect` with:
 
 ---
 
-### 2. Context Preservation During Animation
+### 2. Animation Context vs Iteration Data
+
+#### Critical Distinction
+
+The animation system separates **immutable context** from **per-frame iteration data**:
+
+**Animation Context (Immutable)**:
+- Created once per animation start by `ContextBuilder.BuildXPChangeContext()`
+- Stored in `bar.animation.eventContext`
+- Contains event state: `hasGainedXP`, `xpGained`, `hasRestedXP`, `showRestedOverlay`, etc.
+- **Never modified** during animation
+- Referenced (not cloned) each frame
+
+**Iteration Data (Calculated Per Frame)**:
+- `currentRatio` - Current bar position (calculated from easing function)
+- `flashAlpha` - Current flash opacity (calculated from flash elapsed time)
+- `flashPhase` - Flash stage: "fade_in", "hold", or "fade_out"
+- Passed as **parameters** to `RenderBarFrame`, not embedded in context
+- **Zero allocation** per frame
 
 #### Current Issue
+
 AnimationManager receives `xpContext` (subset) but loses full `context`:
+
 ```lua
 function RenderBar(context)
     -- context has: hasGainedXP, shouldAnimate, showRestedOverlay, etc.
@@ -117,42 +165,75 @@ end
 
 #### Proposed Solution
 
-Pass **full context** to AnimationManager:
+Pass **full immutable context** to AnimationManager and calculate iteration data per frame:
+
 ```lua
 function RenderBar(context)
     if context.shouldAnimate then
         // Pass FULL context, not subset
         self:StartAnimation(targetRatio, context, config)
     else
-        self:RenderBarFrame(finalRatio, context)
+        self:RenderBarFrame(finalRatio, context, 0, nil)
     end
 end
 
 // In AnimationManager:
-function AnimationManager:UpdateBarAnimation(bar, now)
-    local stepContext = {
-        currentRatio = easedRatio,
-        fullContext = bar.animation.context,  // Preserved full context!
-        flashData = flashData,
-        config = config
-    }
+function AnimationManager:AnimateTo(bar, targetRatio, eventContext, config)
+    -- Store immutable event context (created once)
+    bar.animation.eventContext = eventContext
     
-    // Bar now has access to all display flags
-    bar:RenderBarFrame(stepContext.currentRatio, stepContext.fullContext)
+    -- Initialize bar animation state
+    bar.animation.isAnimating = true
+    bar.animation.startRatio = currentRatio
+    bar.animation.targetRatio = targetRatio
+    bar.animation.startTime = GetTime()
+    
+    -- Initialize flash animation state (if triggered)
+    if config.flashOnGain and eventContext.xpGained > 0 then
+        bar.animation.isFlashing = true
+        bar.animation.flashStartTime = GetTime()
+        bar.animation.flashDuration = 1.0
+    end
+end
+
+function AnimationManager:UpdateBarAnimation(bar, now)
+    local anim = bar.animation
+    local eventContext = anim.eventContext  -- Immutable reference
+    
+    -- Calculate bar iteration data (per frame)
+    local currentRatio = anim.targetRatio
+    if anim.isAnimating then
+        local progress = (now - anim.startTime) / anim.duration
+        local easedProgress = EaseOutQuad(progress)
+        currentRatio = anim.startRatio + (anim.targetRatio - anim.startRatio) * easedProgress
+    end
+    
+    -- Calculate flash iteration data (per frame)
+    local flashAlpha = 0
+    local flashPhase = nil
+    if anim.isFlashing then
+        local flashElapsed = now - anim.flashStartTime
+        flashAlpha, flashPhase = self:CalculateFlashState(flashElapsed)
+    end
+    
+    -- Pass iteration data as parameters (NOT building new context)
+    bar:RenderBarFrame(currentRatio, eventContext, flashAlpha, flashPhase)
 end
 ```
 
 **Benefits**:
-- Overlays can check `context.showRestedOverlay` during animation
-- Text can check `context.showXPText` during animation
-- Colors can check user preferences during animation
-- Full consistency between instant and animated rendering
+- Immutable context preserved throughout animation
+- Zero allocation per frame (no context objects created)
+- Clear separation: context = state, parameters = iteration data
+- All display flags available during animation
+- Flexible signature (easy to add iteration parameters)
 
 ---
 
 ### 3. Remove Deprecated ApplyAnimationStep Pattern
 
 #### Current Pattern (3 methods)
+
 ```lua
 function ApplyAnimationStep(stepContext)
     self:AnimateBarPosition(stepContext)  // Bar fill
@@ -179,12 +260,13 @@ end
 - Abstract methods styles must implement
 
 #### Proposed Pattern (1 method)
+
 ```lua
-// AnimationManager calls this directly
-bar:RenderBarFrame(currentRatio, context)
+// AnimationManager calls this directly with iteration data as parameters
+bar:RenderBarFrame(currentRatio, eventContext, flashAlpha, flashPhase)
 
 // In style:
-function RenderBarFrame(currentRatio, context)
+function RenderBarFrame(currentRatio, context, flashAlpha, flashPhase)
     // 1. Bar at current animation position
     self.StatusBar:SetValue(currentRatio)
     
@@ -192,9 +274,9 @@ function RenderBarFrame(currentRatio, context)
     self:RenderRestedOverlay(currentRatio, context)
     self:RenderQuestOverlays(currentRatio, context)
     
-    // 3. Flash based on context flags
-    if context.shouldFlash then
-        self:RenderFlash(context.flashAlpha)
+    // 3. Flash based on iteration data
+    if flashAlpha > 0 then
+        self:RenderFlash(context, flashAlpha)
     end
     
     // 4. Text shows current values
@@ -203,10 +285,12 @@ end
 ```
 
 **Benefits**:
+
 - 1 method instead of 3
 - All elements updated together
 - Same method for instant and animated
 - Overlays can react dynamically
+- Zero allocation per frame (no context objects)
 - Easier to understand and maintain
 
 ---
@@ -214,58 +298,82 @@ end
 ### 4. Enhanced Flash Integration
 
 #### Current Issue
+
 Flash is handled separately in `AnimateBarEffect`, disconnected from other elements.
 
 #### Proposed Integration
 
-Add flash state to context:
+Pass flash iteration data as parameters to RenderBarFrame:
+
 ```lua
 // In AnimationManager:
-function BuildStepContext(bar, now, config, context)
-    local flashData = nil
-    if bar.animation.isFlashing then
-        local flashElapsed = now - bar.animation.flashStartTime
-        flashData = {
-            active = true,
-            currentAlpha = CalculateFlashAlpha(flashElapsed),
-            phase = DetermineFlashPhase(flashElapsed)
-        }
+function AnimationManager:UpdateBarAnimation(bar, now)
+    local anim = bar.animation
+    local eventContext = anim.eventContext  -- Immutable reference
+    
+    -- Calculate bar iteration data
+    local currentRatio = anim.targetRatio
+    if anim.isAnimating then
+        local progress = (now - anim.startTime) / anim.duration
+        local easedProgress = EaseOutQuad(progress)
+        currentRatio = anim.startRatio + (anim.targetRatio - anim.startRatio) * easedProgress
     end
     
-    // Augment context with flash data
-    local stepContext = {
-        // All original context fields...
-        ...context,
-        
-        // Add flash state
-        flashAlpha = flashData and flashData.currentAlpha or 0,
-        isFlashing = flashData and flashData.active or false,
-        flashPhase = flashData and flashData.phase or nil,
-        
-        // Add animation position
-        currentRatio = easedRatio
-    }
+    -- Calculate flash iteration data
+    local flashAlpha = 0
+    local flashPhase = nil
+    if anim.isFlashing then
+        local flashElapsed = now - anim.flashStartTime
+        flashAlpha, flashPhase = self:CalculateFlashState(flashElapsed, anim.flashDuration)
+    end
     
-    return stepContext
+    -- Pass iteration data as parameters
+    bar:RenderBarFrame(currentRatio, eventContext, flashAlpha, flashPhase)
+end
+
+function AnimationManager:CalculateFlashState(flashElapsed, flashDuration)
+    if flashElapsed >= flashDuration then
+        return 0, nil
+    end
+    
+    local fadeInDuration = 0.2
+    local holdDuration = 0.3
+    local fadeOutDuration = 0.5
+    local maxAlpha = 0.8
+    
+    local alpha, phase
+    if flashElapsed < fadeInDuration then
+        phase = "fade_in"
+        alpha = (flashElapsed / fadeInDuration) * maxAlpha
+    elseif flashElapsed < (fadeInDuration + holdDuration) then
+        phase = "hold"
+        alpha = maxAlpha
+    else
+        phase = "fade_out"
+        local fadeElapsed = flashElapsed - (fadeInDuration + holdDuration)
+        alpha = maxAlpha * (1.0 - (fadeElapsed / fadeOutDuration))
+    end
+    
+    return alpha, phase
 end
 
 // In style RenderBarFrame:
-function RenderBarFrame(currentRatio, context)
+function RenderBarFrame(currentRatio, context, flashAlpha, flashPhase)
     // Render bar
     self.StatusBar:SetValue(currentRatio)
     
     // Render flash if needed (integrated!)
-    if context.isFlashing and context.flashAlpha > 0 then
+    if flashAlpha > 0 then
         local color = context.hasRestedXP and Color.Rested or Color.XpBar
-        self.GainFlash:SetColorTexture(color.r, color.g, color.b, context.flashAlpha)
+        self.GainFlash:SetColorTexture(color.r, color.g, color.b, flashAlpha)
         self.GainFlash:Show()
     else
         self.GainFlash:Hide()
     end
     
-    // Quest overlays can reduce alpha during flash
-    if context.isFlashing then
-        local overlayAlpha = 1.0 - (context.flashAlpha * 0.5)
+    // Quest overlays can dim during flash
+    if flashAlpha > 0 then
+        local overlayAlpha = 1.0 - (flashAlpha * 0.5)
         self.QuestOverlayComplete:SetAlpha(overlayAlpha)
     end
     
@@ -274,14 +382,15 @@ end
 ```
 
 **Benefits**:
-- Flash state in context (like other state)
-- Easy to check `context.isFlashing` anywhere
+
+- Flash state calculated per frame (no context allocation)
+- Easy to check `flashAlpha > 0` for flash active
 - Quest overlays can dim during flash
-- All visual state in one place
+- Clear separation: context = state, parameters = iteration data
 
 ---
 
-### 5. Circular Bar Already Has This Pattern!
+### 5. Circular Bar Already Has This Pattern
 
 #### Current Circular Implementation
 ```lua
@@ -321,48 +430,52 @@ end
 ```lua
 function AnimationManager:UpdateBarAnimation(bar, now)
     local anim = bar.animation
-    local elapsed = now - anim.startTime
-    local progress = math.min(elapsed / anim.duration, 1.0)
-    local easedProgress = AnimationUtils.EaseOutQuad(progress, 0, 1, 1)
-    local currentRatio = anim.startRatio + (anim.targetRatio - anim.startRatio) * easedProgress
+    local eventContext = anim.eventContext  -- Immutable reference
     
-    // Get config
-    local config = bar:GetAnimationConfig()
-    
-    // Build enhanced context with flash state
-    local context = anim.fullContext or {}  // Preserved from StartAnimation
-    context.currentRatio = currentRatio
-    context.isFlashing = anim.isFlashing
-    context.flashAlpha = self:CalculateFlashAlpha(anim, now)
-    
-    // UNIFIED CALL: RenderBarFrame (not ApplyAnimationStep)
-    if bar.RenderBarFrame then
-        bar:RenderBarFrame(currentRatio, context)
-    else
-        // Fallback to old pattern for backward compat
-        if bar.ApplyAnimationStep then
-            local stepContext = AnimationUtils.BuildStepContext(bar, now, config, context)
-            bar:ApplyAnimationStep(stepContext)
+    -- Calculate bar iteration data
+    local currentRatio = anim.targetRatio
+    if anim.isAnimating then
+        local elapsed = now - anim.startTime
+        local progress = math.min(elapsed / anim.duration, 1.0)
+        local easedProgress = AnimationUtils.EaseOutQuad(progress, 0, 1, 1)
+        currentRatio = anim.startRatio + (anim.targetRatio - anim.startRatio) * easedProgress
+        
+        -- Check completion
+        if progress >= 1.0 then
+            anim.isAnimating = false
         end
     end
     
-    // Update tracked ratio
-    if bar.SetCurrentRatio then
-        bar:SetCurrentRatio(currentRatio)
+    -- Calculate flash iteration data
+    local flashAlpha = 0
+    local flashPhase = nil
+    if anim.isFlashing then
+        local flashElapsed = now - anim.flashStartTime
+        flashAlpha, flashPhase = self:CalculateFlashState(flashElapsed, anim.flashDuration)
+        
+        -- Check flash completion
+        if flashElapsed >= anim.flashDuration then
+            anim.isFlashing = false
+        end
     end
     
-    // Check completion
-    if progress >= 1.0 then
-        anim.isAnimating = false
+    -- UNIFIED CALL: RenderBarFrame with iteration data as parameters
+    bar:RenderBarFrame(currentRatio, eventContext, flashAlpha, flashPhase)
+    
+    -- Update tracked ratio
+    if bar.SetCurrentRatio then
+        bar:SetCurrentRatio(currentRatio)
     end
 end
 ```
 
 **Changes**:
-- ✅ Store full context in `anim.fullContext`
-- ✅ Augment context with `currentRatio`, `isFlashing`, `flashAlpha`
-- ✅ Call `RenderBarFrame` directly (not `ApplyAnimationStep`)
-- ✅ Fallback to old pattern for backward compat
+
+- ✅ Store immutable event context in `anim.eventContext`
+- ✅ Calculate iteration data per frame (`currentRatio`, `flashAlpha`, `flashPhase`)
+- ✅ Call `RenderBarFrame` directly with iteration data as parameters
+- ✅ No fallback pattern - fail fast if RenderBarFrame not implemented
+- ✅ Zero allocation per frame
 
 ---
 
@@ -371,7 +484,7 @@ end
 **File**: `FlatBarStyle.lua`
 
 ```lua
-function FlatBarStyle:RenderBarFrame(currentRatio, context)
+function FlatBarStyle:RenderBarFrame(currentRatio, context, flashAlpha, flashPhase)
     // 1. BAR (at current animation position)
     if self.StatusBar then
         self.StatusBar:SetValue(currentRatio)
@@ -383,9 +496,9 @@ function FlatBarStyle:RenderBarFrame(currentRatio, context)
     end
     
     // 3. FLASH (integrated)
-    if context.isFlashing and context.flashAlpha > 0 then
+    if flashAlpha > 0 then
         local color = context.hasRestedXP and Color.Rested or Color.XpBar
-        self.GainFlash:SetColorTexture(color.r, color.g, color.b, context.flashAlpha)
+        self.GainFlash:SetColorTexture(color.r, color.g, color.b, flashAlpha)
         self.GainFlash:Show()
         
         // Dim quest overlays during flash
