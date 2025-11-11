@@ -50,14 +50,7 @@ local CircularBarStyleTemplate = {}
 -------------------------------------------------------------------
 
 function CircularBarStyleTemplate:OnLoad()
-    -- Call base OnLoad first (from BaseMixin)
-    if XPBarMixinBase_v2 and XPBarMixinBase_v2.OnLoad then
-        XPBarMixinBase_v2.OnLoad(self)
-    end
-
     -- Circular bar specific setup
-    self.orientation = "CIRCULAR"
-    self._barStyle = "Circular"
     self.segments = {} -- Single set of segments
     self.segmentTypes = {} -- Track type of each segment
     self.lastProgress = 0
@@ -73,17 +66,10 @@ function CircularBarStyleTemplate:OnLoad()
     -- Create ring segments (initialized with background color)
     self:CreateRingSegments()
 
-    -- Check if Refresh was called by BaseMixin
-
-    -- BaseMixin.OnLoad does NOT automatically call Refresh, so we need to call it explicitly
-    -- to trigger the initial data load and visual update
-    if self.Refresh then
-        self:Refresh()
-    else
+   
+    if XPBarMixinBase_v2 and XPBarMixinBase_v2.OnLoad then
+        XPBarMixinBase_v2.OnLoad(self)
     end
-
-    -- Note: Initial fill is handled by BaseMixin:OnLoad -> Refresh -> UpdateCurrentXPBar
-    -- which will set proper XP ratio on first load
 end
 
 -------------------------------------------------------------------
@@ -95,8 +81,8 @@ function CircularBarStyleTemplate:CreateRingSegments()
     local color = EMPTY_SEGMENT_COLOR
     for i = 1, RING_SEGMENTS do
         local segment = self:CreateTexture(nil, "ARTWORK")
-        segment:SetTexture("Interface\\Buttons\\WHITE8X8")
-        -- segment:SetTexture("Interface\\AddOns\\XPBarEnhanced\\assets\\xp-bar")
+        -- segment:SetTexture("Interface\\Buttons\\WHITE8X8")
+        segment:SetTexture("Interface\\AddOns\\XPBarEnhanced\\assets\\xp-bar")
         segment:SetSize(CIRCULAR_BAR_STYLE.SEGMENT_WIDTH_PX, CIRCULAR_BAR_STYLE.SEGMENT_HEIGHT_PX)
         -- Initialize with background color to show ring structure
         segment:SetVertexColor(color.r, color.g, color.b, color.a)
@@ -737,95 +723,4 @@ function XPBarEnhanced_CreateCircularBarFrame()
     _G.CircularBar_v2 = frame -- Global reference
 
     return frame
-end
-
--------------------------------------------------------------------
--- CHAT / SLASH COMMANDS (Debug helpers)
--------------------------------------------------------------------
-
--- Register a simple slash command so users can dump the circular v2 logs from chat
-SLASH_XPBE_DUMPCIRC1 = "/xpdumpcircular"
-SLASH_XPBE_DUMPCIRC2 = "/xpdumpcirc"
-SlashCmdList["XPBE_DUMPCIRC"] = function()
-    if XPBarEnhanced_DumpCircularV2Logs then
-        XPBarEnhanced_DumpCircularV2Logs()
-    else
-        print("CircularBar v2: Dump function not available")
-    end
-end
-
--- Optional clear command for convenience
-SLASH_XPBE_CLEARCIRC1 = "/xpclearcircular"
-SLASH_XPBE_CLEARCIRC2 = "/xpclearcirc"
-SlashCmdList["XPBE_CLEARCIRC"] = function()
-    if XPBarEnhanced_ClearCircularV2Logs then
-        XPBarEnhanced_ClearCircularV2Logs()
-    else
-        print("CircularBar v2: Clear log function not available")
-    end
-end
-
--- Force-refresh command to trigger V2 Refresh and regenerate logs on demand
-SLASH_XPBE_REFRESHCIRC1 = "/xprefreshcircular"
-SLASH_XPBE_REFRESHCIRC2 = "/xprefreshcirc"
-SlashCmdList["XPBE_REFRESHCIRC"] = function()
-    local frame = _G.CircularBar_v2
-    if frame and frame.Refresh then
-        print("CircularBar v2: Forcing Refresh() via slash command")
-        frame:Refresh()
-    else
-        print("CircularBar v2: Frame not found or Refresh method missing. Use /xptest circular to create it first.")
-    end
-end
-
--- Build a minimal live XP context and call UpdateCurrentXPBar for immediate debug output
-SLASH_XPBE_DUMPNOW1 = "/xpdumpnow"
-SLASH_XPBE_DUMPNOW2 = "/xpdn"
-SlashCmdList["XPBE_DUMPNOW"] = function()
-    local frame = _G.CircularBar_v2
-    if not frame then
-        print("CircularBar v2: Frame not found. Use /xptest circular to create it first.")
-        return
-    end
-
-    -- Gather live XP data
-    local currentXP = UnitXP("player") or 0
-    local xpMax = UnitXPMax("player") or 1
-    local rested = GetXPExhaustion() or 0
-
-    -- Minimal context compatible with UpdateCurrentXPBar (V2 uses xpAfter/xpBefore)
-    local context = {
-        currentXP = currentXP,
-        xpMax = xpMax,
-        restedXP = rested,
-        xpBefore = currentXP, -- V2: before XP
-        xpAfter = currentXP, -- V2: after XP (same as before since no gain)
-        xpGained = 0,
-        isResting = IsResting() or false,
-        hasRestedXP = (rested > 0),
-        level = UnitLevel("player") or 0,
-        timestamp = GetTime(),
-        completeQuestXP = 0,
-        incompleteQuestXP = 0
-    }
-
-    print("CircularBar v2: Calling UpdateCurrentXPBar with live context (via /xpdumpnow)")
-    if frame.UpdateCurrentXPBar then
-        frame:UpdateCurrentXPBar(context)
-    else
-        print("CircularBar v2: UpdateCurrentXPBar method missing on frame")
-    end
-end
-
--- Check if overlay methods exist on the frame
-SLASH_XPBE_CHECKCIRC1 = "/xpcheckcircular"
-SLASH_XPBE_CHECKCIRC2 = "/xpcheckcirc"
-SlashCmdList["XPBE_CHECKCIRC"] = function()
-    local frame = _G.CircularBar_v2
-    if not frame then
-        print("CircularBar v2: Frame not found!")
-        return
-    end
-
-    print("=== CircularBar v2 Method Check ===")
 end
