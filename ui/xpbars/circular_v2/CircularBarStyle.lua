@@ -32,11 +32,7 @@ local EMPTY_SEGMENT_COLOR = {r = 0.1, g = 0.1, b = 0.1, a = 0.3}
 local CIRCULAR_BAR_STYLE = {
     RING_RADIUS_PX = 97, -- Distance from center to segment center (placement radius)
     SEGMENT_WIDTH_PX = 4, -- Width of each segment in pixels
-    SEGMENT_HEIGHT_PX = 15, -- Height of each segment in pixels
-    -- Glow animation timings
-    GLOW_FADE_IN_DURATION = 0.2, -- Fade in duration in seconds
-    GLOW_FADE_OUT_DURATION = 0.3, -- Fade out duration in seconds
-    GLOW_HOLD_DURATION = 0.5 -- Hold duration at max alpha
+    SEGMENT_HEIGHT_PX = 15 -- Height of each segment in pixels
 }
 
 -------------------------------------------------------------------
@@ -66,7 +62,6 @@ function CircularBarStyleTemplate:OnLoad()
     -- Create ring segments (initialized with background color)
     self:CreateRingSegments()
 
-   
     if XPBarMixinBase_v2 and XPBarMixinBase_v2.OnLoad then
         XPBarMixinBase_v2.OnLoad(self)
     end
@@ -120,18 +115,9 @@ function CircularBarStyleTemplate:PositionSegments()
         local segment = self.segments[i]
         segment:ClearAllPoints()
         segment:SetPoint("CENTER", self, "CENTER", xOff, yOff)
-        self:RotateTexture(segment, rotation)
-    end
-end
-
-function CircularBarStyleTemplate:RotateTexture(texture, rotation)
-    if not texture then
-        return
-    end
-
-    -- Use the modern SetRotation API (available in retail WoW)
-    if texture.SetRotation then
-        texture:SetRotation(rotation)
+        if segment.SetRotation then
+            segment:SetRotation(rotation)
+        end
     end
 end
 
@@ -151,48 +137,21 @@ end
 --- Update visual effects - glow overlay animation
 -- @param stepContext table: Step context with flashData
 function CircularBarStyleTemplate:AnimateBarEffect(stepContext)
-    if not self.GlowOverlay then
+    -- Access GainFlash with fallback pattern (StatusBar.GainFlash or main frame GainFlash)
+    local gainFlash = (self.StatusBar and self.StatusBar.GainFlash) or self.GainFlash
+    if not gainFlash then
         return
     end
 
     local flashData = stepContext.flashData
     if flashData and flashData.active and flashData.currentAlpha > 0 then
         -- Show glow with animated alpha
-        self.GlowOverlay:SetAlpha(flashData.currentAlpha)
-        self.GlowOverlay:Show()
+        self.GainFlash:SetAlpha(flashData.currentAlpha)
+        self.GainFlash:Show()
     else
-        self.GlowOverlay:Hide()
+        print("CircularBarStyleTemplate: Hide glow")
+        self.GainFlash:Hide()
     end
-end
-
---- Get animation configuration
-function CircularBarStyleTemplate:GetAnimationConfig()
-    -- First check for frame-specific config
-    local frameConfig = self.__xpbar_config
-    if frameConfig and frameConfig.animation then
-        local anim = frameConfig.animation
-        return {
-            enableAnimations = anim.enableAnimations ~= false,
-            flashOnGain = anim.flashOnGain ~= false
-        }
-    end
-
-    -- Fall back to global database
-    local Addon = XPBarEnhanced
-    local db = Addon and Addon.Database and Addon.Database:GetDB()
-
-    if db then
-        return {
-            enableAnimations = db.enableAnimations ~= false,
-            flashOnGain = db.flashOnGain ~= false
-        }
-    end
-
-    -- Fallback default config
-    return {
-        enableAnimations = true,
-        flashOnGain = true
-    }
 end
 
 -------------------------------------------------------------------

@@ -58,37 +58,6 @@ function VerticalBarStyleTemplate:AnimateBarEffect(stepContext)
     end
 end
 
---- Get animation configuration
--- Checks frame-specific config first, then global database, then defaults
-function VerticalBarStyleTemplate:GetAnimationConfig()
-    -- First check for frame-specific config
-    local frameConfig = self.__xpbar_config
-    if frameConfig and frameConfig.animation then
-        local anim = frameConfig.animation
-        return {
-            enableAnimations = anim.enableAnimations ~= false, -- Default true
-            flashOnGain = anim.flashOnGain ~= false -- Default true
-        }
-    end
-
-    -- Fall back to global database
-    local Addon = XPBarEnhanced
-    local db = Addon and Addon.Database and Addon.Database:GetDB()
-
-    if db then
-        return {
-            enableAnimations = db.enableAnimations ~= false, -- Default true
-            flashOnGain = db.flashOnGain ~= false -- Default true
-        }
-    end
-
-    -- Fallback default config
-    return {
-        enableAnimations = true,
-        flashOnGain = true
-    }
-end
-
 -------------------------------------------------------------------
 -- OVERRIDES for the vertical layout
 -------------------------------------------------------------------

@@ -94,11 +94,32 @@ end
 -- Override in bar mixin if needed, or provide default config
 -- @return table: { enableAnimations = bool, flashOnGain = bool }
 function AnimationBase:GetAnimationConfig()
-	-- Default config, override in bar mixin
-	return {
-		enableAnimations = true,
-		flashOnGain = true
-	}
+    -- First check for frame-specific config
+    local frameConfig = self.__xpbar_config
+    if frameConfig and frameConfig.animation then
+        local anim = frameConfig.animation
+        return {
+            enableAnimations = anim.enableAnimations ~= false,
+            flashOnGain = anim.flashOnGain ~= false
+        }
+    end
+
+    -- Fall back to global database
+    local Addon = XPBarEnhanced
+    local db = Addon and Addon.Database and Addon.Database:GetDB()
+
+    if db then
+        return {
+            enableAnimations = db.enableAnimations ~= false,
+            flashOnGain = db.flashOnGain ~= false
+        }
+    end
+
+    -- Fallback default config
+    return {
+        enableAnimations = true,
+        flashOnGain = true
+    }
 end
 
 --- Animation step callback
