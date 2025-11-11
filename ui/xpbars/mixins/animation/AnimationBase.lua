@@ -14,7 +14,6 @@ function AnimationBase:InitializeAnimation()
 	-- Initialize animation state
 	self.animation = {
 		isAnimating = false,
-		currentRatio = 0, -- Current displayed ratio (updated every frame during animation)
 		startRatio = 0,
 		targetRatio = 0,
 		startTime = 0,
@@ -24,6 +23,9 @@ function AnimationBase:InitializeAnimation()
 		flashDuration = 0,
 		contexts = {} -- For context aggregation during retargeting
 	}
+	
+	-- Track current displayed ratio (for retargeting)
+	self._currentRatio = 0
 end
 
 --- Start animation to target ratio
@@ -39,7 +41,7 @@ function AnimationBase:StartAnimation(targetRatio, xpContext, config)
 			local instantContext = {
 				currentRatio = targetRatio,
 				targetRatio = targetRatio,
-				startRatio = self.animation.currentRatio or 0,
+				startRatio = self._currentRatio or 0,
 				progress = 1.0,
 				startTime = now,
 				currentTime = now,
@@ -52,12 +54,10 @@ function AnimationBase:StartAnimation(targetRatio, xpContext, config)
 			}
 			self:ApplyAnimationStep(instantContext)
 		end
-		if self.animation then
-			self.animation.currentRatio = targetRatio
-		end
+		self._currentRatio = targetRatio
 		return
 	end
-
+	
 	-- Delegate to AnimationManager
 	Addon.AnimationManager:AnimateTo(self, targetRatio, xpContext, config)
 end
@@ -68,7 +68,7 @@ function AnimationBase:CleanupAnimation()
 	if Addon.AnimationManager then
 		Addon.AnimationManager:Unregister(self)
 	end
-
+	
 	if self.animation then
 		self.animation.isAnimating = false
 		self.animation.isFlashing = false
@@ -80,16 +80,14 @@ end
 -- Used for retargeting and debugging
 -- @return number: Current ratio (0.0-1.0)
 function AnimationBase:GetCurrentRatio()
-	return self.animation and self.animation.currentRatio or 0
+	return self._currentRatio or 0
 end
 
 --- Set current displayed ratio
 -- Called by AnimationManager during animation updates
 -- @param ratio number: New current ratio (0.0-1.0)
 function AnimationBase:SetCurrentRatio(ratio)
-	if self.animation then
-		self.animation.currentRatio = ratio
-	end
+	self._currentRatio = ratio
 end
 
 --- Get animation configuration from database
@@ -107,8 +105,8 @@ end
 -- Called every frame during animation with interpolated values
 -- @param stepContext table: Step context with currentRatio, targetRatio, progress, timing, flash data, config, xpContext
 function AnimationBase:ApplyAnimationStep(stepContext)
-	self:AnimateBarPosition(stepContext) -- Update bar fill
-	self:AnimateBarEffect(stepContext) -- Update visual effects (flash, etc)
+	  self:AnimateBarPosition(stepContext) -- Update bar fill
+	  self:AnimateBarEffect(stepContext)   -- Update visual effects (flash, etc)
 end
 
 --- Update bar position (ABSTRACT - must be implemented by style)
@@ -151,3 +149,4 @@ end
 -- Export as global for composition in StyleBuilder (consistent with other mixins)
 XPBarAnimationMixin = AnimationBase
 Addon.AnimationBase = AnimationBase -- Keep for backward compatibility
+

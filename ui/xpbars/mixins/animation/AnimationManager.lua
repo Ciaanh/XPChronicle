@@ -83,7 +83,6 @@ function AnimationManager:AnimateTo(bar, targetRatio, xpContext, config)
 	if not bar.animation then
 		bar.animation = {
 			isAnimating = false,
-			currentRatio = 0, -- Current displayed ratio (updated every frame)
 			startRatio = 0,
 			targetRatio = 0,
 			startTime = 0,
@@ -164,34 +163,8 @@ function AnimationManager:AnimateTo(bar, targetRatio, xpContext, config)
 	-- Calculate delta for duration and animation check
 	local delta = math.abs(targetRatio - anim.startRatio)
 
-	local DebugLog = XPBarEnhanced and XPBarEnhanced.DebugLog
-	if DebugLog then
-		DebugLog:Add(
-			"AnimationManager",
-			"AnimateTo called",
-			{
-				startRatio = anim.startRatio,
-				targetRatio = targetRatio,
-				delta = delta,
-				currentRatio = bar.animation and bar.animation.currentRatio or "nil",
-				xpGained = xpContext.xpGained
-			}
-		)
-	end
-
 	-- Check if should animate
 	local shouldAnimate, reason = AnimationUtils.ShouldAnimate(delta, config)
-
-	if DebugLog then
-		DebugLog:Add(
-			"AnimationManager",
-			"Animation decision",
-			{
-				shouldAnimate = shouldAnimate,
-				reason = reason
-			}
-		)
-	end
 
 	if not shouldAnimate then
 		-- Instant update via ApplyAnimationStep with final context
@@ -232,15 +205,6 @@ function AnimationManager:AnimateTo(bar, targetRatio, xpContext, config)
 		-- Update bar's current ratio
 		if bar.SetCurrentRatio then
 			bar:SetCurrentRatio(targetRatio)
-			if DebugLog then
-				DebugLog:Add(
-					"AnimationManager",
-					"Instant update complete",
-					{
-						currentRatio = targetRatio
-					}
-				)
-			end
 		end
 
 		return
@@ -270,19 +234,16 @@ function AnimationManager:AnimateTo(bar, targetRatio, xpContext, config)
 			anim.flashStartTime = now
 			-- Total flash duration = fade in + hold + fade out (1.0 second total)
 			anim.flashDuration = AnimationUtils.GetFlashTotalDuration()
-
+			
 			-- Capture initial quest overlay alphas to restore after flash (only if not already captured)
 			if not anim.questOverlayCompleteInitialAlpha and not anim.questOverlayIncompleteInitialAlpha then
 				if bar.StatusBar then
-					anim.questOverlayCompleteInitialAlpha =
-						bar.StatusBar.QuestOverlayComplete and bar.StatusBar.QuestOverlayComplete:GetAlpha() or 1.0
-					anim.questOverlayIncompleteInitialAlpha =
-						bar.StatusBar.QuestOverlayIncomplete and bar.StatusBar.QuestOverlayIncomplete:GetAlpha() or 1.0
+					anim.questOverlayCompleteInitialAlpha = bar.StatusBar.QuestOverlayComplete and bar.StatusBar.QuestOverlayComplete:GetAlpha() or 1.0
+					anim.questOverlayIncompleteInitialAlpha = bar.StatusBar.QuestOverlayIncomplete and bar.StatusBar.QuestOverlayIncomplete:GetAlpha() or 1.0
 				elseif bar.QuestOverlayComplete or bar.QuestOverlayIncomplete then
 					-- Flat V2 style
 					anim.questOverlayCompleteInitialAlpha = bar.QuestOverlayComplete and bar.QuestOverlayComplete:GetAlpha() or 1.0
-					anim.questOverlayIncompleteInitialAlpha =
-						bar.QuestOverlayIncomplete and bar.QuestOverlayIncomplete:GetAlpha() or 1.0
+					anim.questOverlayIncompleteInitialAlpha = bar.QuestOverlayIncomplete and bar.QuestOverlayIncomplete:GetAlpha() or 1.0
 				end
 			end
 		end
@@ -337,7 +298,7 @@ function AnimationManager:UpdateBarAnimation(bar, now)
 			anim.isFlashing = false
 			-- Set cooldown to prevent immediate restart (prevents double flash on rapid XP events)
 			anim.flashCooldownUntil = now + 0.1 -- 100ms cooldown after flash completes
-
+			
 			-- Restore quest overlay alphas to initial values
 			if bar.StatusBar then
 				if bar.StatusBar.QuestOverlayComplete and anim.questOverlayCompleteInitialAlpha then
@@ -355,13 +316,13 @@ function AnimationManager:UpdateBarAnimation(bar, now)
 					bar.QuestOverlayIncomplete:SetAlpha(anim.questOverlayIncompleteInitialAlpha)
 				end
 			end
-
+			
 			-- Clear initial alpha storage
 			anim.questOverlayCompleteInitialAlpha = nil
 			anim.questOverlayIncompleteInitialAlpha = nil
 		end
 	end
-
+	
 	-- Get XP context from aggregated contexts
 	local xpContext = AnimationUtils.AggregateContexts(anim.contexts)
 

@@ -102,16 +102,6 @@ function TooltipMixin:Hide() -- public helper
 	GameTooltip:Hide()
 end
 
-function TooltipMixin:RefreshTooltip() -- re-shows tooltip for owner when configuration or colors change
-	local owner = TooltipMixin.currentTooltipOwner
-	if owner and owner == self then
-		-- re-open for same owner
-		self:Hide()
-		-- small deferred reopen if available, but simple immediate call
-		self:OnEnter()
-	end
-end
-
 -------------------------------------------------------------------
 -- SECTION BUILDERS (compatibility with legacy behavior)
 -------------------------------------------------------------------
@@ -459,7 +449,7 @@ function TooltipMixin:AddHintSection(content, ctx, cfg)
 
 	-- Generate hint text based on bar capabilities
 	local hintText = self:GetHintText()
-
+	
 	if hintText and hintText ~= "" then
 		table.insert(content.lines, " ")
 		table.insert(content.lines, hintText)
@@ -470,28 +460,28 @@ end
 -- Returns appropriate hint based on position mode and interaction config
 function TooltipMixin:GetHintText()
 	local L = XPBarEnhanced and XPBarEnhanced.L or {}
-
+	
 	-- Check position mode
 	local isDraggable = false
 	if self.GetPositionMode then
 		local positionMode = self:GetPositionMode()
 		isDraggable = (positionMode == "DRAGGABLE")
 	end
-
+	
 	-- Build hint parts
 	local hints = {}
-
+	
 	-- Drag hint (if draggable)
 	if isDraggable then
 		table.insert(hints, L["TT_HINT_DRAG"] or "Shift+Drag to move")
 	end
-
+	
 	-- Alt+Click to open options
 	table.insert(hints, L["TT_HINT_ALT_OPTIONS"] or "Alt+Click for options")
-
+	
 	-- Ctrl+Click to toggle stats
 	table.insert(hints, L["TT_HINT_CTRL_STATS"] or "Ctrl+Click to toggle stats")
-
+	
 	-- Join with line breaks
 	return table.concat(hints, "\n")
 end
@@ -507,7 +497,7 @@ function TooltipMixin:OnEnter()
 	if not self:IsMouseOver() then
 		return
 	end
-
+	
 	local config = self.__xpbar_config or {}
 	local tooltipConfig = config.tooltip or {}
 	local global = GetGlobalDB()
