@@ -34,12 +34,6 @@ function BaseMixin:FullUpdate(context)
 	end
 	self._isUpdating = true
 
-	-- Update static config from database BEFORE building context
-	-- This ensures the latest settings are available in the inheritance chain
-	if XPBarStaticConfig and XPBarStaticConfig.UpdateStaticConfig then
-		XPBarStaticConfig.UpdateStaticConfig()
-	end
-
 	-- Use provided context or build fresh one
 	if not context then
 		context = XPBarContextBuilder.BuildXPChangeContext("FULL_UPDATE")

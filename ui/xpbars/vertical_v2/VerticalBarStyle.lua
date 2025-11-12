@@ -259,17 +259,9 @@ function VerticalBarStyleTemplate:UpdateQuestCompleteOverlayLayout(context, over
     local Addon = XPBarEnhanced
     local completeXP = context.completeQuestXP or 0
     
-    -- Read directly from database for consistency with circular bar
-    -- (context inheritance chain through immutable wrapper is not reliable)
-    local showQuestXP = true
-    local showComplete = true
-    if Addon and Addon.Database then
-        local db = Addon.Database:GetDB()
-        if db then
-            showQuestXP = db.showQuestXP ~= false
-            showComplete = db.showCompleteQuestOverlay ~= false
-        end
-    end
+    -- Get visibility flags from context (single source of truth)
+    local showQuestXP = context.showQuestXP
+    local showComplete = context.showCompleteQuestOverlay
     
     local visible = false
     if showQuestXP and showComplete and (completeXP and completeXP > 0) then
@@ -311,19 +303,10 @@ function VerticalBarStyleTemplate:UpdateQuestIncompleteOverlayLayout(context, ov
     local completeQuestXP = context.completeQuestXP or 0
     local incompleteQuestXP = context.incompleteQuestXP or 0
     
-    -- Read directly from database for consistency with circular bar
-    -- (context inheritance chain through immutable wrapper is not reliable)
-    local showQuestXP = true
-    local showComplete = true
-    local showIncomplete = false
-    if Addon and Addon.Database then
-        local db = Addon.Database:GetDB()
-        if db then
-            showQuestXP = db.showQuestXP ~= false
-            showComplete = db.showCompleteQuestOverlay ~= false
-            showIncomplete = db.showIncompleteQuestOverlay == true
-        end
-    end
+    -- Get visibility flags from context (single source of truth)
+    local showQuestXP = context.showQuestXP
+    local showComplete = context.showCompleteQuestOverlay
+    local showIncomplete = context.showIncompleteQuestOverlay
     
     local visible = false
     if showQuestXP and showIncomplete and incompleteQuestXP > 0 then
@@ -373,19 +356,10 @@ function VerticalBarStyleTemplate:UpdateRestedOverlayLayout(context)
     local restedXP = context.restedXP or 0
     local showRested = Addon.ConfigHelper.GetShowRestedOverlay(context)
     
-    -- Read directly from database for consistency with circular bar
-    -- (context inheritance chain through immutable wrapper is not reliable)
-    local showQuestXP = true
-    local showComplete = true
-    local showIncomplete = false
-    if Addon and Addon.Database then
-        local db = Addon.Database:GetDB()
-        if db then
-            showQuestXP = db.showQuestXP ~= false
-            showComplete = db.showCompleteQuestOverlay ~= false
-            showIncomplete = db.showIncompleteQuestOverlay == true
-        end
-    end
+    -- Get quest overlay visibility from context (single source of truth)
+    local showQuestXP = context.showQuestXP
+    local showComplete = context.showCompleteQuestOverlay
+    local showIncomplete = context.showIncompleteQuestOverlay
     
     local visible = false
     if showRested and restedXP > 0 then

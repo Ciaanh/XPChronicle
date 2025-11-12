@@ -63,20 +63,10 @@ function XPBarLayoutMixin:CalculateRestedBounds(context, barWidth)
 		return 0, 0, false
 	end
 	
-	-- Read directly from database for consistency with circular bar
-	-- (context inheritance chain through immutable wrapper is not reliable)
-	local Addon = XPBarEnhanced
-	local showQuestXP = true
-	local showComplete = true
-	local showIncomplete = false
-	if Addon and Addon.Database then
-		local db = Addon.Database:GetDB()
-		if db then
-			showQuestXP = db.showQuestXP ~= false
-			showComplete = db.showCompleteQuestOverlay ~= false
-			showIncomplete = db.showIncompleteQuestOverlay == true
-		end
-	end
+	-- Get quest overlay visibility from context (single source of truth)
+	local showQuestXP = context.showQuestXP
+	local showComplete = context.showCompleteQuestOverlay
+	local showIncomplete = context.showIncompleteQuestOverlay
 	
 	-- Calculate quest offset: how much space the quest overlays take up
 	local questOffset = 0
@@ -207,21 +197,9 @@ function XPBarLayoutMixin:UpdateQuestCompleteOverlayLayout(context, overlayName)
 	
 	local completeXP = context.completeQuestXP or 0
 	
-	-- Read directly from database for consistency with circular bar
-	-- (context inheritance chain through immutable wrapper is not reliable)
-	local showQuestXP = true
-	local showComplete = true
-	if Addon and Addon.Database then
-		local db = Addon.Database:GetDB()
-		if db then
-			showQuestXP = db.showQuestXP ~= false
-			showComplete = db.showCompleteQuestOverlay ~= false
-		end
-	end
-	
-	-- DEBUG: Log values being checked
-	print(string.format("[QuestOverlay] showQuestXP=%s, showComplete=%s, completeXP=%d", 
-		tostring(showQuestXP), tostring(showComplete), completeXP))
+	-- Get visibility flags from context (single source of truth)
+	local showQuestXP = context.showQuestXP
+	local showComplete = context.showCompleteQuestOverlay
 	
 	local visible = false
 	if showQuestXP and showComplete and (completeXP and completeXP > 0) then
@@ -258,23 +236,10 @@ function XPBarLayoutMixin:UpdateQuestIncompleteOverlayLayout(context, overlayNam
 	local completeQuestXP = context.completeQuestXP or 0
 	local incompleteQuestXP = context.incompleteQuestXP or 0
 	
-	-- Read directly from database for consistency with circular bar
-	-- (context inheritance chain through immutable wrapper is not reliable)
-	local showQuestXP = true
-	local showIncomplete = false
-	local showComplete = true  -- Need this to check if complete overlay is visible
-	if Addon and Addon.Database then
-		local db = Addon.Database:GetDB()
-		if db then
-			showQuestXP = db.showQuestXP ~= false
-			showIncomplete = db.showIncompleteQuestOverlay == true
-			showComplete = db.showCompleteQuestOverlay ~= false
-		end
-	end
-	
-	-- DEBUG: Log values being checked
-	print(string.format("[QuestOverlay INCOMPLETE] Overlay=%s exists=%s, showQuestXP=%s, showComplete=%s, showIncomplete=%s, completeXP=%d, incompleteXP=%d", 
-		overlayName, tostring(overlay ~= nil), tostring(showQuestXP), tostring(showComplete), tostring(showIncomplete), completeQuestXP, incompleteQuestXP))
+	-- Get visibility flags from context (single source of truth)
+	local showQuestXP = context.showQuestXP
+	local showComplete = context.showCompleteQuestOverlay
+	local showIncomplete = context.showIncompleteQuestOverlay
 	
 	local visible = false
 	if showQuestXP and showIncomplete and incompleteQuestXP > 0 then
@@ -304,15 +269,10 @@ function XPBarLayoutMixin:UpdateQuestIncompleteOverlayLayout(context, overlayNam
 			overlay:SetPoint("BOTTOMLEFT", offsetPixels, 0)
 			overlay:SetWidth(math.max(1, widthPixels))
 			visible = true
-			
-			-- DEBUG: Log positioning
-			print(string.format("[QuestOverlay INCOMPLETE] Positioned at offset=%d, width=%d, startXP=%d, questXPClamped=%d", 
-				offsetPixels, widthPixels, startXP, questXPClamped))
 		end
 	end
 	
 	overlay:SetShown(visible)
-	print(string.format("[QuestOverlay INCOMPLETE] Final visible=%s", tostring(visible)))
 end
 
 --- Update exhaustion tick marker position/visibility (not color)

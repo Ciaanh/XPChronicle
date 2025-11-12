@@ -67,11 +67,6 @@ function CircularBarStyleTemplate:OnLoad()
         XPBarMixinBase_v2.OnLoad(self)
     end
     
-    -- Initialize static config from database
-    if XPBarStaticConfig and XPBarStaticConfig.UpdateStaticConfig then
-        XPBarStaticConfig.UpdateStaticConfig()
-    end
-    
     -- Build initial context and render
     if XPBarContextBuilder then
         local context = XPBarContextBuilder.BuildXPChangeContext("PLAYER_ENTERING_WORLD")
