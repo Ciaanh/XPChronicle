@@ -95,6 +95,42 @@ function AnimationManager:AnimateTo(bar, targetRatio, xpContext, config)
 	end
 
 	local anim = bar.animation
+
+	-- Small epsilon for floating point ratio comparisons
+	local EPSILON = 1e-6
+
+	-- Defensive: compute a reliable startRatio to compare against target
+	local currentVisual = nil
+	if anim.startRatio ~= nil then
+		currentVisual = anim.startRatio
+	elseif bar.GetCurrentRatio then
+		currentVisual = bar:GetCurrentRatio() or 0
+	else
+		currentVisual = 0
+	end
+
+	-- Deduplicate no-op AnimateTo calls: if we're already animating to the same
+	-- targetRatio (within EPSILON), ignore the request to avoid duplicate
+	-- registrations and duplicate StartAnimation delegations.
+	if anim.isAnimating and math.abs((anim.targetRatio or 0) - targetRatio) <= EPSILON then
+		if XPBarDebugLog then
+			XPBarDebugLog:Log("AnimationManager", "AnimateTo - skipping duplicate for", bar:GetName() or "unknown", "targetRatio:", targetRatio, "anim.isAnimating:", anim.isAnimating)
+		end
+		return
+	end
+
+	-- If not animating and the current visual position already equals the
+	-- requested target (within EPSILON), treat as a no-op (instant set)
+	if (not anim.isAnimating) and math.abs((currentVisual or 0) - targetRatio) <= EPSILON then
+		if bar.SetCurrentRatio then
+			bar:SetCurrentRatio(targetRatio)
+		end
+		if XPBarDebugLog then
+			XPBarDebugLog:Log("AnimationManager", "AnimateTo - current visual equals target, no animation needed:", targetRatio)
+		end
+		return
+	end
+
 	local now = GetTime()
 
 	-- Detect level-up
@@ -129,8 +165,9 @@ function AnimationManager:AnimateTo(bar, targetRatio, xpContext, config)
 		end
 
 		-- Now animate to new XP position
-		-- Level-up resets XP, so xpAfter is the new position
-		targetRatio = xpContext.xpAfter / xpContext.xpMax
+		-- Level-up resets XP, use currentXP (xpAfter may be nil in level-up contexts)
+		local currentXP = xpContext.currentXP or xpContext.xpAfter or 0
+		targetRatio = currentXP / xpContext.xpMax
 		anim.startRatio = 0
 		anim.eventContext = xpContext -- Store single immutable context
 	elseif anim.isAnimating then
@@ -228,6 +265,10 @@ function AnimationManager:AnimateTo(bar, targetRatio, xpContext, config)
 	anim.startTime = now
 	anim.duration = duration
 	anim.targetRatio = targetRatio
+	
+	if XPBarDebugLog then
+		XPBarDebugLog:Log("AnimationManager", "AnimateTo - setting isAnimating=true for", bar:GetName() or "unknown", "targetRatio:", targetRatio)
+	end
 
 	-- Setup flash effect if enabled and XP was gained
 	if willFlash then

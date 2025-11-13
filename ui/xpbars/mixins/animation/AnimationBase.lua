@@ -34,7 +34,9 @@ end
 -- @param xpContext table: XP context { xpBefore, xpAfter, xpMax, xpGained, restedXP, isResting, hasRestedXP, level, timestamp }
 -- @param config table: Animation config { enableAnimations, flashOnGain }
 function AnimationBase:StartAnimation(targetRatio, xpContext, config)
+	if XPBarDebugLog then XPBarDebugLog:Log("AnimationBase", "StartAnimation called for", self:GetName() or "unknown", "targetRatio:", targetRatio, "enableAnimations:", config and config.enableAnimations or "nil") end
 	if not Addon.AnimationManager then
+		if XPBarDebugLog then XPBarDebugLog:Log("AnimationBase", "StartAnimation fallback (no manager)") end
 		-- Fallback to instant update if manager not available
 		if self.ApplyAnimationStep then
 			local now = GetTime()
@@ -61,6 +63,7 @@ function AnimationBase:StartAnimation(targetRatio, xpContext, config)
 		return
 	end
 	
+	if XPBarDebugLog then XPBarDebugLog:Log("AnimationBase", "StartAnimation delegating to AnimationManager") end
 	-- Delegate to AnimationManager
 	Addon.AnimationManager:AnimateTo(self, targetRatio, xpContext, config)
 end
@@ -130,6 +133,7 @@ end
 -- @param iterationData table: Per-frame iteration data (currentRatio, progress, easedProgress, flashData, timing, config)
 -- @param eventContext table: Immutable event context (XP state, session data, display flags - 144 bytes)
 function AnimationBase:ApplyAnimationStep(iterationData, eventContext)
+	if XPBarDebugLog then XPBarDebugLog:Log("AnimationBase", "ApplyAnimationStep called for", self:GetName() or "unknown") end
 	  self:AnimateBarPosition(iterationData, eventContext) -- Update bar fill
 	  self:AnimateBarEffect(iterationData, eventContext)   -- Update visual effects (flash, etc)
 end

@@ -78,40 +78,24 @@ end
 -- V2 UNIFIED RENDER PATTERN (Phase 2: Refactor)
 -------------------------------------------------------------------
 
---- Single render method for legacy bar (NEW unified pattern)
---- Handles layout, colors, animation, and text in one pass
+--- Single render method for legacy bar (V2 unified pattern)
+--- Pure rendering method - orchestration handled by BaseMixin:TriggerBarRefresh
 ---@param context table Immutable context with all state and flags
 function LegacyBarStyleTemplate:RenderBar(context)
+    if XPBarDebugLog then XPBarDebugLog:Log("LegacyBar", "RenderBar called") end
     if not context then
         error("RenderBar requires an explicit immutable context")
     end
 
-    -- Calculate target ratio
+    -- Calculate target ratio (use currentXP as canonical field)
     local targetRatio = 0
     if context.xpMax and context.xpMax > 0 then
         targetRatio = (context.currentXP or 0) / context.xpMax
     end
 
-    -- ANIMATION DECISION (use context flags)
-    if context.shouldAnimate then
-        -- Start animation - AnimationManager will call AnimateBarPosition on each tick
-        local xpContext = {
-            xpBefore = context.xpBefore or context.previousXP or 0,
-            xpAfter = context.xpAfter or context.currentXP or 0,
-            xpMax = context.xpMax or 1,
-            xpGained = context.xpGained or 0,
-            restedXP = context.restedXP or 0,
-            isResting = context.isResting or false,
-            hasRestedXP = context.hasRestedXP or false,
-            level = context.level or 1,
-            timestamp = GetTime()
-        }
-        local config = self:GetAnimationConfig()
-        self:StartAnimation(targetRatio, xpContext, config)
-    else
-        -- Instant update - render all elements at final position
-        self:RenderBarFrame(targetRatio, context)
-    end
+    -- Render at final position (no animation decision - BaseMixin handles that)
+    if XPBarDebugLog then XPBarDebugLog:Log("LegacyBar", "RenderBar calling RenderBarFrame with ratio:", targetRatio) end
+    self:RenderBarFrame(targetRatio, context)
 
     -- Update overlays (always update, even during animation)
     if self.UpdateRestedOverlay then
@@ -160,54 +144,6 @@ end
 -- TRIGGER IMPLEMENTATION
 -------------------------------------------------------------------
 
---- Trigger: Update current XP bar display
--- @param context table XP context from ContextBuilder (flat structure)
-function LegacyBarStyleTemplate:UpdateCurrentXPBar(context)
-    if not context then
-        error("UpdateCurrentXPBar requires an explicit immutable context")
-    end
-
-    -- Calculate target ratio
-    local targetRatio = 0
-    if context.xpMax and context.xpMax > 0 then
-        targetRatio = (context.currentXP or 0) / context.xpMax
-    end
-
-    -- Get animation config
-    local config = self:GetAnimationConfig()
-
-    -- Build XP context for animation system (match FlatBar pattern)
-    local xpContext = {
-        xpBefore = context.xpBefore or context.previousXP or 0,
-        xpAfter = context.xpAfter or context.currentXP or 0,
-        xpMax = context.xpMax or 1,
-        xpGained = context.xpGained or 0,
-        restedXP = context.restedXP or 0,
-        isResting = context.isResting or false,
-        hasRestedXP = context.hasRestedXP or false,
-        level = context.level or 1,
-        timestamp = GetTime()
-    }
-
-    -- Start animation (delegates to AnimationManager via AnimationBase)
-    if self.StartAnimation then
-        self:StartAnimation(targetRatio, xpContext, config)
-    else
-        -- Fallback: instant update if animation system not available
-        if self.StatusBar then
-            self.StatusBar:SetValue(targetRatio)
-        end
-        if self.SetCurrentRatio then
-            self:SetCurrentRatio(targetRatio)
-        end
-    end
-
-    -- Update bar colors (non-animated visuals)
-    if self.UpdateBarColors then
-        self:UpdateBarColors(context)
-    end
-end
-
 -------------------------------------------------------------------
 -- DEFAULT CONFIG
 -------------------------------------------------------------------
@@ -215,6 +151,10 @@ end
 local DefaultConfig = {
     interaction = {enabled = true},
     tooltip = {enabled = true},
+    animation = {
+        enableAnimations = true,
+        flashOnGain = true
+    },
     position = {mode = "STATIC", positionKey = "LegacyBar_v2"},
     style = {}
 }

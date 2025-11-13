@@ -62,17 +62,11 @@ function CircularBarStyleTemplate:OnLoad()
     -- Create ring segments (initialized with background color)
     self:CreateRingSegments()
 
-    -- Call base OnLoad first (initializes animation system)
+    -- Call base OnLoad (initializes animation system and calls Refresh)
+    -- Base OnLoad will handle the initial RenderBar call via Refresh()
     if XPBarMixinBase_v2 and XPBarMixinBase_v2.OnLoad then
+        if XPBarDebugLog then XPBarDebugLog:Log("CircularBar", "Calling base OnLoad") end
         XPBarMixinBase_v2.OnLoad(self)
-    end
-    
-    -- Build initial context and render
-    if XPBarContextBuilder then
-        local context = XPBarContextBuilder.BuildXPChangeContext("PLAYER_ENTERING_WORLD")
-        if context and self.RenderBar then
-            self:RenderBar(context)
-        end
     end
 end
 
@@ -138,6 +132,7 @@ end
 -- @param iterationData table: Per-frame iteration data with currentRatio
 -- @param eventContext table: Immutable event context
 function CircularBarStyleTemplate:AnimateBarPosition(iterationData, eventContext)
+    if XPBarDebugLog then XPBarDebugLog:Log("CircularBar", "AnimateBarPosition called", iterationData.currentRatio) end
     -- Update the arc progress with current ratio
     -- Pass hasRestedXP from eventContext to ensure correct coloring
     local hasRestedXP = eventContext and eventContext.hasRestedXP or false
@@ -155,12 +150,13 @@ function CircularBarStyleTemplate:AnimateBarEffect(iterationData, eventContext)
     end
 
     local flashData = iterationData.flashData
+    if XPBarDebugLog then XPBarDebugLog:Log("CircularBar", "AnimateBarEffect called", tostring(flashData)) end
     if flashData and flashData.active and flashData.currentAlpha > 0 then
         -- Show glow with animated alpha
         self.GainFlash:SetAlpha(flashData.currentAlpha)
         self.GainFlash:Show()
     else
-        print("CircularBarStyleTemplate: Hide glow")
+        if XPBarDebugLog then XPBarDebugLog:Log("CircularBar", "Hide glow") end
         self.GainFlash:Hide()
     end
 end
@@ -173,6 +169,7 @@ end
 -- @param progress number: Progress ratio (0-1)
 -- @param hasRestedXP boolean: Whether player has rested XP available
 function CircularBarStyleTemplate:SetArcProgress(progress, hasRestedXP)
+    if XPBarDebugLog then XPBarDebugLog:Log("CircularBar", "SetArcProgress called with progress", tostring(progress)) end
     -- Calculate current XP segments (1 segment = 1%)
     local currentXPSegments = math.floor(progress * 100 + 0.5)
 
@@ -358,21 +355,27 @@ end
 -------------------------------------------------------------------
 
 function CircularBarStyleTemplate:Refresh()
+    if XPBarDebugLog then XPBarDebugLog:Log("CircularBar", "Refresh override called") end
+    
     -- Build context
     if not XPBarContextBuilder then
+        if XPBarDebugLog then XPBarDebugLog:Log("CircularBar", "ERROR: XPBarContextBuilder not found") end
         return
     end
 
     local context = XPBarContextBuilder.BuildXPChangeContext("MANUAL_REFRESH")
 
     if not context then
+        if XPBarDebugLog then XPBarDebugLog:Log("CircularBar", "ERROR: Context building failed") end
         return
     end
 
-    -- Call TriggerXPChanged
-    if self.TriggerXPChanged then
-        self:TriggerXPChanged(context)
+    -- Call TriggerBarRefresh (v2 method name)
+    if self.TriggerBarRefresh then
+        if XPBarDebugLog then XPBarDebugLog:Log("CircularBar", "Calling TriggerBarRefresh") end
+        self:TriggerBarRefresh(context)
     else
+        if XPBarDebugLog then XPBarDebugLog:Log("CircularBar", "ERROR: TriggerBarRefresh not found") end
     end
 end
 
@@ -392,31 +395,10 @@ function CircularBarStyleTemplate:FullUpdate(context)
         context = XPBarContextBuilder.BuildXPChangeContext("FULL_UPDATE")
     end
 
-    -- Update cached overlay data from context
-    -- This is critical when options change (e.g., showCompleteQuestOverlay toggled)
-    if self.UpdateRestedOverlay then
-        self:UpdateRestedOverlay(context)
-    end
-
-    if self.UpdateQuestCompleteOverlay then
-        self:UpdateQuestCompleteOverlay(context)
-    end
-
-    if self.UpdateQuestIncompleteOverlay then
-        self:UpdateQuestIncompleteOverlay(context)
-    end
-
-    -- Re-render bar with updated cached data
-    local currentXP = context.xpAfter or context.currentXP or 0
-    local maxXP = context.xpMax or 1
-    local ratio = maxXP > 0 and (currentXP / maxXP) or 0
-    local hasRestedXP = context.hasRestedXP or false
-
-    self:SetArcProgress(ratio, hasRestedXP)
-
-    -- Update visuals (text, etc.)
-    if self.UpdateVisuals then
-        self:UpdateVisuals(context)
+    -- Trigger bar refresh through orchestration layer
+    -- RenderBar will update overlays, so we don't do it here (no duplication)
+    if self.TriggerBarRefresh then
+        self:TriggerBarRefresh(context)
     end
 
     -- Update text visibility in case options changed
@@ -431,49 +413,51 @@ end
 -- V2 UNIFIED RENDER PATTERN (Phase 2: Refactor)
 -------------------------------------------------------------------
 
---- Single render method for circular bar (NEW unified pattern)
---- Handles layout, colors, animation, and text in one pass
+--- Single render method for circular bar (V2 unified pattern)
+--- Pure rendering method - orchestration handled by BaseMixin:TriggerBarRefresh
 ---@param context table Immutable context with all state and flags
 function CircularBarStyleTemplate:RenderBar(context)
-	if not context then
-		error("RenderBar requires an explicit immutable context")
-	end
+    if XPBarDebugLog then XPBarDebugLog:Log("CircularBar", "RenderBar called") end
+    if not context then
+        error("RenderBar requires an explicit immutable context")
+    end
 
-	-- Determine target ratio
-	local curXP = context.xpAfter or context.currentXP or 0
-	local maxXP = context.xpMax or 1
-	local targetRatio = (maxXP > 0) and (curXP / maxXP) or 0
+    -- Calculate target ratio (use currentXP as canonical field)
+    local targetRatio = 0
+    if context.xpMax and context.xpMax > 0 then
+        targetRatio = (context.currentXP or 0) / context.xpMax
+    end
 
-	-- Initialize current ratio if not set (first update after creation)
-	if not self._currentRatio then
-		if self.SetCurrentRatio then
-			self:SetCurrentRatio(targetRatio)
-		end
-		-- Render instant for first time
-		self:RenderBarFrame(targetRatio, context)
-		return
-	end
+    -- Initialize current ratio if not set (first update after creation)
+    if not self._currentRatio then
+        if self.SetCurrentRatio then
+            self:SetCurrentRatio(targetRatio)
+        end
+    end
 
-	-- ANIMATION DECISION (use context flags)
-	if context.shouldAnimate then
-		-- Start animation - AnimationManager will call RenderBarFrame on each tick
-		local xpContext = {
-			xpBefore = context.xpBefore or context.previousXP or 0,
-			xpAfter = context.xpAfter or context.currentXP or 0,
-			xpMax = context.xpMax or 1,
-			xpGained = context.xpGained or 0,
-			restedXP = context.restedXP or 0,
-			isResting = context.isResting or false,
-			hasRestedXP = context.hasRestedXP or false,
-			level = context.level or 1,
-			timestamp = GetTime()
-		}
-		local config = self:GetAnimationConfig()
-		self:StartAnimation(targetRatio, xpContext, config)
-	else
-		-- Instant update - render all elements at final position
-		self:RenderBarFrame(targetRatio, context)
-	end
+    -- Render at final position (no animation decision - BaseMixin handles that)
+    if XPBarDebugLog then XPBarDebugLog:Log("CircularBar", "RenderBar calling RenderBarFrame with ratio:", targetRatio) end
+    self:RenderBarFrame(targetRatio, context)
+
+    -- Update overlays (always update, matches Legacy/Vertical pattern)
+    -- These populate the cached overlay data that SetArcProgress uses
+    if self.UpdateRestedOverlay then
+        self:UpdateRestedOverlay(context)
+    end
+    if self.UpdateQuestCompleteOverlay then
+        self:UpdateQuestCompleteOverlay(context)
+    end
+    if self.UpdateQuestIncompleteOverlay then
+        self:UpdateQuestIncompleteOverlay(context)
+    end
+    if self.UpdateExhaustionTick then
+        self:UpdateExhaustionTick(context)
+    end
+
+    -- Update text (always update, matches Legacy/Vertical pattern)
+    if self.UpdateTexts then
+        self:UpdateTexts(context)
+    end
 end
 
 --- Render all bar elements for a single animation frame
@@ -481,121 +465,29 @@ end
 ---@param currentRatio number Current animation progress (0-1), or final ratio for instant
 ---@param context table Immutable context with all state and flags
 function CircularBarStyleTemplate:RenderBarFrame(currentRatio, context)
-	-- 1. MAIN BAR (at current animation position)
-	local hasRestedXP = context.hasRestedXP or false
-	self:SetArcProgress(currentRatio, hasRestedXP)
+    if XPBarDebugLog then XPBarDebugLog:Log("CircularBar", "RenderBarFrame called with ratio:", currentRatio) end
+    -- 1. MAIN BAR (at current animation position)
+    local hasRestedXP = context.hasRestedXP or false
+    self:SetArcProgress(currentRatio, hasRestedXP)
 
-	-- Update current ratio tracking
-	if self.SetCurrentRatio then
-		self:SetCurrentRatio(currentRatio)
-	end
-
-	-- 2. TEXT (updates every frame to show animated values)
-	if self.UpdateTexts then
-		self:UpdateTexts(context)
-	end
-
-	-- Note: Overlays are handled inside SetArcProgress for circular bar
-	-- SetArcProgress calculates segment types for: current XP, rested, quest complete, quest incomplete
-	-- This is the IDEAL pattern - all segments calculated and colored in one pass!
-end
-
--------------------------------------------------------------------
--- OVERRIDE: Bar Update with V2 Animation
--------------------------------------------------------------------
-
---- Update bar with animation (overrides VisualsMixin)
--- @param context table: Immutable XP context
-function CircularBarStyleTemplate:UpdateCurrentXPBar(context)
-    if not context then
-        error("UpdateCurrentXPBar requires an explicit immutable context")
+    -- Update current ratio tracking
+    if self.SetCurrentRatio then
+        self:SetCurrentRatio(currentRatio)
     end
 
-    -- Determine canonical current XP value for V2 contexts (prefer xpAfter)
-    local curXP = context.xpAfter or context.currentXP or 0
-    local maxXP = context.xpMax or 1
-
-    -- Calculate target ratio using xpAfter (preferred)
-    local targetRatio = 0
-    if maxXP and maxXP > 0 then
-        targetRatio = (curXP or 0) / maxXP
+    -- 2. TEXT (updates every frame to show animated values)
+    if self.UpdateTexts then
+        self:UpdateTexts(context)
     end
 
-    -- Initialize current ratio if not set (first update after creation)
-    if not self._currentRatio then
-        local initialRatio = targetRatio
-        if self.SetCurrentRatio then
-            self:SetCurrentRatio(initialRatio)
-        end
-        -- Set initial visual state using cached overlay data
-        local hasRestedXP = context.hasRestedXP or false
-        self:SetArcProgress(initialRatio, hasRestedXP)
-    end
-
-    -- Build XP context for animation system (like flatbar - NO quest data here)
-    local xpContext = {
-        xpBefore = context.xpBefore or context.previousXP or 0,
-        xpAfter = context.xpAfter or context.currentXP or 0,
-        xpMax = context.xpMax or 1,
-        xpGained = context.xpGained or 0,
-        restedXP = context.restedXP or 0,
-        isResting = context.isResting or false,
-        hasRestedXP = context.hasRestedXP or false,
-        level = context.level or 1,
-        timestamp = GetTime()
-    }
-
-    -- Get animation config
-    local config = self:GetAnimationConfig()
-
-    -- Start animation (delegates to AnimationManager via AnimationBase)
-    if self.StartAnimation then
-        self:StartAnimation(targetRatio, xpContext, config)
-    else
-        self:SetArcProgress(targetRatio)
-        if self.SetCurrentRatio then
-            self:SetCurrentRatio(targetRatio)
-        end
-    end
+    -- Note: Overlays are handled inside SetArcProgress for circular bar
+    -- SetArcProgress calculates segment types for: current XP, rested, quest complete, quest incomplete
+    -- This is the IDEAL pattern - all segments calculated and colored in one pass!
 end
 
 -------------------------------------------------------------------
 -- OVERRIDES for circular layout
--------------------------------------------------------------------
-
---- Override main bar layout for circular orientation (deprecated, use UpdateCurrentXPBar)
-function CircularBarStyleTemplate:UpdateBarLayout(context, barName)
-    -- Calculate target fill ratio
-    local currentXP = context.currentXP or 0
-    local maxXP = context.xpMax or 1
-    local targetRatio = maxXP > 0 and (currentXP / maxXP) or 0
-
-    -- Build XP context for animation system
-    local xpContext = {
-        xpBefore = context.xpBefore or context.currentXP or 0,
-        xpAfter = context.xpAfter or context.currentXP or 0,
-        xpMax = context.xpMax or 1,
-        xpGained = context.xpGained or 0,
-        restedXP = context.restedXP or 0,
-        isResting = context.isResting or false,
-        hasRestedXP = context.hasRestedXP or false,
-        level = context.level or 1,
-        timestamp = GetTime()
-    }
-
-    -- Get animation config
-    local config = self:GetAnimationConfig()
-
-    -- Start animation (delegates to AnimationManager via AnimationBase)
-    if self.StartAnimation then
-        self:StartAnimation(targetRatio, xpContext, config)
-    else
-        -- Fallback: instant update if animation system not available
-        self:SetArcProgress(targetRatio)
-    end
-end
-
---- Override UpdateRestedOverlay to store rested data for segment coloring
+---------------------------------------------------------------------- Override UpdateRestedOverlay to store rested data for segment coloring
 function CircularBarStyleTemplate:UpdateRestedOverlay(context)
     if not context then
         return

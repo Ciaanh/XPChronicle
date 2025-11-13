@@ -14,41 +14,45 @@ local function BuildDBConfig()
 	local AddonGlobal = _G["XPBarEnhanced"]
 	local db = AddonGlobal and AddonGlobal.db
 
-	-- Helper to get boolean from db with default fallback
-	local function getBool(key, default)
-		local dbValue = db and db[key]
-		if dbValue ~= nil then
-			if default == true then
-				return dbValue ~= false
-			else
-				return dbValue == true
-			end
-		else
-			return default == true
+	-- If there's no saved DB, return an empty config table so callers
+	-- treat the context as the source of truth and don't assume defaults.
+	if not db then
+		return {}
+	end
+
+	local cfg = {}
+
+	-- Only include keys that are explicitly present in the saved DB.
+	-- This prevents silently applying defaults and keeps the context
+	-- faithful to the user's saved configuration.
+	local function setIfPresent(key)
+		if db[key] ~= nil then
+			cfg[key] = db[key]
 		end
 	end
 
-	return {
-		-- Display flags (13 fields)
-		showXPText = getBool("showXPText", true),
-		showLevelText = getBool("showLevelText", true),
-		showPercentage = getBool("showPercentage", true),
-		showQuestXP = getBool("showQuestXP", true),
-		showCompleteQuestOverlay = getBool("showCompleteQuestOverlay", true),
-		showIncompleteQuestOverlay = getBool("showIncompleteQuestOverlay", false),
-		showRestedOverlay = getBool("showRestedOverlay", true),
-		showExhaustionTick = getBool("showExhaustionTick", true),
-		showSessionTimeText = getBool("showSessionTimeText", true),
-		showLevelTimeText = getBool("showLevelTimeText", true),
-		showXPPerHourText = getBool("showXPPerHourText", true),
-		showTimeToLevelText = getBool("showTimeToLevelText", true),
-		showRemainingXP = getBool("showRemainingXP", false),
-		showQuestPercent = getBool("showQuestPercent", false),
-		-- Configuration values (3 fields)
-		percentDecimals = (db and db.percentDecimals) or 1,
-		abbreviateNumbers = getBool("abbreviateNumbers", true),
-		flashOnGain = getBool("flashOnGain", true)
-	}
+	-- Display flags
+	setIfPresent("showXPText")
+	setIfPresent("showLevelText")
+	setIfPresent("showPercentage")
+	setIfPresent("showQuestXP")
+	setIfPresent("showCompleteQuestOverlay")
+	setIfPresent("showIncompleteQuestOverlay")
+	setIfPresent("showRestedOverlay")
+	setIfPresent("showExhaustionTick")
+	setIfPresent("showSessionTimeText")
+	setIfPresent("showLevelTimeText")
+	setIfPresent("showXPPerHourText")
+	setIfPresent("showTimeToLevelText")
+	setIfPresent("showRemainingXP")
+	setIfPresent("showQuestPercent")
+
+	-- Configuration values
+	if db.percentDecimals ~= nil then cfg.percentDecimals = db.percentDecimals end
+	setIfPresent("abbreviateNumbers")
+	setIfPresent("flashOnGain")
+
+	return cfg
 end
 
 -------------------------------------------------------------------
@@ -189,6 +193,11 @@ end
 function ContextBuilder.ComputeXPGained(currentXP, xpMax)
 	local lastXP = ContextBuilder._lastXP or currentXP
 	local lastMax = ContextBuilder._lastMaxXP or xpMax
+	
+	if XPBarDebugLog then 
+		XPBarDebugLog:Log("ContextBuilder", "ComputeXPGained - currentXP:", currentXP, "lastXP:", lastXP, "_lastXP was nil:", ContextBuilder._lastXP == nil)
+	end
+	
 	local xpGained = currentXP - lastXP
 	if xpGained < 0 then
 		-- Level-up occurred, XP wrapped around
@@ -197,6 +206,11 @@ function ContextBuilder.ComputeXPGained(currentXP, xpMax)
 	if xpGained < 0 then
 		xpGained = 0
 	end
+	
+	if XPBarDebugLog then 
+		XPBarDebugLog:Log("ContextBuilder", "ComputeXPGained - xpGained:", xpGained)
+	end
+	
 	-- update last values for next computation
 	ContextBuilder._lastXP = currentXP
 	ContextBuilder._lastMaxXP = xpMax
@@ -246,27 +260,6 @@ end
 
 -- Helper to build base context table
 function ContextBuilder.BuildBaseContext(event, source, coreState, extras)
-	-- Use explicit global reference to avoid nil issues
-	local AddonGlobal = _G["XPBarEnhanced"]
-	local db = AddonGlobal and AddonGlobal.db
-
-	-- Helper to get boolean from db with default fallback
-	local function getBool(key, default)
-		local dbValue = db and db[key]
-
-		if dbValue ~= nil then
-			-- For defaults that are true: show unless explicitly disabled
-			if default == true then
-				-- For defaults that are false: hide unless explicitly enabled
-				return dbValue ~= false
-			else
-				return dbValue == true
-			end
-		else
-			return default == true
-		end
-	end
-
 	local ctx = {
 		event = event,
 		timestamp = time(),
@@ -279,28 +272,21 @@ function ContextBuilder.BuildBaseContext(event, source, coreState, extras)
 		isResting = coreState.isResting,
 		hasRestedXP = coreState.hasRestedXP,
 		isFullyRested = coreState.isFullyRested,
-		-- Centralized display flags using ConfigHelper for consistency
-		showXPText = getBool("showXPText", true),
-		showLevelText = getBool("showLevelText", true),
-		showPercentage = getBool("showPercentage", true),
-		showQuestXP = getBool("showQuestXP", true),
-		showCompleteQuestOverlay = getBool("showCompleteQuestOverlay", true),
-		showIncompleteQuestOverlay = getBool("showIncompleteQuestOverlay", false),
-		showRestedOverlay = getBool("showRestedOverlay", true),
-		showExhaustionTick = getBool("showExhaustionTick", true),
-		showSessionTimeText = getBool("showSessionTimeText", true),
-		showLevelTimeText = getBool("showLevelTimeText", true),
-		showXPPerHourText = getBool("showXPPerHourText", true),
-		showTimeToLevelText = getBool("showTimeToLevelText", true),
-		-- Configuration values
-		percentDecimals = (db and db.percentDecimals) or 1,
-		abbreviateNumbers = getBool("abbreviateNumbers", true),
-		showRemainingXP = getBool("showRemainingXP", false),
-		showQuestPercent = getBool("showQuestPercent", false)
+		-- Note: display/config flags are applied below only when
+		-- present in the saved DB. Do not inject defaults here; the
+		-- context must reflect only actual saved configuration values.
 	}
 
 	if extras and type(extras) == "table" then
 		for k, v in pairs(extras) do
+			ctx[k] = v
+		end
+	end
+
+	-- Merge in any saved configuration keys (only present keys are included)
+	local staticCfg = BuildDBConfig()
+	if staticCfg and type(staticCfg) == "table" then
+		for k, v in pairs(staticCfg) do
 			ctx[k] = v
 		end
 	end
@@ -403,6 +389,10 @@ function ContextBuilder.BuildXPChangeContext(event, ...)
 		restedChanged = false,
 		questsChanged = false
 	}
+	
+	if XPBarDebugLog then 
+		XPBarDebugLog:Log("ContextBuilder", "BuildXPChangeContext - event:", event, "xpGained:", xpGained, "shouldAnimate:", eventContext.shouldAnimate)
+	end
 
 	-- Create immutable context with flattened structure
 	return ContextBuilder.MakeImmutable(eventContext, coreContext)
@@ -452,6 +442,9 @@ function ContextBuilder.BuildLevelUpContext(event, newLevel)
 		-- Level-up semantics
 		oldLevel = (newLevel or coreState.level) - 1,
 		newLevel = newLevel or coreState.level,
+		-- XP tracking fields (for consistency with XPChangeContext)
+		xpBefore = 0, -- Level-up resets XP from old max to 0
+		xpAfter = coreState.currentXP, -- Current XP after level-up
 		remainingXP = coreState.xpMax - coreState.currentXP,
 		-- Session stats (preserved from before reset)
 		sessionDuration = sessionDuration,

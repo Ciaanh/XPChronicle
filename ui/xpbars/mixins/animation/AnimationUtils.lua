@@ -82,7 +82,34 @@ end
 -- @param context table: XP context { xpBefore, xpAfter, xpMax, level }
 -- @return boolean: true if level-up detected
 function AnimationUtils.DetectLevelUp(context)
-	return context.xpAfter < context.xpBefore
+	-- Prefer explicit flag from context builder when available
+	if not context then
+		return false
+	end
+
+	local hasLeveledUp
+	-- Support both direct field access and Get() accessor on immutable contexts
+	if type(context.Get) == "function" then
+		hasLeveledUp = context:Get("hasLeveledUp")
+	else
+		hasLeveledUp = context.hasLeveledUp
+	end
+
+	if hasLeveledUp then
+		if XPBarDebugLog then XPBarDebugLog:Log("AnimationUtils", "DetectLevelUp - hasLeveledUp flag true") end
+		return true
+	end
+
+	-- Fallback: compare xpAfter/xpBefore safely
+	local xpAfter = (type(context.Get) == "function") and context:Get("xpAfter") or context.xpAfter
+	local xpBefore = (type(context.Get) == "function") and context:Get("xpBefore") or context.xpBefore
+
+	if not xpAfter or not xpBefore then
+		if XPBarDebugLog then XPBarDebugLog:Log("AnimationUtils", "DetectLevelUp - missing xpBefore/xpAfter, cannot detect level-up") end
+		return false
+	end
+
+	return xpAfter < xpBefore
 end
 
 --- Get total flash duration (fade in + hold + fade out)

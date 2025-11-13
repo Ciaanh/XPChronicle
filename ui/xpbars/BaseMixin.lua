@@ -20,7 +20,18 @@ local Addon = XPBarEnhanced
 
 --- Refresh bar state from game data (V2 unified pattern)
 function BaseMixin:Refresh()
+	if XPBarDebugLog then XPBarDebugLog:Log("BaseMixin", "Refresh called") end
+	
+	-- Check if ContextBuilder exists
+	if not XPBarContextBuilder then
+		if XPBarDebugLog then XPBarDebugLog:Log("BaseMixin", "ERROR: XPBarContextBuilder not found") end
+		error("XPBarContextBuilder not loaded")
+	end
+	
 	local context = XPBarContextBuilder.BuildXPChangeContext("MANUAL_REFRESH")
+	
+	if XPBarDebugLog then XPBarDebugLog:Log("BaseMixin", "Refresh context built:", context ~= nil) end
+	
 	self:TriggerBarRefresh(context)
 end
 
@@ -51,6 +62,7 @@ end
 
 --- OnLoad - Initialize bar state and register events
 function BaseMixin:OnLoad()
+	if XPBarDebugLog then XPBarDebugLog:Log("BaseMixin", "OnLoad called") end
 	-- Initialize internal config
 	self.__xpbar_config = self.__xpbar_config or {}
 
@@ -87,11 +99,19 @@ function BaseMixin:OnLoad()
 	end
 
 	-- Initial refresh
+	if XPBarDebugLog then XPBarDebugLog:Log("BaseMixin", "OnLoad calling initial Refresh") end
+	if not self.Refresh then
+		if XPBarDebugLog then XPBarDebugLog:Log("BaseMixin", "ERROR: Refresh method not found on frame") end
+		error("Refresh method missing")
+	end
+	if XPBarDebugLog then XPBarDebugLog:Log("BaseMixin", "OnLoad about to call self:Refresh()") end
 	self:Refresh()
+	if XPBarDebugLog then XPBarDebugLog:Log("BaseMixin", "OnLoad Refresh completed") end
 end
 
 --- OnShow - Called when bar becomes visible
 function BaseMixin:OnShow()
+	if XPBarDebugLog then XPBarDebugLog:Log("BaseMixin", "OnShow called") end
 	-- Refresh state when shown
 	self:Refresh()
 	
@@ -226,20 +246,88 @@ end
 -------------------------------------------------------------------
 
 --- Single entry point for all bar updates (NEW unified pattern)
---- Calls style-specific RenderBar method with immutable context
+--- Orchestrates animation vs immediate render based on context
 ---@param context table Immutable context from ContextBuilder with event flags
 function BaseMixin:TriggerBarRefresh(context)
+	if XPBarDebugLog then XPBarDebugLog:Log("BaseMixin", "TriggerBarRefresh called") end
+	
 	-- Explicit context required
 	if not context then
 		error("TriggerBarRefresh requires an explicit immutable context")
 	end
 	
-	-- Call style-specific render method (MUST be implemented by style)
+	-- Validate required methods
 	if not self.RenderBar then
+		if XPBarDebugLog then XPBarDebugLog:Log("BaseMixin", "ERROR: RenderBar method not found on frame", self:GetName() or "unknown") end
 		error("Style must implement RenderBar(context) method")
 	end
 	
-	self:RenderBar(context)
+	local frameName = self:GetName() or "unnamed"
+	if XPBarDebugLog then 
+		XPBarDebugLog:Log("BaseMixin", "Frame:", frameName, "shouldAnimate:", tostring(context.shouldAnimate))
+	end
+	
+	-- ORCHESTRATION: Decide between animation vs immediate render
+	if context.shouldAnimate and self.StartAnimation then
+		-- Animated update path
+		if XPBarDebugLog then XPBarDebugLog:Log("BaseMixin", "Starting animation for", frameName) end
+		
+		-- Calculate target ratio for animation (use xpMax, not maxXP)
+		local targetRatio = 0
+		if context.currentXP and context.xpMax and context.xpMax > 0 then
+			targetRatio = context.currentXP / context.xpMax
+		end
+		
+		if XPBarDebugLog then 
+			XPBarDebugLog:Log("BaseMixin", "Animation targetRatio:", targetRatio, "currentXP:", context.currentXP, "xpMax:", context.xpMax)
+		end
+		
+	-- Get animation config from nested structure
+	local fullConfig = self.__xpbar_config or {}
+	local animConfig = fullConfig.animation or {}
+	
+	-- Build flat config object for AnimationManager
+	local config = {
+		enableAnimations = animConfig.enableAnimations,
+		flashOnGain = animConfig.flashOnGain
+	}
+	
+	-- Apply defaults only if not explicitly set
+	if config.enableAnimations == nil then
+		config.enableAnimations = true
+	end
+	if config.flashOnGain == nil then
+		config.flashOnGain = true
+	end
+	
+	if XPBarDebugLog then 
+		XPBarDebugLog:Log("BaseMixin", "Animation config for", frameName, 
+			"enableAnimations:", config.enableAnimations, 
+			"flashOnGain:", config.flashOnGain,
+			"from nested:", animConfig.flashOnGain)
+	end
+	
+	-- Start animation - AnimationManager will call AnimateBarPosition on each tick
+	self:StartAnimation(targetRatio, context, config)
+		
+		if XPBarDebugLog then XPBarDebugLog:Log("BaseMixin", "Animation started for", frameName) end
+	else
+		-- Immediate render path
+		if XPBarDebugLog then 
+			local reason = not context.shouldAnimate and "shouldAnimate=false" or "no StartAnimation method"
+			XPBarDebugLog:Log("BaseMixin", "Immediate render for", frameName, "reason:", reason) 
+		end
+		
+		-- Call style-specific render method directly
+		-- If an animation is currently running, skip immediate render to avoid clobbering
+		if not (self.animation and self.animation.isAnimating) then
+			self:RenderBar(context)
+		else
+			if XPBarDebugLog then XPBarDebugLog:Log("BaseMixin", "Skipping immediate RenderBar for", frameName, "animation.isAnimating:", self.animation and self.animation.isAnimating or "nil") end
+		end
+		
+		if XPBarDebugLog then XPBarDebugLog:Log("BaseMixin", "RenderBar completed for", frameName) end
+	end
 end
 
 -------------------------------------------------------------------

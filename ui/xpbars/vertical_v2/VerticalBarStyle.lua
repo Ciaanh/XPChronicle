@@ -64,40 +64,23 @@ end
 -- V2 UNIFIED RENDER PATTERN (Phase 2: Refactor)
 -------------------------------------------------------------------
 
---- Single render method for vertical bar (NEW unified pattern)
---- Handles layout, colors, animation, and text in one pass
+--- Single render method for vertical bar (V2 unified pattern)
+--- Pure rendering method - orchestration handled by BaseMixin:TriggerBarRefresh
 ---@param context table Immutable context with all state and flags
 function VerticalBarStyleTemplate:RenderBar(context)
+    if XPBarDebugLog then XPBarDebugLog:Log("VerticalBar", "RenderBar called") end
     if not context then
         error("RenderBar requires an explicit immutable context")
     end
 
-    -- Calculate target ratio
+    -- Calculate target ratio (use currentXP as canonical field)
     local targetRatio = 0
     if context.xpMax and context.xpMax > 0 then
         targetRatio = (context.currentXP or 0) / context.xpMax
     end
 
-    -- ANIMATION DECISION (use context flags)
-    if context.shouldAnimate then
-        -- Start animation - AnimationManager will call AnimateBarPosition on each tick
-        local xpContext = {
-            xpBefore = context.xpBefore or context.previousXP or 0,
-            xpAfter = context.xpAfter or context.currentXP or 0,
-            xpMax = context.xpMax or 1,
-            xpGained = context.xpGained or 0,
-            restedXP = context.restedXP or 0,
-            isResting = context.isResting or false,
-            hasRestedXP = context.hasRestedXP or false,
-            level = context.level or 1,
-            timestamp = GetTime()
-        }
-        local config = self:GetAnimationConfig()
-        self:StartAnimation(targetRatio, xpContext, config)
-    else
-        -- Instant update - render all elements at final position
-        self:RenderBarFrame(targetRatio, context)
-    end
+    -- Render at final position (no animation decision - BaseMixin handles that)
+    self:RenderBarFrame(targetRatio, context)
 
     -- Update overlays (always update, even during animation)
     if self.UpdateRestedOverlay then
@@ -145,47 +128,6 @@ end
 -------------------------------------------------------------------
 -- OVERRIDES for the vertical layout
 -------------------------------------------------------------------
-
---- Override main bar layout for vertical orientation (uses StatusBar with vertical orientation)
-function VerticalBarStyleTemplate:UpdateBarLayout(context, barName)
-    if not self.StatusBar then
-        return
-    end
-    
-    -- Calculate target fill ratio
-    local currentXP = context.currentXP or 0
-    local maxXP = context.xpMax or 1
-    local targetRatio = maxXP > 0 and (currentXP / maxXP) or 0
-    
-    -- Build XP context for animation system
-    local xpContext = {
-        xpBefore = context.xpBefore or context.currentXP or 0,
-        xpAfter = context.xpAfter or context.currentXP or 0,
-        xpMax = context.xpMax or 1,
-        xpGained = context.xpGained or 0,
-        restedXP = context.restedXP or 0,
-        isResting = context.isResting or false,
-        hasRestedXP = context.hasRestedXP or false,
-        level = context.level or 1,
-        timestamp = GetTime()
-    }
-    
-    -- Get animation config
-    local config = self:GetAnimationConfig()
-    
-    -- Start animation (delegates to AnimationManager via AnimationBase)
-    if self.StartAnimation then
-        self:StartAnimation(targetRatio, xpContext, config)
-    else
-        -- Fallback: instant update if animation system not available
-        self.StatusBar:SetValue(targetRatio)
-    end
-    
-    -- Update bar colors (non-animated visuals)
-    if self.UpdateBarColors then
-        self:UpdateBarColors(context)
-    end
-end
 
 --- Override main bar color for vertical orientation (uses StatusBar SetStatusBarColor)
 function VerticalBarStyleTemplate:UpdateBarColors(context, barName)
