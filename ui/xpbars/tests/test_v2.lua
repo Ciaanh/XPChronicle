@@ -244,6 +244,96 @@ Addon.Tests.CreateTestBar = CreateTestBar
 Addon.Tests.DestroyTestBar = DestroyTestBar
 Addon.Tests.PrintContext = PrintContext
 Addon.Tests.TriggerFlash = TriggerFlash
+-- Trigger a flash specifically for circular bar v2 and report a summary of segment alphas
+local function TriggerCircularFlash(amount)
+	if not CircularBar_v2 then
+		if XPBarEnhanced_CreateCircularBarFrame then
+			CircularBar_v2 = XPBarEnhanced_CreateCircularBarFrame()
+		else
+			CircularBar_v2 = XPBarStyleBuilder and XPBarStyleBuilder.CreateFrameForStyle("circular", nil, "CircularBarTemplate_v2")
+		end
+	end
+	if not CircularBar_v2 then
+		logError("CircularBar not available")
+		return
+	end
+
+	-- Create a fake XP gain context and trigger it on the circular bar
+	if CircularBar_v2.TriggerXPChanged and XPBarContextBuilder and XPBarContextBuilder.BuildXPChangeContext then
+		local baseCtx = XPBarContextBuilder.BuildXPChangeContext("TEST_FLASH")
+		if baseCtx then
+			local testXPGain = amount or 1000
+			local xpAfter = math.min((baseCtx.xpBefore or 0) + testXPGain, baseCtx.xpMax or 1)
+			local testCtx = {
+				level = baseCtx.level,
+				currentXP = xpAfter,
+				xpMax = baseCtx.xpMax,
+				xpBefore = baseCtx.xpBefore,
+				xpAfter = xpAfter,
+				xpGained = testXPGain,
+				restedXP = baseCtx.restedXP,
+				hasRestedXP = baseCtx.hasRestedXP,
+				completeQuestXP = baseCtx.completeQuestXP,
+				incompleteQuestXP = baseCtx.incompleteQuestXP,
+				percentComplete = (xpAfter / (baseCtx.xpMax or 1)) * 100,
+				showCompleteQuestOverlay = baseCtx.showCompleteQuestOverlay,
+				showIncompleteQuestOverlay = baseCtx.showIncompleteQuestOverlay,
+				showRestedOverlay = baseCtx.showRestedOverlay,
+				changeSource = "TEST_FLASH_CIRCULAR"
+			}
+			pcall(CircularBar_v2.TriggerXPChanged, CircularBar_v2, testCtx)
+			logInfo("Triggered circular Test Flash")
+			-- Print a summary of first 10 segment alphas for manual verification
+			local alphasSummary = {}
+			for i = 1, math.min(10, #CircularBar_v2.segments) do
+				local seg = CircularBar_v2.segments[i]
+				local r,g,b,a = seg:GetVertexColor()
+				table.insert(alphasSummary, string.format("%d: %.2f", i, a))
+			end
+			logInfo("Circular segment alpha summary (first 10): " .. table.concat(alphasSummary, ", "))
+			return
+		end
+	end
+	logWarn("Could not trigger circular flash")
+end
+Addon.Tests.TriggerCircularFlash = TriggerCircularFlash
+-- Toggle quest XP setting then force update and log circular bar state
+local function ToggleQuestXPForCircular(toggle)
+	if not Addon or not Addon.db then
+		logError("Addon db not available")
+		return
+	end
+	Addon.db.showQuestXP = toggle
+	if Addon.XPBar and Addon.XPBar.Update then
+		Addon.XPBar:Update()
+	end
+	-- Print post-update context and circular cached values
+	if CircularBar_v2 and CircularBar_v2.FullUpdate then
+		local ctx = XPBarContextBuilder and XPBarContextBuilder.BuildXPChangeContext and XPBarContextBuilder.BuildXPChangeContext("MANUAL_REFRESH")
+		if ctx then
+			pcall(CircularBar_v2.FullUpdate, CircularBar_v2, ctx)
+		end
+	end
+	print("Toggled showQuestXP to:", tostring(toggle))
+end
+Addon.Tests.ToggleQuestXPForCircular = ToggleQuestXPForCircular
+
+local function SimulateLevelUpOnCircular(newLevel)
+	if not XPBarContextBuilder then
+		logError("ContextBuilder not available")
+		return
+	end
+	local ctx = XPBarContextBuilder.BuildLevelUpContext("PLAYER_LEVEL_UP", newLevel)
+	if not ctx then
+		logError("Could not build level up context")
+		return
+	end
+	if CircularBar_v2 and CircularBar_v2.TriggerBarRefresh then
+		pcall(CircularBar_v2.TriggerBarRefresh, CircularBar_v2, ctx)
+	end
+	print("Simulated level up for CircularBar to level:", tostring(newLevel))
+end
+Addon.Tests.SimulateLevelUpOnCircular = SimulateLevelUpOnCircular
 
 -------------------------------------------------------------------
 -- LEGACY BAR V2 TEST FUNCTIONS

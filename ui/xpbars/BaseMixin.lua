@@ -307,8 +307,25 @@ function BaseMixin:TriggerBarRefresh(context)
 			"from nested:", animConfig.flashOnGain)
 	end
 	
-	-- Start animation - AnimationManager will call AnimateBarPosition on each tick
-	self:StartAnimation(targetRatio, context, config)
+		-- Before starting animation, update overlays (if present) so any cached
+		-- overlay data (used by styles like CircularBar) are up-to-date for
+		-- the animation path. This mirrors the non-animated RenderBar flow
+		-- and avoids stale visuals during animation.
+		if self.UpdateRestedOverlay then
+			self:UpdateRestedOverlay(context)
+		end
+		if self.UpdateQuestCompleteOverlay then
+			self:UpdateQuestCompleteOverlay(context)
+		end
+		if self.UpdateQuestIncompleteOverlay then
+			self:UpdateQuestIncompleteOverlay(context)
+		end
+		if self.UpdateExhaustionTick then
+			self:UpdateExhaustionTick(context)
+		end
+
+		-- Start animation - AnimationManager will call AnimateBarPosition on each tick
+		self:StartAnimation(targetRatio, context, config)
 		
 		if XPBarDebugLog then XPBarDebugLog:Log("BaseMixin", "Animation started for", frameName) end
 	else
@@ -319,7 +336,26 @@ function BaseMixin:TriggerBarRefresh(context)
 		end
 		
 		-- Call style-specific render method directly
-		-- If an animation is currently running, skip immediate render to avoid clobbering
+		-- If an animation is currently running, we still allow immediate render
+		-- when this is an explicit full update or broadcast (e.g., options change)
+		local forceRender = false
+		-- Prefer context.event as the event marker (we use event names when building contexts)
+		if context and context.event then
+			local ev = context.event
+			if ev == "FULL_UPDATE" or ev == "BROADCAST_UPDATE" or ev == "MANUAL_REFRESH" then
+				forceRender = true
+			end
+		end
+
+		if self.animation and self.animation.isAnimating and forceRender then
+			-- If the style provides a cleanup hook, call it to stop animations
+			if self.CleanupAnimation then
+				self:CleanupAnimation()
+			end
+			-- Ensure animation flag cleared
+			if self.animation then self.animation.isAnimating = false end
+		end
+
 		if not (self.animation and self.animation.isAnimating) then
 			self:RenderBar(context)
 		else
