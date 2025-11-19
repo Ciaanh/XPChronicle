@@ -4,8 +4,8 @@
     <!-- Common XP bar templates -->
     <Include file="XPBarCommon.xml"/>
 
-    <!-- Legacy XP bar (Blizzard-style) -->
-    <Include file="styles/LegacyXPBar.xml"/>
+    <!-- Classic XP bar (Blizzard-style) -->
+    <Include file="styles/ClassicXPBar.xml"/>
 
     <!-- Flat XP bar -->
     <Include file="styles/FlatXPBar.xml"/>

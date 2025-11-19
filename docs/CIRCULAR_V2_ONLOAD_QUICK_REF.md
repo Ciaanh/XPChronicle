@@ -1,7 +1,7 @@
-# Circular V2 OnLoad Analysis - Quick Reference
+# Circular  OnLoad Analysis - Quick Reference
 
 ## Problem
-Circular V2 bar doesn't display correctly on initial load - bar and text remain empty until an XP event occurs.
+Circular  bar doesn't display correctly on initial load - bar and text remain empty until an XP event occurs.
 
 ## Root Causes
 
@@ -24,7 +24,7 @@ end
 ```lua
 function CircularBarStyleTemplate:OnLoad()
     -- ... setup ...
-    XPBarMixinBase_v2.OnLoad(self)  -- Calls Refresh() → RenderBar()
+    XPBarMixinBase.OnLoad(self)  -- Calls Refresh() → RenderBar()
     
     -- ❌ Duplicate call
     local context = XPBarContextBuilder.BuildXPChangeContext("PLAYER_ENTERING_WORLD")
@@ -48,7 +48,7 @@ local incompleteQuestXP = self.cachedIncompleteQuestXP or 0
 
 ## Architecture Comparison
 
-| Feature | Legacy/Vertical V2 | Circular V2 (Current) |
+| Feature | Classic/Vertical  | Circular  (Current) |
 |---------|-------------------|----------------------|
 | Custom OnLoad | ❌ No | ✅ Yes |
 | Early return in RenderBar | ❌ No | ✅ Yes (bug) |
@@ -61,7 +61,7 @@ local incompleteQuestXP = self.cachedIncompleteQuestXP or 0
 
 ### Required Changes
 
-**File:** `ui/xpbars/circular_v2/CircularBarStyle.lua`
+**File:** `ui/xpbars/circular/CircularBarStyle.lua`
 
 #### Change 1: Fix RenderBar Method
 Remove early return and add overlay/text updates (lines 437-475):
@@ -107,7 +107,7 @@ function CircularBarStyleTemplate:RenderBar(context)
         self:RenderBarFrame(targetRatio, context)
     end
     
-    -- ✅ ADD: Update overlays (matches Legacy/Vertical pattern)
+    -- ✅ ADD: Update overlays (matches Classic/Vertical pattern)
     if self.UpdateRestedOverlay then
         self:UpdateRestedOverlay(context)
     end
@@ -121,7 +121,7 @@ function CircularBarStyleTemplate:RenderBar(context)
         self:UpdateExhaustionTick(context)
     end
     
-    -- ✅ ADD: Update text (matches Legacy/Vertical pattern)
+    -- ✅ ADD: Update text (matches Classic/Vertical pattern)
     if self.UpdateTexts then
         self:UpdateTexts(context)
     end
@@ -150,8 +150,8 @@ function CircularBarStyleTemplate:OnLoad()
     self:CreateRingSegments()
 
     -- Call base OnLoad first (initializes animation system)
-    if XPBarMixinBase_v2 and XPBarMixinBase_v2.OnLoad then
-        XPBarMixinBase_v2.OnLoad(self)
+    if XPBarMixinBase and XPBarMixinBase.OnLoad then
+        XPBarMixinBase.OnLoad(self)
     end
     
     -- ❌ REMOVE THIS BLOCK:
@@ -191,18 +191,18 @@ end
 
 ## Related Files
 
-- **Primary:** `ui/xpbars/circular_v2/CircularBarStyle.lua`
-- **Reference:** `ui/xpbars/legacy_v2/LegacyBarStyle.lua` (working pattern)
-- **Reference:** `ui/xpbars/vertical_v2/VerticalBarStyle.lua` (working pattern)
+- **Primary:** `ui/xpbars/circular/CircularBarStyle.lua`
+- **Reference:** `ui/xpbars/classic/ClassicBarStyle.lua` (working pattern)
+- **Reference:** `ui/xpbars/vertical/VerticalBarStyle.lua` (working pattern)
 - **Base:** `ui/xpbars/BaseMixin.lua` (common OnLoad/event flow)
 - **Context:** `ui/xpbars/ContextBuilder.lua` (context building)
 
 ## Documentation Files Created
 
-1. **CIRCULAR_V2_ONLOAD_ISSUE.md** - Detailed technical analysis
-2. **CIRCULAR_V2_ONLOAD_FIX.md** - Executive summary with fix
-3. **V2_ONLOAD_WORKFLOW_COMPARISON.md** - Visual workflow diagrams
-4. **CIRCULAR_V2_ONLOAD_QUICK_REF.md** - This quick reference (you are here)
+1. **CIRCULAR_ONLOAD_ISSUE.md** - Detailed technical analysis
+2. **CIRCULAR_ONLOAD_FIX.md** - Executive summary with fix
+3. **ONLOAD_WORKFLOW_COMPARISON.md** - Visual workflow diagrams
+4. **CIRCULAR_ONLOAD_QUICK_REF.md** - This quick reference (you are here)
 
 ## Why It Works After XP Events
 
@@ -218,4 +218,4 @@ Even though the fix is needed, the bar **does** work after XP events occur becau
 
 ## Key Takeaway
 
-The circular bar uses a **cached overlay pattern** that requires overlay update methods to populate the cache. The early return prevents these methods from being called on first load, leaving the cache empty. The fix ensures overlay updates happen on every render, just like Legacy/Vertical styles.
+The circular bar uses a **cached overlay pattern** that requires overlay update methods to populate the cache. The early return prevents these methods from being called on first load, leaving the cache empty. The fix ensures overlay updates happen on every render, just like Classic/Vertical styles.

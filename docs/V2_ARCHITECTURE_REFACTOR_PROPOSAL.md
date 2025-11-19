@@ -1,4 +1,4 @@
-# V2 Architecture Refactor Proposal
+#  Architecture Refactor Proposal
 ## Simplified Event → Context → Render Pipeline
 
 ### Current Problems
@@ -173,8 +173,8 @@ end
 **Remove all Trigger methods** - replace with single `TriggerBarRefresh`:
 
 ```lua
----@class XPBarMixinBase_v2
-XPBarMixinBase_v2 = {}
+---@class XPBarMixinBase
+XPBarMixinBase = {}
 
 --- Single public API for all updates
 function BaseMixin:Refresh()
@@ -501,7 +501,7 @@ end
 ### Phase 2: Implement RenderBar for All Styles 🔄
 ✅ Implement RenderBar(context) for Circular style (already done!)
 ⏳ Implement RenderBar(context) for Flat style
-⏳ Implement RenderBar(context) for Legacy style
+⏳ Implement RenderBar(context) for Classic style
 ⏳ Implement RenderBar(context) for Vertical style
 
 ### Phase 3: Switch to TriggerBarRefresh ⚠️ BREAKING
@@ -516,14 +516,14 @@ end
 🧹 Keep LayoutMixin calculation helpers (CalculateBarRatio, CalculateOverlayBounds, etc.)
 🧹 Keep TextMixin (centralized text formatting - still useful)
 
-**Note:** This is a clean break approach - no legacy fallback code to maintain!
+**Note:** This is a clean break approach - no classic fallback code to maintain!
 
 **Why no fallback?**
 - 🎯 **Simpler codebase**: No dual code paths to maintain
 - 🚀 **Faster development**: All styles migrate together
 - 🧪 **Better testing**: One pattern to test, not two
 - 📖 **Clearer intent**: New code is the only code
-- 🔧 **Easier maintenance**: No "legacy mode" edge cases
+- 🔧 **Easier maintenance**: No "classic mode" edge cases
 
 **Migration strategy:**
 1. Implement RenderBar for all 4 styles in parallel
@@ -564,7 +564,7 @@ end
 
 ## Code Size Comparison
 
-### Before (Current V2)
+### Before (Current )
 ```
 BaseMixin.lua:         360 lines (Trigger methods, event routing)
 VisualsMixin.lua:      100 lines (Orchestration)
@@ -600,7 +600,7 @@ BUT:
 
 ## Comparison: Current vs Circular vs Proposed
 
-### Current Pattern (Flat/Legacy/Vertical)
+### Current Pattern (Flat/Classic/Vertical)
 ```lua
 -- Multiple calls per event
 TriggerXPChanged(context)
@@ -897,7 +897,7 @@ This will:
 
 ### Medium Priority (Do Next)
 1. Implement RenderBar for Flat style
-2. Implement RenderBar for Legacy style
+2. Implement RenderBar for Classic style
 3. Implement RenderBar for Vertical style
 4. Update animation system to use context flags
 

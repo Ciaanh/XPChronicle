@@ -1,13 +1,13 @@
-# Legacy Bar V2 Migration Plan
+# Classic Bar  Migration Plan
 
 **Date**: November 7, 2025  
-**Phase**: Phase 2 - Legacy Bar Migration  
+**Phase**: Phase 2 - Classic Bar Migration  
 **Status**: ✅ IMPLEMENTATION COMPLETE
 
 **Implementation Details**:
-- Files: `ui/xpbars/legacy_v2/LegacyBarStyle.lua` (192 LOC), `LegacyBarTemplate.xml` (233 LOC)
-- Integration: XML includes Lua via `<Script file="LegacyBarStyle.lua"/>`, XML in TOC
-- Registration: Style key `"legacy_v2"` registered with StyleBuilder
+- Files: `ui/xpbars/classic/ClassicBarStyle.lua` (192 LOC), `ClassicBarTemplate.xml` (233 LOC)
+- Integration: XML includes Lua via `<Script file="ClassicBarStyle.lua"/>`, XML in TOC
+- Registration: Style key `"classic"` registered with StyleBuilder
 - Code Reduction: -59% (469 → 192 LOC)
 
 ---
@@ -15,37 +15,37 @@
 ## Migration Overview
 
 ### Objective
-Port the Legacy Bar (Blizzard-style) from V1 architecture to V2 mixin-based composition system.
+Port the Classic Bar (Blizzard-style) from V1 architecture to  mixin-based composition system.
 
-### Why Legacy Bar First?
+### Why Classic Bar First?
 - Simplest style after Flat Bar (no custom animations)
 - **Static positioning** (different from Flat Bar's draggable system)
 - Uses standard AnimationManager (no custom animation code needed)
-- Good test of V2 architecture with different positioning strategy
+- Good test of  architecture with different positioning strategy
 
-### Key Differences from Flat Bar V2
-| Aspect | Flat Bar V2 | Legacy Bar V2 |
+### Key Differences from Flat Bar 
+| Aspect | Flat Bar  | Classic Bar  |
 |--------|-------------|---------------|
 | **Positioning** | Draggable (PositionMixin) | Static (anchored to Blizzard bar) |
 | **Size** | Fixed 565x11 | Fixed 565x11 (matches Blizzard) |
 | **Animations** | AnimationManager | AnimationManager (same) |
 | **Textures** | Solid colors | Solid colors (atlas removed in V1) |
-| **Container** | Simple Frame | LegacyXPBarContainerMixin (positioning logic) |
+| **Container** | Simple Frame | ClassicXPBarContainerMixin (positioning logic) |
 
 ---
 
-## V1 Legacy Bar Analysis
+## V1 Classic Bar Analysis
 
 ### File Structure (Current V1)
 ```
 ui/xpbar/styles/
-├── LegacyXPBarMixin.lua (469 lines)
+├── ClassicXPBarMixin.lua (469 lines)
 │   ├── ExhaustionTickMixin (~15 lines)
-│   ├── LegacyXPBarContainerMixin (~100 lines) - Positioning logic
-│   └── LegacyXPBarMixin (~354 lines) - Bar implementation
-└── LegacyXPBar.xml (184 lines)
-    ├── LegacyXPBarTemplate (main bar)
-    ├── LegacyXPBarContainerTemplate (container with border)
+│   ├── ClassicXPBarContainerMixin (~100 lines) - Positioning logic
+│   └── ClassicXPBarMixin (~354 lines) - Bar implementation
+└── ClassicXPBar.xml (184 lines)
+    ├── ClassicXPBarTemplate (main bar)
+    ├── ClassicXPBarContainerTemplate (container with border)
     └── Below-bar text containers
 ```
 
@@ -61,7 +61,7 @@ ui/xpbar/styles/
    - Flash colors based on rested state
 
 3. **Container Management**
-   - `LegacyXPBarContainerMixin` handles positioning
+   - `ClassicXPBarContainerMixin` handles positioning
    - Wire up text elements from OverlayFrame
    - Below-bar text containers (rate, session, quest summary)
 
@@ -71,12 +71,12 @@ ui/xpbar/styles/
    - Quest Incomplete: `QuestOverlayIncomplete` (solid texture, customizable color)
    - Exhaustion Tick: `ExhaustionTick` (atlas-based marker)
 
-5. **Animation (V1 Legacy)**
+5. **Animation (V1 Classic)**
    - Uses XPBarMixinBase animation system
    - Flash on XP gain (customizable color)
    - Value smoothing via StatusBar
 
-### Code That Will Be Removed (V1 → V2)
+### Code That Will Be Removed (V1 → )
 - ❌ Event handling (handled by BaseMixin)
 - ❌ Animation logic (handled by AnimationManager)
 - ❌ Tooltip management (handled by TooltipMixin)
@@ -84,27 +84,27 @@ ui/xpbar/styles/
 - ❌ Text formatting (handled by TextMixin)
 - ❌ State calculations (handled by ContextBuilder)
 
-### Code That Will Be Retained (V1 → V2)
+### Code That Will Be Retained (V1 → )
 - ✅ Static positioning logic (`PositionToMatchBlizzardBar`)
 - ✅ Container initialization (`OnLoad`, retry timer)
 - ✅ Text element wiring (`WireTextElements`)
-- ✅ `ApplyAnimationStep` implementation (V2 contract)
+- ✅ `ApplyAnimationStep` implementation ( contract)
 - ✅ XML visual structure (with minor adjustments)
 
 ---
 
-## V2 Architecture Plan
+##  Architecture Plan
 
 ### Directory Structure (New)
 ```
-ui/xpbars/legacy_v2/
-├── LegacyBarStyle.lua (~150 lines estimated)
+ui/xpbars/classic/
+├── ClassicBarStyle.lua (~150 lines estimated)
 │   ├── Style configuration
 │   ├── Positioning methods (static, non-draggable)
 │   ├── ApplyAnimationStep implementation
 │   └── StyleBuilder registration
-├── LegacyBarTemplate.xml (~180 lines)
-│   ├── LegacyBarTemplate (main bar frame)
+├── ClassicBarTemplate.xml (~180 lines)
+│   ├── ClassicBarTemplate (main bar frame)
 │   └── Visual layers (StatusBar, overlays, text)
 └── _includes.xml (2 lines)
     └── References to Lua and XML
@@ -112,8 +112,8 @@ ui/xpbars/legacy_v2/
 
 ### Mixin Composition
 ```lua
--- LegacyBarStyle uses:
-XPBarMixinBase_v2        -- Event orchestration, Trigger/Action methods
+-- ClassicBarStyle uses:
+XPBarMixinBase        -- Event orchestration, Trigger/Action methods
 + InteractionMixin       -- Mouse handling (Alt+Click, Ctrl+Click)
 + LayoutMixin            -- Overlay positioning (standard algorithms)
 + PaintMixin             -- Color application
@@ -121,11 +121,11 @@ XPBarMixinBase_v2        -- Event orchestration, Trigger/Action methods
 + TextMixin              -- Text formatting, real-time updates
 + TooltipMixin           -- Tooltip management
 + VisualsMixin           -- Visual element orchestration
-+ LegacyBarStyleTemplate -- Style-specific implementation
++ ClassicBarStyleTemplate -- Style-specific implementation
 ```
 
 **Note on Positioning**: 
-- Legacy Bar uses the same `PositionMixin` as Flat Bar
+- Classic Bar uses the same `PositionMixin` as Flat Bar
 - Static positioning achieved via `isDraggable = false` config
 - PositionMixin already supports both draggable and static modes
 - No custom positioning mixin needed
@@ -136,21 +136,21 @@ XPBarMixinBase_v2        -- Event orchestration, Trigger/Action methods
 
 ### Step 1: Create Directory Structure ⏳
 ```bash
-mkdir ui/xpbars/legacy_v2
+mkdir ui/xpbars/classic
 ```
 
 Files to create:
-- `LegacyBarStyle.lua` - Main style implementation
-- `LegacyBarTemplate.xml` - Visual structure
+- `ClassicBarStyle.lua` - Main style implementation
+- `ClassicBarTemplate.xml` - Visual structure
 - `_includes.xml` - File references
 
-### Step 2: Implement LegacyBarStyle.lua ⏳
+### Step 2: Implement ClassicBarStyle.lua ⏳
 
 **Structure**:
 ```lua
 -- Header: Dependencies check
 -- Debug system (optional, for development)
--- LegacyBarStyleTemplate:
+-- ClassicBarStyleTemplate:
 --   - ApplyAnimationStep(stepContext) - StatusBar + Flash
 --   - GetAnimationConfig() - Animation settings
 --   - (Optional) Override action methods if needed
@@ -160,7 +160,7 @@ Files to create:
 
 **Key Method**: `ApplyAnimationStep`
 ```lua
-function LegacyBarStyleTemplate:ApplyAnimationStep(stepContext)
+function ClassicBarStyleTemplate:ApplyAnimationStep(stepContext)
     -- 1. Update StatusBar value (smooth fill animation)
     if self.StatusBar then
         self.StatusBar:SetValue(stepContext.currentRatio)
@@ -184,26 +184,26 @@ function LegacyBarStyleTemplate:ApplyAnimationStep(stepContext)
 end
 ```
 
-### Step 3: Create LegacyBarTemplate.xml ⏳
+### Step 3: Create ClassicBarTemplate.xml ⏳
 
-**Based on**: V1 `LegacyXPBar.xml` with V2 simplification (following FlatBarTemplate_v2 pattern)
+**Based on**: V1 `ClassicXPBar.xml` with  simplification (following FlatBarTemplate pattern)
 
 **Key Design Decision: Eliminate Container Completely**
 
-After analyzing Flat Bar V2's structure, we can place the border frame atlas directly on the main frame as a texture layer, eliminating the container wrapper entirely.
+After analyzing Flat Bar 's structure, we can place the border frame atlas directly on the main frame as a texture layer, eliminating the container wrapper entirely.
 
-**V1 Legacy Structure**:
+**V1 Classic Structure**:
 ```
-LegacyXPBarContainerTemplate (571x17)
+ClassicXPBarContainerTemplate (571x17)
 ├── Border frame atlas (OVERLAY layer)
-└── LegacyXPBarTemplate (565x11, offset 1,5 inside container)
+└── ClassicXPBarTemplate (565x11, offset 1,5 inside container)
     └── StatusBar (565x10)
         └── ExhaustionTick (Button, 10x14)
 ```
 
-**V2 Legacy Structure** (No Container):
+** Classic Structure** (No Container):
 ```
-LegacyBarTemplate (571x17) - single frame, no nesting!
+ClassicBarTemplate (571x17) - single frame, no nesting!
 ├── Border frame atlas (OVERLAY layer - same as V1)
 ├── Flash overlay (OVERLAY layer)
 ├── StatusBar (565x11, offset 1,5 inside frame) - V1 size
@@ -227,8 +227,8 @@ LegacyBarTemplate (571x17) - single frame, no nesting!
 **Key Changes from V1**:
 
 1. **No Container Wrapper** (major simplification)
-   - V1: `LegacyXPBarContainerTemplate` wraps `LegacyXPBarTemplate` (nested)
-   - V2: Single `LegacyBarTemplate` frame (flat, like FlatBarTemplate_v2)
+   - V1: `ClassicXPBarContainerTemplate` wraps `ClassicXPBarTemplate` (nested)
+   - : Single `ClassicBarTemplate` frame (flat, like FlatBarTemplate)
    - Border frame atlas is just a texture layer on main frame
 
 2. **Frame size includes border space** (V1 dimensions preserved)
@@ -265,14 +265,14 @@ LegacyBarTemplate (571x17) - single frame, no nesting!
    - PositionMixin handles both static and draggable modes
    - No custom positioning mixin needed
 
-7. **Mixin declaration**: V2 composition pattern
+7. **Mixin declaration**:  composition pattern
    ```xml
-   <Frame name="LegacyBarTemplate" virtual="true" 
-          mixin="LegacyBarStyleTemplate"
+   <Frame name="ClassicBarTemplate" virtual="true" 
+          mixin="ClassicBarStyleTemplate"
           frameStrata="LOW" enableMouse="true">
    ```
 
-8. **Simplified scripts**: Only V2 contract methods
+8. **Simplified scripts**: Only  contract methods
    ```xml
    <Scripts>
        <OnLoad method="OnLoad"/>
@@ -286,7 +286,7 @@ LegacyBarTemplate (571x17) - single frame, no nesting!
 
 **XML Structure Template**:
 ```xml
-<Frame name="LegacyBarTemplate" virtual="true" mixin="LegacyBarStyleTemplate" 
+<Frame name="ClassicBarTemplate" virtual="true" mixin="ClassicBarStyleTemplate" 
        frameStrata="LOW" enableMouse="true" fixedFrameStrata="true">
     <Size x="571" y="17"/>
     <Layers>
@@ -386,19 +386,19 @@ LegacyBarTemplate (571x17) - single frame, no nesting!
 - ✅ ExhaustionTick included with V1 structure (Button inside StatusBar)
 - ✅ Frame size (571x17) includes border space (same as V1)
 - ✅ No functional loss - positioning via PositionMixin (static mode)
-- ✅ Consistent with Flat Bar V2 pattern (no container nesting)
+- ✅ Consistent with Flat Bar  pattern (no container nesting)
 - ✅ Simpler XML structure (~140 lines vs V1's 184 lines)
 
 ### Step 4: Register with StyleBuilder ⏳
 
-**In LegacyBarStyle.lua**:
+**In ClassicBarStyle.lua**:
 ```lua
-XPBarStyleBuilder.RegisterStyle("legacy_v2", {
-    template = "LegacyBarTemplate",
-    displayName = "Legacy (Blizzard-style)",
+XPBarStyleBuilder.RegisterStyle("classic", {
+    template = "ClassicBarTemplate",
+    displayName = "Classic (Blizzard-style)",
     description = "Classic Blizzard experience bar style",
     mixins = {
-        XPBarMixinBase_v2,
+        XPBarMixinBase,
         XPBarInteractionMixin,
         XPBarLayoutMixin,
         XPBarPaintMixin,
@@ -406,7 +406,7 @@ XPBarStyleBuilder.RegisterStyle("legacy_v2", {
         XPBarTextMixin,
         XPBarTooltipMixin,
         XPBarVisualsMixin,
-        LegacyBarStyleTemplate
+        ClassicBarStyleTemplate
     },
     config = {
         isDraggable = false,      -- IMPORTANT: Static positioning (anchored to Blizzard bar)
@@ -424,24 +424,24 @@ XPBarStyleBuilder.RegisterStyle("legacy_v2", {
 
 **In main `Frames.xml`**:
 ```xml
-<!-- V2 Legacy Bar -->
-<Include file="ui\xpbars\legacy_v2\_includes.xml"/>
+<!--  Classic Bar -->
+<Include file="ui\xpbars\classic\_includes.xml"/>
 ```
 
-**Create `ui/xpbars/legacy_v2/_includes.xml`**:
+**Create `ui/xpbars/classic/_includes.xml`**:
 ```xml
 <Ui xmlns="http://www.blizzard.com/wow/ui/">
-    <Script file="LegacyBarStyle.lua"/>
-    <Include file="LegacyBarTemplate.xml"/>
+    <Script file="ClassicBarStyle.lua"/>
+    <Include file="ClassicBarTemplate.xml"/>
 </Ui>
 ```
 
 ### Step 6: Update .toc File ⏳
 
-Add after Flat Bar V2 includes:
+Add after Flat Bar  includes:
 ```toc
-# Legacy Bar V2
-ui\xpbars\legacy_v2\_includes.xml
+# Classic Bar 
+ui\xpbars\classic\_includes.xml
 ```
 
 **Note**: No custom positioning mixin needed - PositionMixin handles static mode via `isDraggable=false`
@@ -463,7 +463,7 @@ ui\xpbars\legacy_v2\_includes.xml
 
 ### Positioning
 - [ ] Bar anchored to Blizzard's MainStatusTrackingBarContainer
-- [ ] Position matches V1 Legacy bar exactly (TOP anchor, 0, 5 offset)
+- [ ] Position matches V1 Classic bar exactly (TOP anchor, 0, 5 offset)
 - [ ] Position persists across /reload
 - [ ] Bar follows if Blizzard bar moves (Edit Mode)
 - [ ] NOT draggable (no drag cursor, no position save)
@@ -506,7 +506,7 @@ ui\xpbars\legacy_v2\_includes.xml
 ## Side-by-Side Comparison Test
 
 ### Test Procedure
-1. Enable both V1 Legacy and V2 Legacy (temporary dual-load)
+1. Enable both V1 Classic and  Classic (temporary dual-load)
 2. Position them side-by-side
 3. Gain XP (kill mobs, complete quests)
 4. Compare:
@@ -519,7 +519,7 @@ ui\xpbars\legacy_v2\_includes.xml
 ### Validation Criteria
 - ✅ Visual appearance identical
 - ✅ Animation timing identical
-- ✅ No V2-specific bugs or artifacts
+- ✅ No -specific bugs or artifacts
 - ✅ Performance equal or better
 
 ---
@@ -527,23 +527,23 @@ ui\xpbars\legacy_v2\_includes.xml
 ## Migration Benefits
 
 ### Code Reduction
-- **V1 Legacy**: 469 lines (Lua) + 184 lines (XML) = **653 lines total**
-- **V2 Legacy**: ~180 lines (Lua) + ~140 lines (XML) = **~320 lines estimated**
+- **V1 Classic**: 469 lines (Lua) + 184 lines (XML) = **653 lines total**
+- ** Classic**: ~180 lines (Lua) + ~140 lines (XML) = **~320 lines estimated**
 - **Reduction**: ~51% (333 lines saved)
 
 **Note**: XML is significantly shorter than V1 because:
 - **No container wrapper** (saves ~40 lines)
   - Container template eliminated entirely
   - Border frame atlas moved to main frame as texture layer
-  - Follows Flat Bar V2 pattern (single frame, no nesting)
-- Container positioning logic removed (moved to LegacyPositionMixin)
+  - Follows Flat Bar  pattern (single frame, no nesting)
+- Container positioning logic removed (moved to ClassicPositionMixin)
 - Text wiring removed (handled by TextMixin)
-- Event scripts simplified (V2 contract methods only)
+- Event scripts simplified ( contract methods only)
 
 **Lua breakdown**:
-- LegacyBarStyle.lua: ~150 lines (ApplyAnimationStep + GetAnimationConfig)
-- LegacyPositionMixin.lua: ~30 lines (static positioning)
-- V1 had 469 lines → V2 has 180 lines (62% reduction)
+- ClassicBarStyle.lua: ~150 lines (ApplyAnimationStep + GetAnimationConfig)
+- ClassicPositionMixin.lua: ~30 lines (static positioning)
+- V1 had 469 lines →  has 180 lines (62% reduction)
 
 ### Shared Code Reuse
 - Event handling: BaseMixin (reused)
@@ -564,11 +564,11 @@ ui\xpbars\legacy_v2\_includes.xml
 
 ## Rollback Plan
 
-If V2 Legacy has issues:
-1. Keep V1 Legacy code intact during migration
-2. Toggle back to V1 via config: `Addon.Config.barStyle = "legacy"` (V1)
-3. V2 can be disabled without affecting V1
-4. Full rollback: Remove V2 files, restore .toc/.xml includes
+If  Classic has issues:
+1. Keep V1 Classic code intact during migration
+2. Toggle back to V1 via config: `Addon.Config.barStyle = "classic"` (V1)
+3.  can be disabled without affecting V1
+4. Full rollback: Remove  files, restore .toc/.xml includes
 
 ---
 
@@ -578,8 +578,8 @@ If V2 Legacy has issues:
 
 ### Day 1: Structure & Implementation
 - [ ] Create directory structure
-- [ ] Implement LegacyBarStyle.lua
-- [ ] Create LegacyBarTemplate.xml (with ExhaustionTick)
+- [ ] Implement ClassicBarStyle.lua
+- [ ] Create ClassicBarTemplate.xml (with ExhaustionTick)
 - [ ] Update includes and .toc
 
 ### Day 2: Testing & Refinement
@@ -601,7 +601,7 @@ If V2 Legacy has issues:
 ## Success Criteria
 
 Phase 2 is complete when:
-1. ✅ V2 Legacy Bar visually identical to V1
+1. ✅  Classic Bar visually identical to V1
 2. ✅ Animation timing matches V1 exactly (0.5s flash)
 3. ✅ Static positioning works correctly (anchored to Blizzard bar)
 4. ✅ All validation checklist items pass

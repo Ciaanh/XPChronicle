@@ -1,4 +1,4 @@
-# Circular Bar V2 Migration Plan
+# Circular Bar  Migration Plan
 
 **Date**: November 9, 2025  
 **Phase**: Phase 4 - Circular Bar Migration  
@@ -9,7 +9,7 @@
 ## Migration Overview
 
 ### Objective
-Port the Circular Bar (most complex style) from V1 architecture to V2 mixin-based composition system. This is the final and most challenging style migration, incorporating all lessons learned from Flat, Legacy, and Vertical bar migrations.
+Port the Circular Bar (most complex style) from V1 architecture to  mixin-based composition system. This is the final and most challenging style migration, incorporating all lessons learned from Flat, Classic, and Vertical bar migrations.
 
 ### Why Circular Bar Last?
 - **Most complex style** (962 LOC in V1, most in entire codebase)
@@ -17,11 +17,11 @@ Port the Circular Bar (most complex style) from V1 architecture to V2 mixin-base
 - **Multiple animation systems** - Arc smoothing (OnUpdate) + Glow effects (3-phase ticker)
 - **Complex overlays** - Rested arc, quest segments, all rendered as ring segments
 - **Custom positioning algorithms** - Circular segment placement with rotation
-- **Tests V2 extensibility limits** - Validates architecture for extreme customization
+- **Tests  extensibility limits** - Validates architecture for extreme customization
 
-### Key Differences from Other V2 Migrations
+### Key Differences from Other  Migrations
 
-| Aspect | Flat/Legacy V2 | Vertical V2 | Circular V2 |
+| Aspect | Flat/Classic  | Vertical  | Circular  |
 |--------|----------------|-------------|-------------|
 | **Rendering** | StatusBar widget | StatusBar widget | 60 custom textures (segments) |
 | **Positioning** | Linear (1D) | Linear vertical (1D) | Circular (2D polar coordinates) |
@@ -31,9 +31,9 @@ Port the Circular Bar (most complex style) from V1 architecture to V2 mixin-base
 
 ---
 
-### Phase 2: Legacy Bar Migration ✅ COMPLETE
+### Phase 2: Classic Bar Migration ✅ COMPLETE
 
-**Document**: `LEGACY_BAR_V2_MIGRATION.md`  
+**Document**: `CLASSIC_BAR_MIGRATION.md`  
 **Status**: Implementation complete  
 **Migration Complexity**: Low ⭐  
 **Actual Duration**: ~2 days
@@ -178,7 +178,7 @@ Unlike linear bars where overlays stack horizontally:
 4. Clamp totals to RING_SEGMENTS (60) to avoid overflow
 5. Apply colors and show segments in correct ranges
 
-### Code That Will Be Removed (V1 → V2)
+### Code That Will Be Removed (V1 → )
 - ❌ Event handling (`OnEvent`, `HandleEvent`) - handled by BaseMixin
 - ❌ Tooltip management (`OnEnter`, `OnLeave`) - handled by TooltipMixin
 - ❌ Text formatting methods - handled by TextMixin
@@ -186,7 +186,7 @@ Unlike linear bars where overlays stack horizontally:
 - ❌ Color update observers - handled by PaintMixin
 - ❌ Container dragging logic - handled by PositionMixin
 
-### Code That Will Be Retained (V1 → V2)
+### Code That Will Be Retained (V1 → )
 - ✅ Ring segment creation (`CreateRingSegments`)
 - ✅ Segment positioning (`PositionRingSegments`, `RotateTexture`)
 - ✅ Arc rendering (`SetArcProgress`, `UpdateRestedArc`, `UpdateQuestArc`)
@@ -195,10 +195,10 @@ Unlike linear bars where overlays stack horizontally:
 - ✅ Circular overlay algorithm (`ComputeQuestSegmentRanges`)
 - ✅ Center content setup (`SetupCenterContent`)
 
-### Key Challenges for V2 Migration
+### Key Challenges for  Migration
 
 #### Challenge 1: Custom Rendering Integration
-**Problem**: V2 AnimationManager expects StatusBar widget  
+**Problem**:  AnimationManager expects StatusBar widget  
 **Solution**: Override `AnimateBarPosition` to call `SetArcProgress(ratio)` instead of `StatusBar:SetValue()`
 
 #### Challenge 2: Dual Animation Systems
@@ -206,11 +206,11 @@ Unlike linear bars where overlays stack horizontally:
 **Solution**: Follow Vertical pattern - AnimationManager for coordination, custom methods for effects
 
 #### Challenge 3: Overlay Positioning
-**Problem**: V2 LayoutMixin assumes linear (1D) positioning  
+**Problem**:  LayoutMixin assumes linear (1D) positioning  
 **Solution**: Override overlay methods completely, use custom circular algorithm
 
 #### Challenge 4: No Flash Overlay
-**Problem**: V2 expects `GainFlash` texture for standard flash animation  
+**Problem**:  expects `GainFlash` texture for standard flash animation  
 **Solution**: Replace flash with glow effect, triggered from `AnimateBarEffect()`
 
 #### Challenge 5: Segment Performance
@@ -219,11 +219,11 @@ Unlike linear bars where overlays stack horizontally:
 
 ---
 
-## V2 Architecture Plan
+##  Architecture Plan
 
 ### Directory Structure (New)
 ```
-ui/xpbars/circular_v2/
+ui/xpbars/circular/
 ├── CircularBarStyle.lua (~500-600 lines estimated)
 │   ├── Style configuration
 │   ├── Ring segment creation and positioning
@@ -233,7 +233,7 @@ ui/xpbars/circular_v2/
 │   ├── ApplyAnimationStep implementation (delegates to custom methods)
 │   └── StyleBuilder registration
 ├── CircularBarTemplate.xml (~100 lines)
-│   ├── CircularBarTemplate_v2 (main frame, 256×256)
+│   ├── CircularBarTemplate (main frame, 256×256)
 │   └── No visual layers (segments created programmatically in Lua)
 └── _includes.xml (2 lines)
     └── References to Lua and XML
@@ -242,7 +242,7 @@ ui/xpbars/circular_v2/
 ### Mixin Composition
 ```lua
 -- CircularBarStyle uses:
-XPBarMixinBase_v2        -- Event orchestration, Trigger/Action methods
+XPBarMixinBase        -- Event orchestration, Trigger/Action methods
 + InteractionMixin       -- Mouse handling (Alt+Click, Ctrl+Click)
 + PaintMixin             -- Color application (custom for segments)
 + PositionMixin          -- Draggable positioning
@@ -263,7 +263,7 @@ XPBarMixinBase_v2        -- Event orchestration, Trigger/Action methods
 
 ### Step 1: Create Directory Structure ⏳
 ```powershell
-mkdir ui/xpbars/circular_v2
+mkdir ui/xpbars/circular
 ```
 
 Files to create:
@@ -324,7 +324,7 @@ local CIRCULAR_BAR_STYLE = {
 }
 ```
 
-#### B. AnimateBarPosition (V2 Contract Method)
+#### B. AnimateBarPosition ( Contract Method)
 ```lua
 function CircularBarStyleTemplate:AnimateBarPosition(stepContext)
     -- Update arc fill based on currentRatio
@@ -347,7 +347,7 @@ end
 
 **Key Decision**: Arc smoothing handled by AnimationManager's `currentRatio` interpolation, eliminating need for separate OnUpdate animation. This is a simplification from V1.
 
-#### C. AnimateBarEffect (V2 Contract Method)
+#### C. AnimateBarEffect ( Contract Method)
 ```lua
 function CircularBarStyleTemplate:AnimateBarEffect(stepContext)
     -- Circular bar uses GLOW instead of FLASH
@@ -600,7 +600,7 @@ function CircularBarStyleTemplate:UpdateRestedArc(currentXP, maxXP)
 end
 ```
 
-**Note**: Quest overlay offset logic intentionally removed for simplicity. In V1, rested segments were offset by quest segments. V2 version renders rested directly after current XP.
+**Note**: Quest overlay offset logic intentionally removed for simplicity. In V1, rested segments were offset by quest segments.  version renders rested directly after current XP.
 
 #### I. Quest Arc Rendering (Custom Algorithm)
 ```lua
@@ -777,8 +777,8 @@ function CircularBarStyleTemplate:ActionUpdateVisuals(context)
     end
     
     -- Call base implementation (handles text updates)
-    if XPBarMixinBase_v2.ActionUpdateVisuals then
-        XPBarMixinBase_v2.ActionUpdateVisuals(self, context)
+    if XPBarMixinBase.ActionUpdateVisuals then
+        XPBarMixinBase.ActionUpdateVisuals(self, context)
     end
 end
 ```
@@ -793,7 +793,7 @@ end
     <Script file="CircularBarStyle.lua"/>
     
     <!-- Circular Bar Template -->
-    <Frame name="CircularBarTemplate_v2" mixin="CircularBarXPBarMixin" virtual="true" 
+    <Frame name="CircularBarTemplate" mixin="CircularBarXPBarMixin" virtual="true" 
            enableMouse="true" frameStrata="MEDIUM">
         <Size x="256" y="256"/>
         
@@ -817,7 +817,7 @@ end
 local DefaultConfig = {
     interaction = {enabled = true},
     tooltip = {enabled = true},
-    position = {mode = "DRAGGABLE", positionKey = "CircularBar_v2"},
+    position = {mode = "DRAGGABLE", positionKey = "CircularBar"},
     animation = {enableAnimations = true, flashOnGain = true},
     style = {
         width = 256,
@@ -829,7 +829,7 @@ local DefaultConfig = {
 
 -- Create composed mixin
 CircularBarXPBarMixin = XPBarStyleBuilder:Create(
-    XPBarMixinBase_v2,
+    XPBarMixinBase,
     CircularBarStyleTemplate,
     DefaultConfig
 )
@@ -845,12 +845,12 @@ XPBarStyleBuilder:RegisterStyle("circular", CircularBarXPBarMixin)
 ### Integration Tasks ⬜
 
 1. **TOC File Updates**
-   - Add `ui\xpbars\circular_v2\CircularBarStyle.lua`
-   - Add `ui\xpbars\circular_v2\CircularBarTemplate.xml`
-   - Ensure load order (after core V2 files, after animation system)
+   - Add `ui\xpbars\circular\CircularBarStyle.lua`
+   - Add `ui\xpbars\circular\CircularBarTemplate.xml`
+   - Ensure load order (after core  files, after animation system)
 
 2. **Frames.xml Updates**
-   - Include circular_v2 XML template
+   - Include circular XML template
    - Ensure mixin name matches (`CircularBarXPBarMixin`)
 
 3. **StyleBuilder Registration**
@@ -925,10 +925,10 @@ XPBarStyleBuilder:RegisterStyle("circular", CircularBarXPBarMixin)
 
 ### Code Reduction
 
-| Component | V1 LOC | V2 LOC | Reduction |
+| Component | V1 LOC |  LOC | Reduction |
 |-----------|--------|--------|-----------|
 | Style File | 962 | 500-600 (est) | -38% to -48% |
-| Container | Included | N/A | Handled by V2 core |
+| Container | Included | N/A | Handled by  core |
 | **Total** | **962** | **500-600** | **-38% to -48%** |
 
 ### Architecture Improvements
@@ -940,16 +940,16 @@ XPBarStyleBuilder:RegisterStyle("circular", CircularBarXPBarMixin)
 - ✅ Duplicated text formatting removed (now in TextMixin)
 - ✅ Cleaner separation of concerns (rendering vs behavior)
 
-**V2 Benefits**:
+** Benefits**:
 - Standard event handling and lifecycle via BaseMixin
 - Animation coordination via AnimationManager
-- Consistent with other V2 styles
+- Consistent with other  styles
 - Custom rendering fully preserved
 - Performance optimizations possible (delta rendering)
 
 ### Feature Parity
 
-| Feature | V1 | V2 | Notes |
+| Feature | V1 |  | Notes |
 |---------|----|----|-------|
 | **Ring Segments** | ✅ | ✅ | 60 segments, same rendering |
 | **Arc Fill Animation** | ✅ | ✅ | Integrated with AnimationManager |
@@ -962,7 +962,7 @@ XPBarStyleBuilder:RegisterStyle("circular", CircularBarXPBarMixin)
 | **Tooltips** | ✅ | ✅ | Via TooltipMixin |
 | **Text Updates** | ✅ | ✅ | Via TextMixin |
 
-**No Feature Regressions**: 100% V1 functionality preserved in V2.
+**No Feature Regressions**: 100% V1 functionality preserved in .
 
 ---
 
@@ -995,7 +995,7 @@ XPBarStyleBuilder:RegisterStyle("circular", CircularBarXPBarMixin)
 **Solution**:
 - Document as retail-only feature
 - For Classic support, would need alternative rotation method (e.g., texture coordinates)
-- Out of scope for initial V2 migration
+- Out of scope for initial  migration
 
 ### Challenge 5: Integration with Other Animations
 **Problem**: Both AnimationManager and Glow OnUpdate running simultaneously  
@@ -1012,21 +1012,21 @@ XPBarStyleBuilder:RegisterStyle("circular", CircularBarXPBarMixin)
 ### Unit Testing (Manual Commands)
 ```lua
 -- Test arc rendering
-/run CircularBar_v2:SetArcProgress(0.5)  -- 50% fill
-/run CircularBar_v2:SetArcProgress(0)    -- Empty
-/run CircularBar_v2:SetArcProgress(1)    -- Full
+/run CircularBar:SetArcProgress(0.5)  -- 50% fill
+/run CircularBar:SetArcProgress(0)    -- Empty
+/run CircularBar:SetArcProgress(1)    -- Full
 
 -- Test glow animation
-/run CircularBar_v2:PlayGlowPulse()
+/run CircularBar:PlayGlowPulse()
 
 -- Test XP gain simulation
-/run CircularBar_v2:TriggerXPGain(1000)
+/run CircularBar:TriggerXPGain(1000)
 
 -- Test level-up
-/run CircularBar_v2:TestLevelUp()
+/run CircularBar:TestLevelUp()
 
 -- Test multi-instance
-/run XPBarStyleBuilder:CreateFrameForStyle("circular", nil, "CircularBarTemplate_v2"):Show()
+/run XPBarStyleBuilder:CreateFrameForStyle("circular", nil, "CircularBarTemplate"):Show()
 ```
 
 ### Integration Testing
@@ -1043,7 +1043,7 @@ XPBarStyleBuilder:RegisterStyle("circular", CircularBarXPBarMixin)
 /run print(collectgarbage("count"))
 
 -- Trigger 100 XP gains
-/run for i=1,100 do CircularBar_v2:TriggerXPGain(10) end
+/run for i=1,100 do CircularBar:TriggerXPGain(10) end
 
 -- Memory after
 /run print(collectgarbage("count"))
@@ -1073,15 +1073,15 @@ XPBarStyleBuilder:RegisterStyle("circular", CircularBarXPBarMixin)
 - User complaints > 10% of circular bar users
 
 ### Rollback Procedure
-1. **Revert Commit**: `git revert <circular-v2-commit>`
+1. **Revert Commit**: `git revert <circular--commit>`
 2. **Restore V1**: Re-enable `ui/xpbar/styles/CircularXPBarMixin.lua` in .toc
 3. **Test V1**: Verify circular bar works
-4. **Update Options**: Remove circular from V2 style selector
+4. **Update Options**: Remove circular from  style selector
 5. **Communicate**: Notify users in patch notes
 
 ### Fallback Strategy
-- Keep V1 circular bar file in codebase until V2 fully validated
-- Add config flag: `useCircularV2 = false` to disable V2 temporarily
+- Keep V1 circular bar file in codebase until  fully validated
+- Add config flag: `useCircular = false` to disable  temporarily
 - Document issues in GitHub for future resolution
 
 ---
@@ -1126,7 +1126,7 @@ XPBarStyleBuilder:RegisterStyle("circular", CircularBarXPBarMixin)
 
 ### Code Quality Requirements
 - ✅ No code duplication with other styles
-- ✅ Consistent with V2 architecture patterns
+- ✅ Consistent with  architecture patterns
 - ✅ Well-commented (especially complex algorithms)
 - ✅ No globals except documented ones
 - ✅ Error handling for edge cases
@@ -1141,17 +1141,17 @@ XPBarStyleBuilder:RegisterStyle("circular", CircularBarXPBarMixin)
 
 ## Lessons Learned (From Previous Migrations)
 
-### From Flat Bar V2 ✅
+### From Flat Bar  ✅
 - **Lesson**: AnimationManager integration is straightforward for StatusBar-based bars
 - **Application**: Circular bar needs custom `AnimateBarPosition()` without StatusBar
 - **Benefit**: Proven animation coordination pattern
 
-### From Legacy Bar V2 ✅
+### From Classic Bar  ✅
 - **Lesson**: Static positioning is simpler than draggable (config flag handles it)
 - **Application**: Circular uses draggable (like Flat), no special handling needed
 - **Benefit**: PositionMixin handles all positioning logic
 
-### From Vertical Bar V2 ✅
+### From Vertical Bar  ✅
 - **Lesson**: Custom animations can coexist with AnimationManager via OnUpdate
 - **Application**: Glow animation uses separate OnUpdate, no conflicts
 - **Benefit**: Validated pattern for dual animation systems
@@ -1164,7 +1164,7 @@ XPBarStyleBuilder:RegisterStyle("circular", CircularBarXPBarMixin)
 
 ---
 
-## Next Steps After Circular V2 Complete
+## Next Steps After Circular  Complete
 
 ### Phase 5: V1 Architecture Cleanup ⬜
 1. Remove `ui/xpbar/` directory (all V1 styles)
@@ -1177,14 +1177,14 @@ XPBarStyleBuilder:RegisterStyle("circular", CircularBarXPBarMixin)
 1. Performance optimization (texture pooling, delta rendering)
 2. External developer tutorial (custom style guide)
 3. Comprehensive testing (all 4 styles simultaneously)
-4. Documentation update (README, ARCHITECTURE_V2)
+4. Documentation update (README, ARCHITECTURE)
 5. Release preparation (changelog, migration notes)
 
 ---
 
 ## Conclusion
 
-The Circular Bar V2 migration is the most complex and critical migration in the entire V2 architecture project. It validates the architecture's ability to handle extreme customization while maintaining code quality and performance.
+The Circular Bar  migration is the most complex and critical migration in the entire  architecture project. It validates the architecture's ability to handle extreme customization while maintaining code quality and performance.
 
 **Key Success Factors**:
 1. **Preserve all V1 features** - No regressions
@@ -1193,7 +1193,7 @@ The Circular Bar V2 migration is the most complex and critical migration in the 
 4. **Thorough testing** - Validate every edge case
 5. **Documentation** - Guide future developers
 
-**Expected Outcome**: A production-ready circular bar that demonstrates V2's power and flexibility, reducing code by ~40% while improving maintainability and enabling future customization.
+**Expected Outcome**: A production-ready circular bar that demonstrates 's power and flexibility, reducing code by ~40% while improving maintainability and enabling future customization.
 
 **Migration Start Date**: TBD  
 **Target Completion**: 12 days from start  

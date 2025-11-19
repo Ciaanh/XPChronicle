@@ -1,17 +1,17 @@
-# Circular Bar V2 - Quick Implementation Checklist
+# Circular Bar  - Quick Implementation Checklist
 
-**Purpose**: Quick reference for implementing Circular Bar V2 migration  
-**Full Documentation**: See `CIRCULAR_V2_MIGRATION.md` for complete details  
+**Purpose**: Quick reference for implementing Circular Bar  migration  
+**Full Documentation**: See `CIRCULAR_MIGRATION.md` for complete details  
 **Date**: November 9, 2025
 
 ---
 
 ## Pre-Implementation Checklist
 
-- [ ] Read `CIRCULAR_V2_MIGRATION.md` (full migration plan)
-- [ ] Review `VERTICAL_V2_MIGRATION.md` (Pattern 2 animation reference)
+- [ ] Read `CIRCULAR_MIGRATION.md` (full migration plan)
+- [ ] Review `VERTICAL_MIGRATION.md` (Pattern 2 animation reference)
 - [ ] Review V1 Circular code (`ui/xpbar/styles/CircularXPBarMixin.lua`)
-- [ ] Ensure Flat Bar V2 and Vertical Bar V2 are working
+- [ ] Ensure Flat Bar  and Vertical Bar  are working
 - [ ] Backup current state (git commit/branch)
 
 ---
@@ -21,8 +21,8 @@
 ### Step 1: Create Directory Structure ☐
 
 ```powershell
-mkdir "ui/xpbars/circular_v2"
-cd "ui/xpbars/circular_v2"
+mkdir "ui/xpbars/circular"
+cd "ui/xpbars/circular"
 ```
 
 Create files:
@@ -39,8 +39,8 @@ Create files:
 1. **Header & Dependencies**
    ```lua
    -- Dependency checks
-   if not XPBarStyleBuilder or not XPBarMixinBase_v2 then
-       error("CircularBarStyle: v2 core not loaded")
+   if not XPBarStyleBuilder or not XPBarMixinBase then
+       error("CircularBarStyle:  core not loaded")
    end
    ```
 
@@ -57,7 +57,7 @@ Create files:
    local CircularBarStyleTemplate = {}
    ```
 
-4. **V2 Contract Methods** (REQUIRED)
+4. ** Contract Methods** (REQUIRED)
    - `AnimateBarPosition(stepContext)` ← Arc rendering
    - `AnimateBarEffect(stepContext)` ← Glow trigger
    - `GetAnimationConfig()` ← Config from database
@@ -102,7 +102,7 @@ Create files:
 <Ui xmlns="http://www.blizzard.com/wow/ui/">
     <Script file="CircularBarStyle.lua"/>
     
-    <Frame name="CircularBarTemplate_v2" mixin="CircularBarXPBarMixin" virtual="true">
+    <Frame name="CircularBarTemplate" mixin="CircularBarXPBarMixin" virtual="true">
         <Size x="256" y="256"/>
         <Scripts>
             <OnLoad method="OnLoad"/>
@@ -120,14 +120,14 @@ Create files:
 
 **Update XPBarEnhanced.toc**:
 ```
-# Add after other V2 styles
-ui\xpbars\circular_v2\CircularBarStyle.lua
-ui\xpbars\circular_v2\CircularBarTemplate.xml
+# Add after other  styles
+ui\xpbars\circular\CircularBarStyle.lua
+ui\xpbars\circular\CircularBarTemplate.xml
 ```
 
 **Update Frames.xml**:
 ```xml
-<Include file="ui\xpbars\circular_v2\CircularBarTemplate.xml"/>
+<Include file="ui\xpbars\circular\CircularBarTemplate.xml"/>
 ```
 
 ---
@@ -137,7 +137,7 @@ ui\xpbars\circular_v2\CircularBarTemplate.xml
 **In-Game Test Commands**:
 ```lua
 -- Create test frame
-/run _G.TestCircular = XPBarStyleBuilder:CreateFrameForStyle("circular", nil, "CircularBarTemplate_v2"); TestCircular:Show()
+/run _G.TestCircular = XPBarStyleBuilder:CreateFrameForStyle("circular", nil, "CircularBarTemplate"); TestCircular:Show()
 
 -- Test arc rendering
 /run TestCircular:SetArcProgress(0.5)  -- 50%
@@ -189,7 +189,7 @@ end
 
 ---
 
-### AnimateBarPosition (V2 Contract)
+### AnimateBarPosition ( Contract)
 
 ```lua
 function CircularBarStyleTemplate:AnimateBarPosition(stepContext)
@@ -215,7 +215,7 @@ end
 
 ---
 
-### AnimateBarEffect (V2 Contract)
+### AnimateBarEffect ( Contract)
 
 ```lua
 function CircularBarStyleTemplate:AnimateBarEffect(stepContext)
@@ -417,13 +417,13 @@ end
 **Reference Files**
 
 **V1 Circular Bar**: `ui/xpbar/styles/CircularXPBarMixin.lua` (962 LOC)  
-**V2 Flat Bar**: `ui/xpbars/flatbar_v2/FlatBarStyle.lua` (225 LOC) ✅  
-**V2 Legacy Bar**: `ui/xpbars/legacy_v2/LegacyBarStyle.lua` (192 LOC) ✅  
-**V2 Vertical Bar**: `ui/xpbars/vertical_v2/VerticalBarStyle.lua` (380 LOC) ✅  
+** Flat Bar**: `ui/xpbars/flatbar/FlatBarStyle.lua` (225 LOC) ✅  
+** Classic Bar**: `ui/xpbars/classic/ClassicBarStyle.lua` (192 LOC) ✅  
+** Vertical Bar**: `ui/xpbars/vertical/VerticalBarStyle.lua` (380 LOC) ✅  
 
 **Key Patterns**:
 - Flat: Pattern 1 (AnimationManager only) ✅
-- Legacy: Pattern 1 (AnimationManager only, static positioning) ✅
+- Classic: Pattern 1 (AnimationManager only, static positioning) ✅
 - Vertical: Pattern 2 (AnimationManager + Custom OnUpdate) ✅
 - Circular: Pattern 3 (AnimationManager + OnUpdate + Ticker)
 
@@ -457,9 +457,9 @@ end
 
 ## Next Steps After Complete
 
-1. **Update V2_MIGRATION_SUMMARY.md** - Mark Circular complete
+1. **Update MIGRATION_SUMMARY.md** - Mark Circular complete
 2. **Begin Phase 5** - V1 cleanup and removal
-3. **Update ARCHITECTURE_V2.md** - Add Circular Bar examples
+3. **Update ARCHITECTURE.md** - Add Circular Bar examples
 4. **Performance optimization** - Delta rendering, texture pooling
 
 ---
@@ -478,5 +478,5 @@ end
 ---
 
 **Quick Checklist Status**: Ready for Implementation ✅  
-**Full Documentation**: `CIRCULAR_V2_MIGRATION.md`  
+**Full Documentation**: `CIRCULAR_MIGRATION.md`  
 **Last Updated**: November 9, 2025

@@ -239,9 +239,9 @@ Event → BuildContext (144 bytes) → TriggerBarRefresh → RenderBar
 - `refs/BlizzardInterfaceCode/Interface/AddOns/Blizzard_TextStatusBar/` - Blizzard's approach
 
 ### Other Documentation
-- `V2_ANIMATION_STATUS.md` - Current V2 animation status
-- `V2_MIGRATION_SUMMARY.md` - V1 to V2 migration notes
-- `ARCHITECTURE_V2.md` - V2 architecture overview
+- `ANIMATION_STATUS.md` - Current  animation status
+- `MIGRATION_SUMMARY.md` - V1 to  migration notes
+- `ARCHITECTURE.md` -  architecture overview
 
 ---
 

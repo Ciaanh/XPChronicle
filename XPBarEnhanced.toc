@@ -10,7 +10,7 @@
 ## Notes-esES: Barra de XP mejorada con seguimiento de XP de misiones y estadísticas completas
 
 ## Author: Ciaanh
-## Version: 1.0.2
+## Version: 0.0.1
 
 ## SavedVariables: XPBarEnhancedDB
 ## IconTexture: 4675649
@@ -34,7 +34,8 @@ libs\AceLocale-3.0\AceLocale-3.0.lua
 locales\enUS.lua
 
 # Core Systems
-core\Core.lua
+XPBarEnhanced.lua
+
 core\Utils.lua
 core\Logger.lua
 core\DebugLog.lua
@@ -45,11 +46,11 @@ core\Session.lua
 core\Compatibility.lua
 
 # UI Common Utilities
-ui/common/ConfigHelper.lua
-ui/common/FrameUtils.lua
-ui/common/PositionStoreMixin.lua
-ui/common/DraggableFrameMixin.lua
-ui/common/OverlayHelper.lua
+core/ConfigHelper.lua
+core/FrameUtils.lua
+core/PositionStoreMixin.lua
+core/DraggableFrameMixin.lua
+core/OverlayHelper.lua
 
 # UI Features
 ui/options/Options.lua
@@ -66,28 +67,27 @@ ui/stats/Stats.lua
 
 Frames.xml
 
-# v2 Architecture
-ui\xpbars\ContextBuilder.lua
-ui\xpbars\StyleBuilder.lua
+#  Architecture
+ui\ContextBuilder.lua
+ui\StyleBuilder.lua
 
-# v2 Base and Mixins
-ui\xpbars\BaseMixin.lua
-ui\xpbars\mixins\animation\AnimationUtils.lua
-ui\xpbars\mixins\animation\AnimationManager.lua
-ui\xpbars\mixins\animation\AnimationBase.lua
-ui\xpbars\mixins\LayoutMixin.lua
-ui\xpbars\mixins\PaintMixin.lua
-ui\xpbars\mixins\VisualsMixin.lua
-ui\xpbars\mixins\TextMixin.lua
-ui\xpbars\mixins\InteractionMixin.lua
-ui\xpbars\mixins\TooltipMixin.lua
-ui\xpbars\mixins\PositionMixin.lua
+#  Base and Mixins
+ui\mixins\BaseMixin.lua
+ui\mixins\animation\AnimationUtils.lua
+ui\mixins\animation\AnimationManager.lua
+ui\mixins\animation\AnimationBase.lua
+ui\mixins\LayoutMixin.lua
+ui\mixins\PaintMixin.lua
+ui\mixins\VisualsMixin.lua
+ui\mixins\TextMixin.lua
+ui\mixins\InteractionMixin.lua
+ui\mixins\TooltipMixin.lua
+ui\mixins\PositionMixin.lua
 
-# v2 Styles
-ui\xpbars\flatbar_v2\FlatBarTemplate.xml
-ui\xpbars\legacy_v2\LegacyBarTemplate.xml
-ui\xpbars\vertical_v2\VerticalBarTemplate.xml
-ui\xpbars\circular_v2\CircularBarTemplate.xml
-ui\xpbars\circular_v2\CircularBarStyle.lua
+#  Styles
+ui\styles\flat\FlatBarTemplate.xml
+ui\styles\classic\ClassicBarTemplate.xml
+ui\styles\vertical\VerticalBarTemplate.xml
+ui\styles\circular\CircularBarTemplate.xml
 
-ui\xpbars\tests\test_v2.lua
+ui\test.lua

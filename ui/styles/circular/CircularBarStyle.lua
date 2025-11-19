@@ -1,15 +1,15 @@
--- XP Bar Enhanced - CircularBar Style v2
+-- XP Bar Enhanced - CircularBar Style 
 -- Circular progress ring with optimized 100-segment system
--- Integrates with V2 AnimationManager for standard effects
+-- Integrates with  AnimationManager for standard effects
 
 -- what if you were to keep only the bar style and recreate a clean version of the project from the 
 -------------------------------------------------------------------
 -- DEPENDENCIES
 -------------------------------------------------------------------
 
-if not XPBarStyleBuilder or not XPBarMixinBase_v2 then
+if not XPBarStyleBuilder or not XPBarMixinBase then
     error(
-        "CircularBarStyle: v2 core (StyleBuilder/BaseMixin) not loaded. Ensure ui/xpbars core files are earlier in the .toc."
+        "CircularBarStyle:  core (StyleBuilder/BaseMixin) not loaded. Ensure ui/xpbars core files are earlier in the .toc."
     )
 end
 
@@ -65,9 +65,9 @@ function CircularBarStyleTemplate:OnLoad()
 
     -- Call base OnLoad (initializes animation system and calls Refresh)
     -- Base OnLoad will handle the initial RenderBar call via Refresh()
-    if XPBarMixinBase_v2 and XPBarMixinBase_v2.OnLoad then
+    if XPBarMixinBase and XPBarMixinBase.OnLoad then
         if XPBarDebugLog then XPBarDebugLog:Log("CircularBar", "Calling base OnLoad") end
-        XPBarMixinBase_v2.OnLoad(self)
+        XPBarMixinBase.OnLoad(self)
     end
 end
 
@@ -126,7 +126,7 @@ function CircularBarStyleTemplate:PositionSegments()
 end
 
 -------------------------------------------------------------------
--- V2 ANIMATION IMPLEMENTATION (AnimationManager integration)
+--  ANIMATION IMPLEMENTATION (AnimationManager integration)
 -------------------------------------------------------------------
 
 --- Update bar position - smooth fill animation
@@ -335,7 +335,7 @@ function CircularBarStyleTemplate:UpdateSegmentColors(progress, hasRestedXP, ove
     hasRestedXP = hasRestedXP or self.cachedHasRestedXP or false
     overlayAlpha = overlayAlpha or 1.0
 
-    -- Use Rested color for current XP bar when player has rested XP (matches flatbar_v2)
+    -- Use Rested color for current XP bar when player has rested XP (matches flatbar)
     local currentXPColor = hasRestedXP and colorXpBarRested or colorNormal
 
     -- Determine progress (prefer current ratio from animation, fall back to lastProgress)
@@ -405,7 +405,7 @@ function CircularBarStyleTemplate:Refresh()
         return
     end
 
-    -- Call TriggerBarRefresh (v2 method name)
+    -- Call TriggerBarRefresh ( method name)
     if self.TriggerBarRefresh then
         if XPBarDebugLog then XPBarDebugLog:Log("CircularBar", "Calling TriggerBarRefresh") end
         self:TriggerBarRefresh(context)
@@ -445,10 +445,10 @@ function CircularBarStyleTemplate:FullUpdate(context)
 end
 
 -------------------------------------------------------------------
--- V2 UNIFIED RENDER PATTERN (Phase 2: Refactor)
+--  UNIFIED RENDER PATTERN (Phase 2: Refactor)
 -------------------------------------------------------------------
 
---- Single render method for circular bar (V2 unified pattern)
+--- Single render method for circular bar ( unified pattern)
 --- Pure rendering method - orchestration handled by BaseMixin:TriggerBarRefresh
 ---@param context table Immutable context with all state and flags
 function CircularBarStyleTemplate:RenderBar(context)
@@ -470,7 +470,7 @@ function CircularBarStyleTemplate:RenderBar(context)
         end
     end
 
-    -- Update overlays FIRST (always update, matches Legacy/Vertical pattern)
+    -- Update overlays FIRST (always update, matches Classic/Vertical pattern)
     -- These populate the cached overlay data that SetArcProgress uses.
     -- Doing this before the RenderBarFrame / SetArcProgress call ensures the
     -- Circular style uses the latest context values (e.g., when toggling
@@ -498,7 +498,7 @@ function CircularBarStyleTemplate:RenderBar(context)
     if XPBarDebugLog then XPBarDebugLog:Log("CircularBar", "RenderBar calling RenderBarFrame with ratio:", targetRatio) end
     self:RenderBarFrame(targetRatio, context)
 
-    -- Update text (always update, matches Legacy/Vertical pattern)
+    -- Update text (always update, matches Classic/Vertical pattern)
     if self.UpdateTexts then
         self:UpdateTexts(context)
     end
@@ -687,8 +687,8 @@ function CircularBarStyleTemplate:OnHide()
     self.isAnimating = false
 
     -- Call base cleanup
-    if XPBarMixinBase_v2 and XPBarMixinBase_v2.OnHide then
-        XPBarMixinBase_v2.OnHide(self)
+    if XPBarMixinBase and XPBarMixinBase.OnHide then
+        XPBarMixinBase.OnHide(self)
     end
 end
 
@@ -703,7 +703,7 @@ local DefaultConfig = {
         enableAnimations = true,
         flashOnGain = true
     },
-    position = {mode = "DRAGGABLE", positionKey = "CircularBar_v2"},
+    position = {mode = "DRAGGABLE", positionKey = "CircularBar"},
     style = {}
 }
 
@@ -712,7 +712,7 @@ local DefaultConfig = {
 -------------------------------------------------------------------
 
 -- Create composed mixin (Base + Behaviors + Style)
-CircularBarXPBarMixin = XPBarStyleBuilder:Create(XPBarMixinBase_v2, CircularBarStyleTemplate, DefaultConfig)
+CircularBarXPBarMixin = XPBarStyleBuilder:Create(XPBarMixinBase, CircularBarStyleTemplate, DefaultConfig)
 XPBarStyleBuilder:RegisterStyle("circular", CircularBarXPBarMixin)
 
 -------------------------------------------------------------------
@@ -723,10 +723,10 @@ XPBarStyleBuilder:RegisterStyle("circular", CircularBarXPBarMixin)
 function XPBarEnhanced_CreateCircularBarFrame()
     local styleKey = "circular"
 
-    local frame = XPBarStyleBuilder:CreateFrameForStyle(styleKey, DefaultConfig, "CircularBarTemplate_v2")
+    local frame = XPBarStyleBuilder:CreateFrameForStyle(styleKey, DefaultConfig, "CircularBarTemplate")
     frame:Show()
 
-    _G.CircularBar_v2 = frame -- Global reference
+    _G.CircularBar = frame -- Global reference
 
     return frame
 end

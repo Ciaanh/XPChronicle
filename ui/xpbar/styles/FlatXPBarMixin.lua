@@ -164,7 +164,7 @@ function FlatXPBarMixin:OnLoad()
 		self.StatusBar:SetMinMaxValues(0, 1)
 		self.StatusBar:SetValue(0)
 
-		-- Use the StatusBar's default smoothing for the flat bar (legacy behavior).
+		-- Use the StatusBar's default smoothing for the flat bar (classic behavior).
 		-- Do not disable built-in smoothing here to avoid visible jumps when other
 		-- systems or templates drive the StatusBar value.
 
@@ -204,7 +204,7 @@ end
 Addon.Mixins = Addon.Mixins or {}
 Addon.Mixins.FlatXPBarContainerMixin = FlatXPBarContainerMixin
 Addon.Mixins.FlatXPBarMixin = FlatXPBarMixin
--- Legacy compatibility
+-- Classic compatibility
 _G.FlatXPBarContainerMixin = FlatXPBarContainerMixin
 _G.FlatXPBarMixin = FlatXPBarMixin
 

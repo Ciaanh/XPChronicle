@@ -1,5 +1,5 @@
--- XP Bar Enhanced - V2 Animation Base Mixin
--- Common animation behavior for V2 bar styles
+-- XP Bar Enhanced -  Animation Base Mixin
+-- Common animation behavior for  bar styles
 
 local AddonName, Addon = ...
 
@@ -144,7 +144,7 @@ end
 -- @param eventContext table: Immutable event context
 function AnimationBase:AnimateBarPosition(iterationData, eventContext)
 	-- This is an abstract method that must be implemented by the style mixin
-	-- Example for StatusBar-based styles (Flat, Legacy):
+	-- Example for StatusBar-based styles (Flat, Classic):
 	--   self.StatusBar:SetValue(iterationData.currentRatio)
 	error("AnimateBarPosition must be implemented by style mixin")
 end
@@ -155,7 +155,7 @@ end
 -- @param eventContext table: Immutable event context
 function AnimationBase:AnimateBarEffect(iterationData, eventContext)
 	-- This is an abstract method that must be implemented by the style mixin
-	-- Example for StatusBar-based styles (Flat, Legacy):
+	-- Example for StatusBar-based styles (Flat, Classic):
 	--   if iterationData.flashData and iterationData.flashData.active then
 	--     self.GainFlash:SetColorTexture(1, 1, 1, iterationData.flashData.currentAlpha)
 	--     self.GainFlash:Show()

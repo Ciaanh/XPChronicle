@@ -1,4 +1,4 @@
--- XP Bar Enhanced - Legacy Bar Style v2
+-- XP Bar Enhanced - Classic Bar Style 
 -- Blizzard-style XP bar with border frame and atlas textures
 -- Static positioning (anchored to Blizzard's MainStatusTrackingBarContainer)
 
@@ -6,9 +6,9 @@
 -- DEPENDENCIES
 -------------------------------------------------------------------
 
-if not XPBarStyleBuilder or not XPBarMixinBase_v2 then
+if not XPBarStyleBuilder or not XPBarMixinBase then
     error(
-        "LegacyBarStyle: v2 core (StyleBuilder/BaseMixin) not loaded. Ensure ui/xpbars core files are earlier in the .toc."
+        "ClassicBarStyle:  core (StyleBuilder/BaseMixin) not loaded. Ensure ui/xpbars core files are earlier in the .toc."
     )
 end
 
@@ -16,17 +16,17 @@ end
 -- STYLE TEMPLATE
 -------------------------------------------------------------------
 
--- Legacy Bar style template: follows V2 composition pattern
-local LegacyBarStyleTemplate = {}
+-- Classic Bar style template: follows  composition pattern
+local ClassicBarStyleTemplate = {}
 
 -------------------------------------------------------------------
--- V2 ANIMATION IMPLEMENTATION (StatusBar-based with atlas texture)
+--  ANIMATION IMPLEMENTATION (StatusBar-based with atlas texture)
 -------------------------------------------------------------------
 
 --- Update bar position - smooth fill animation
 -- @param iterationData table: Per-frame iteration data with currentRatio
 -- @param eventContext table: Immutable event context
-function LegacyBarStyleTemplate:AnimateBarPosition(iterationData, eventContext)
+function ClassicBarStyleTemplate:AnimateBarPosition(iterationData, eventContext)
     if self.StatusBar then
         self.StatusBar:SetValue(iterationData.currentRatio)
     end
@@ -35,7 +35,7 @@ end
 --- Update visual effects - flash overlay animation
 -- @param iterationData table: Per-frame iteration data with flashData
 -- @param eventContext table: Immutable event context
-function LegacyBarStyleTemplate:AnimateBarEffect(iterationData, eventContext)
+function ClassicBarStyleTemplate:AnimateBarEffect(iterationData, eventContext)
     -- Access GainFlash with fallback pattern (StatusBar.GainFlash or main frame GainFlash)
     local gainFlash = (self.StatusBar and self.StatusBar.GainFlash) or self.GainFlash
     if not gainFlash then
@@ -75,14 +75,14 @@ function LegacyBarStyleTemplate:AnimateBarEffect(iterationData, eventContext)
 end
 
 -------------------------------------------------------------------
--- V2 UNIFIED RENDER PATTERN (Phase 2: Refactor)
+--  UNIFIED RENDER PATTERN (Phase 2: Refactor)
 -------------------------------------------------------------------
 
---- Single render method for legacy bar (V2 unified pattern)
+--- Single render method for classic bar ( unified pattern)
 --- Pure rendering method - orchestration handled by BaseMixin:TriggerBarRefresh
 ---@param context table Immutable context with all state and flags
-function LegacyBarStyleTemplate:RenderBar(context)
-    if XPBarDebugLog then XPBarDebugLog:Log("LegacyBar", "RenderBar called") end
+function ClassicBarStyleTemplate:RenderBar(context)
+    if XPBarDebugLog then XPBarDebugLog:Log("ClassicBar", "RenderBar called") end
     if not context then
         error("RenderBar requires an explicit immutable context")
     end
@@ -94,7 +94,7 @@ function LegacyBarStyleTemplate:RenderBar(context)
     end
 
     -- Render at final position (no animation decision - BaseMixin handles that)
-    if XPBarDebugLog then XPBarDebugLog:Log("LegacyBar", "RenderBar calling RenderBarFrame with ratio:", targetRatio) end
+    if XPBarDebugLog then XPBarDebugLog:Log("ClassicBar", "RenderBar calling RenderBarFrame with ratio:", targetRatio) end
     self:RenderBarFrame(targetRatio, context)
 
     -- Update overlays (always update, even during animation)
@@ -121,7 +121,7 @@ end
 --- Called once for instant updates
 ---@param currentRatio number Current animation progress (0-1), or final ratio for instant
 ---@param context table Immutable context with all state and flags
-function LegacyBarStyleTemplate:RenderBarFrame(currentRatio, context)
+function ClassicBarStyleTemplate:RenderBarFrame(currentRatio, context)
     -- 1. MAIN BAR (at current animation position)
     if self.StatusBar then
         self.StatusBar:SetValue(currentRatio)
@@ -155,7 +155,7 @@ local DefaultConfig = {
         enableAnimations = true,
         flashOnGain = true
     },
-    position = {mode = "STATIC", positionKey = "LegacyBar_v2"},
+    position = {mode = "STATIC", positionKey = "ClassicBar"},
     style = {}
 }
 
@@ -164,21 +164,21 @@ local DefaultConfig = {
 -------------------------------------------------------------------
 
 -- Create composed mixin (Base + Behaviors + Style)
-LegacyBarXPBarMixin = XPBarStyleBuilder:Create(XPBarMixinBase_v2, LegacyBarStyleTemplate, DefaultConfig)
-XPBarStyleBuilder:RegisterStyle("legacy_v2", LegacyBarXPBarMixin)
+ClassicBarXPBarMixin = XPBarStyleBuilder:Create(XPBarMixinBase, ClassicBarStyleTemplate, DefaultConfig)
+XPBarStyleBuilder:RegisterStyle("classic", ClassicBarXPBarMixin)
 
 -------------------------------------------------------------------
 -- PROGRAMMATIC HELPER
 -------------------------------------------------------------------
 
---- Create Legacy Bar frame programmatically.
-function XPBarEnhanced_CreateLegacyBarFrame()
-    local styleKey = "legacy_v2"
+--- Create Classic Bar frame programmatically.
+function XPBarEnhanced_CreateClassicBarFrame()
+    local styleKey = "classic"
 
-    local frame = XPBarStyleBuilder:CreateFrameForStyle(styleKey, DefaultConfig, "LegacyBarTemplate")
+    local frame = XPBarStyleBuilder:CreateFrameForStyle(styleKey, DefaultConfig, "ClassicBarTemplate")
     frame:Show()
 
-    _G.LegacyBar_v2 = frame -- Global reference
+    _G.ClassicBar = frame -- Global reference
 
     return frame
 end

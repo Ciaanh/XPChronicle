@@ -1,18 +1,18 @@
-# Circular V2 OnLoad Analysis - Documentation Index
+# Circular  OnLoad Analysis - Documentation Index
 
 ## Overview
 
-This documentation set analyzes why the Circular V2 XP bar fails to display correctly on initial load and provides a comprehensive fix.
+This documentation set analyzes why the Circular  XP bar fails to display correctly on initial load and provides a comprehensive fix.
 
 ## Problem Summary
 
-**Symptom:** Circular V2 bar appears empty/broken on initial load (PLAYER_ENTERING_WORLD event). Bar segments show background color, no text displays. Bar only renders correctly after an XP event (PLAYER_XP_UPDATE, etc.) occurs.
+**Symptom:** Circular  bar appears empty/broken on initial load (PLAYER_ENTERING_WORLD event). Bar segments show background color, no text displays. Bar only renders correctly after an XP event (PLAYER_XP_UPDATE, etc.) occurs.
 
 **Root Cause:** Early return in `RenderBar` method prevents overlay update methods from being called, leaving cached overlay data at initialized zero values. `SetArcProgress` then uses these empty cached values to render segments.
 
 ## Documentation Files
 
-### 1. CIRCULAR_V2_ONLOAD_QUICK_REF.md
+### 1. CIRCULAR_ONLOAD_QUICK_REF.md
 **Purpose:** Quick reference guide for developers  
 **Contains:**
 - Problem statement
@@ -24,12 +24,12 @@ This documentation set analyzes why the Circular V2 XP bar fails to display corr
 
 **Use when:** You need quick answers or code snippets to apply the fix.
 
-### 2. CIRCULAR_V2_ONLOAD_FIX.md
+### 2. CIRCULAR_ONLOAD_FIX.md
 **Purpose:** Executive summary with implementation guide  
 **Contains:**
 - Problem overview
 - Root cause explanation
-- Pattern comparison (Circular vs Legacy/Vertical)
+- Pattern comparison (Circular vs Classic/Vertical)
 - Complete fix implementation
 - Secondary issue (duplicate OnLoad call)
 - Files to modify
@@ -37,7 +37,7 @@ This documentation set analyzes why the Circular V2 XP bar fails to display corr
 
 **Use when:** You need a comprehensive overview before implementing the fix.
 
-### 3. CIRCULAR_V2_ONLOAD_ISSUE.md
+### 3. CIRCULAR_ONLOAD_ISSUE.md
 **Purpose:** Deep technical analysis  
 **Contains:**
 - Detailed root cause analysis (3 issues)
@@ -50,31 +50,31 @@ This documentation set analyzes why the Circular V2 XP bar fails to display corr
 
 **Use when:** You need to understand the full technical context or are debugging related issues.
 
-### 4. V2_ONLOAD_WORKFLOW_COMPARISON.md
+### 4. ONLOAD_WORKFLOW_COMPARISON.md
 **Purpose:** Visual workflow documentation  
 **Contains:**
-- Common base flow (all V2 styles)
-- Legacy/Vertical V2 flow (working)
-- Circular V2 flow (broken - current state)
-- Circular V2 flow after XP event (works)
+- Common base flow (all  styles)
+- Classic/Vertical  flow (working)
+- Circular  flow (broken - current state)
+- Circular  flow after XP event (works)
 - Cached overlay data flow explanation
 - Summary comparison table
 
 **Use when:** You need to visualize the initialization flow or explain the issue to others.
 
-### 5. V2_ONLOAD_WORKFLOW_COMPARISON.md
+### 5. ONLOAD_WORKFLOW_COMPARISON.md
 **Purpose:** Visual workflow documentation  
 **Contains:**
-- Common base flow (all V2 styles)
-- Legacy/Vertical V2 flow (working)
-- Circular V2 flow (broken - current state)
-- Circular V2 flow after XP event (works)
+- Common base flow (all  styles)
+- Classic/Vertical  flow (working)
+- Circular  flow (broken - current state)
+- Circular  flow after XP event (works)
 - Cached overlay data flow explanation
 - Summary comparison table
 
 **Use when:** You need to visualize the initialization flow or explain the issue to others.
 
-### 6. CIRCULAR_V2_ONLOAD_VISUAL.md
+### 6. CIRCULAR_ONLOAD_VISUAL.md
 **Purpose:** Visual diagrams and illustrations  
 **Contains:**
 - Side-by-side flow comparison (broken vs working)
@@ -87,7 +87,7 @@ This documentation set analyzes why the Circular V2 XP bar fails to display corr
 
 **Use when:** You need quick visual understanding or want to see the bug/fix at a glance.
 
-### 7. CIRCULAR_V2_ONLOAD_INDEX.md
+### 7. CIRCULAR_ONLOAD_INDEX.md
 **Purpose:** Navigation and organization (this file)  
 **Contains:**
 - Overview of all documentation
@@ -100,24 +100,24 @@ This documentation set analyzes why the Circular V2 XP bar fails to display corr
 ## Recommended Reading Order
 
 ### For Quick Fix Implementation
-1. **CIRCULAR_V2_ONLOAD_QUICK_REF.md** - Get the code changes
+1. **CIRCULAR_ONLOAD_QUICK_REF.md** - Get the code changes
 2. Test and verify
 
 ### For Understanding Before Fixing
-1. **CIRCULAR_V2_ONLOAD_FIX.md** - Executive summary
-2. **V2_ONLOAD_WORKFLOW_COMPARISON.md** - Visual understanding
-3. **CIRCULAR_V2_ONLOAD_QUICK_REF.md** - Apply the fix
+1. **CIRCULAR_ONLOAD_FIX.md** - Executive summary
+2. **ONLOAD_WORKFLOW_COMPARISON.md** - Visual understanding
+3. **CIRCULAR_ONLOAD_QUICK_REF.md** - Apply the fix
 
 ### For Deep Technical Understanding
-1. **CIRCULAR_V2_ONLOAD_ISSUE.md** - Full analysis
-2. **V2_ONLOAD_WORKFLOW_COMPARISON.md** - Visual workflows
-3. **CIRCULAR_V2_ONLOAD_FIX.md** - Solution design
-4. **CIRCULAR_V2_ONLOAD_QUICK_REF.md** - Implementation
+1. **CIRCULAR_ONLOAD_ISSUE.md** - Full analysis
+2. **ONLOAD_WORKFLOW_COMPARISON.md** - Visual workflows
+3. **CIRCULAR_ONLOAD_FIX.md** - Solution design
+4. **CIRCULAR_ONLOAD_QUICK_REF.md** - Implementation
 
 ### For Explaining to Others
-1. **CIRCULAR_V2_ONLOAD_FIX.md** - Start with executive summary
-2. **V2_ONLOAD_WORKFLOW_COMPARISON.md** - Show visual diagrams
-3. **CIRCULAR_V2_ONLOAD_ISSUE.md** - Provide technical details
+1. **CIRCULAR_ONLOAD_FIX.md** - Start with executive summary
+2. **ONLOAD_WORKFLOW_COMPARISON.md** - Show visual diagrams
+3. **CIRCULAR_ONLOAD_ISSUE.md** - Provide technical details
 
 ## Key Concepts
 
@@ -145,8 +145,8 @@ local restedXP = self.cachedRestedXP or 0
 
 **Problem:** If overlay update methods are never called (due to early return), cache remains at initialized zero values.
 
-### V2 Architecture Pattern
-Legacy and Vertical styles follow the standard V2 pattern:
+###  Architecture Pattern
+Classic and Vertical styles follow the standard  pattern:
 
 ```
 RenderBar(context)
@@ -160,18 +160,18 @@ Circular breaks this pattern with the early return.
 
 ## The Fix in One Sentence
 
-**Remove the early return in `RenderBar` and add overlay/text update calls after the animation decision, matching the Legacy/Vertical pattern.**
+**Remove the early return in `RenderBar` and add overlay/text update calls after the animation decision, matching the Classic/Vertical pattern.**
 
 ## Files Modified
 
 ### Primary File
-- `ui/xpbars/circular_v2/CircularBarStyle.lua`
+- `ui/xpbars/circular/CircularBarStyle.lua`
   - Fix `RenderBar` method (remove early return, add overlay/text updates)
   - Fix `OnLoad` method (remove duplicate RenderBar call)
 
 ### Reference Files (No Changes)
-- `ui/xpbars/legacy_v2/LegacyBarStyle.lua` (working pattern reference)
-- `ui/xpbars/vertical_v2/VerticalBarStyle.lua` (working pattern reference)
+- `ui/xpbars/classic/ClassicBarStyle.lua` (working pattern reference)
+- `ui/xpbars/vertical/VerticalBarStyle.lua` (working pattern reference)
 - `ui/xpbars/BaseMixin.lua` (base OnLoad flow)
 
 ## Testing Summary
@@ -193,30 +193,30 @@ Circular breaks this pattern with the early return.
 ## Related Documentation
 
 ### Architecture Documents
-- `docs/V2_ARCHITECTURE_REFACTOR_PROPOSAL.md` - V2 architecture design
-- `docs/ARCHITECTURE_V2.md` - V2 architecture overview
-- `docs/CIRCULAR_V2_MIGRATION.md` - Circular V2 migration plan
+- `docs/ARCHITECTURE_REFACTOR_PROPOSAL.md` -  architecture design
+- `docs/ARCHITECTURE.md` -  architecture overview
+- `docs/CIRCULAR_MIGRATION.md` - Circular  migration plan
 
 ### Animation Documents
-- `docs/V2_ANIMATION_COMPARISON.md` - Animation system comparison
-- `docs/V2_ANIMATION_STATUS.md` - Animation implementation status
+- `docs/ANIMATION_COMPARISON.md` - Animation system comparison
+- `docs/ANIMATION_STATUS.md` - Animation implementation status
 - `docs/ANIMATION_REFACTOR_PLAN.md` - Animation refactor planning
 
 ### Style-Specific Documents
-- `docs/CIRCULAR_V2_CHECKLIST.md` - Circular V2 implementation checklist
-- `docs/LEGACY_BAR_V2_MIGRATION.md` - Legacy bar migration
-- `docs/VERTICAL_V2_MIGRATION.md` - Vertical bar migration
+- `docs/CIRCULAR_CHECKLIST.md` - Circular  implementation checklist
+- `docs/CLASSIC_BAR_MIGRATION.md` - Classic bar migration
+- `docs/VERTICAL_MIGRATION.md` - Vertical bar migration
 
 ## Impact Assessment
 
 ### Risk Level
-**Low** - Changes align circular bar with established Legacy/Vertical pattern
+**Low** - Changes align circular bar with established Classic/Vertical pattern
 
 ### Benefits
 - ✅ Fixes critical UX issue (bar appears broken on load)
-- ✅ Makes circular bar consistent with other V2 styles
+- ✅ Makes circular bar consistent with other  styles
 - ✅ Removes unnecessary complexity (duplicate OnLoad call)
-- ✅ Follows established V2 architecture pattern
+- ✅ Follows established  architecture pattern
 
 ### Breaking Changes
 **None** - Same behavior, just working correctly from start
@@ -227,11 +227,11 @@ Circular breaks this pattern with the early return.
 ## Next Steps
 
 1. Review documentation (recommended order above)
-2. Apply code changes from CIRCULAR_V2_ONLOAD_QUICK_REF.md
+2. Apply code changes from CIRCULAR_ONLOAD_QUICK_REF.md
 3. Test thoroughly (use testing checklist)
 4. Verify no Lua errors
 5. Test all XP events (gain, quest, rest, etc.)
-6. Update CIRCULAR_V2_CHECKLIST.md to mark issue as resolved
+6. Update CIRCULAR_CHECKLIST.md to mark issue as resolved
 
 ## Questions & Troubleshooting
 
@@ -239,7 +239,7 @@ Circular breaks this pattern with the early return.
 **A:** Other events (UPDATE_EXHAUSTION, QUEST_LOG_UPDATE) populate the cached overlay data through their own code paths. Once cached data is populated, subsequent renders work correctly.
 
 ### Q: Why only circular bar is affected?
-**A:** Legacy and Vertical don't use the cached overlay pattern and don't have the early return. They update overlays directly in RenderBar every time.
+**A:** Classic and Vertical don't use the cached overlay pattern and don't have the early return. They update overlays directly in RenderBar every time.
 
 ### Q: Can we keep the early return?
 **A:** No, it breaks the initialization flow. The "optimization" doesn't provide value and causes this bug.
@@ -254,4 +254,4 @@ Circular breaks this pattern with the early return.
 
 ## Credits
 
-This analysis was performed to identify and document the root cause of the Circular V2 initialization issue and provide a comprehensive fix aligned with the established V2 architecture patterns.
+This analysis was performed to identify and document the root cause of the Circular  initialization issue and provide a comprehensive fix aligned with the established  architecture patterns.

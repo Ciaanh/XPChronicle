@@ -1,4 +1,4 @@
--- XP Bar Enhanced - Legacy XP Bar Mixin (Blizzard-style with atlases)
+-- XP Bar Enhanced - Classic XP Bar Mixin (Blizzard-style with atlases)
 
 local Addon = XPBarEnhanced
 
@@ -17,10 +17,10 @@ end
 -----------------------------------
 -- Container Mixin
 -----------------------------------
----@class LegacyXPBarContainerMixin : XPBarContainerMixin
-local LegacyXPBarContainerMixin = {}
+---@class ClassicXPBarContainerMixin : XPBarContainerMixin
+local ClassicXPBarContainerMixin = {}
 
-function LegacyXPBarContainerMixin:OnLoad()
+function ClassicXPBarContainerMixin:OnLoad()
 	-- IMPORTANT: Stay hidden until controller shows us based on barStyle setting
 	self:Hide()
 	
@@ -60,7 +60,7 @@ function LegacyXPBarContainerMixin:OnLoad()
 	end)
 end
 
-function LegacyXPBarContainerMixin:WireTextElements()
+function ClassicXPBarContainerMixin:WireTextElements()
 	if not self.Bar then
 		return
 	end
@@ -80,19 +80,19 @@ function LegacyXPBarContainerMixin:WireTextElements()
 	end
 end
 
-function LegacyXPBarContainerMixin:OnShow()
+function ClassicXPBarContainerMixin:OnShow()
 	-- Ensure text elements are wired up (in case OnLoad timing issues)
 	self:WireTextElements()
 end
 
-function LegacyXPBarContainerMixin:OnHide()
+function ClassicXPBarContainerMixin:OnHide()
 	if self._positionRestoreTimer then
 		self._positionRestoreTimer:Cancel()
 		self._positionRestoreTimer = nil
 	end
 end
 
-function LegacyXPBarContainerMixin:PositionToMatchBlizzardBar()
+function ClassicXPBarContainerMixin:PositionToMatchBlizzardBar()
 	-- Simple and reliable: anchor to MainStatusTrackingBarContainer's top-left
 	local container = _G.MainStatusTrackingBarContainer
 	
@@ -105,18 +105,18 @@ function LegacyXPBarContainerMixin:PositionToMatchBlizzardBar()
 end
 
 -----------------------------------
--- Legacy XP Bar Mixin (Blizzard-style)
+-- Classic XP Bar Mixin (Blizzard-style)
 -----------------------------------
----@class LegacyXPBarMixin : XPBarMixinBase
+---@class ClassicXPBarMixin : XPBarMixinBase
 -- ... StatusBar declared centrally in core/Types.lua
-local LegacyXPBarMixin = CreateFromMixins(XPBarMixinBase)
+local ClassicXPBarMixin = CreateFromMixins(XPBarMixinBase)
 
-function LegacyXPBarMixin:OnLoad()
+function ClassicXPBarMixin:OnLoad()
 	-- Initialize shared state
 	self:InitializeState()
 
 	-- Identify style for debugging
-	self._barStyle = "Legacy"
+	self._barStyle = "Classic"
 	
 	-- Initialize StatusBar
 	if self.StatusBar then
@@ -141,7 +141,7 @@ end
 
 -- Set display value (override for StatusBar-based rendering)
 -- Blizzard pattern: Bar-specific rendering implementation
-function LegacyXPBarMixin:SetDisplayValue(ratio)
+function ClassicXPBarMixin:SetDisplayValue(ratio)
 	if not self.StatusBar then
 		return
 	end
@@ -153,19 +153,19 @@ end
 -- Export mixins into the Addon namespace (namespaced) and global table for XML compatibility
 Addon.Mixins = Addon.Mixins or {}
 Addon.Mixins.ExhaustionTickMixin = ExhaustionTickMixin
-Addon.Mixins.LegacyXPBarContainerMixin = LegacyXPBarContainerMixin
-Addon.Mixins.LegacyXPBarMixin = LegacyXPBarMixin
--- Legacy compatibility
+Addon.Mixins.ClassicXPBarContainerMixin = ClassicXPBarContainerMixin
+Addon.Mixins.ClassicXPBarMixin = ClassicXPBarMixin
+-- Classic compatibility
 _G.ExhaustionTickMixin = ExhaustionTickMixin
-_G.LegacyXPBarContainerMixin = LegacyXPBarContainerMixin
-_G.LegacyXPBarMixin = LegacyXPBarMixin
+_G.ClassicXPBarContainerMixin = ClassicXPBarContainerMixin
+_G.ClassicXPBarMixin = ClassicXPBarMixin
 
-function LegacyXPBarMixin:OnEvent(event, ...)
+function ClassicXPBarMixin:OnEvent(event, ...)
 	-- Use base handler
 	self:HandleEvent(event, ...)
 end
 
-function LegacyXPBarMixin:OnShow()
+function ClassicXPBarMixin:OnShow()
 	if not self._eventsRegistered and self.RegisterCommonEvents then
 		self:RegisterCommonEvents()
 	end
@@ -175,7 +175,7 @@ function LegacyXPBarMixin:OnShow()
 	end
 end
 
-function LegacyXPBarMixin:OnHide()
+function ClassicXPBarMixin:OnHide()
 	-- Clean up timers and unsubscribe from events to prevent memory leaks
 	if self.CleanupTimers then
 		self:CleanupTimers()
@@ -186,12 +186,12 @@ function LegacyXPBarMixin:OnHide()
 end
 
 -- Implementation-specific: Update StatusBar appearance based on rested state
-function LegacyXPBarMixin:UpdateVisuals()
+function ClassicXPBarMixin:UpdateVisuals()
 	self:UpdateStatusBarColor()
 end
 
 -- Initialize overlay colors (called from View:Initialize after SavedVariables are loaded)
-function LegacyXPBarMixin:InitializeColors()
+function ClassicXPBarMixin:InitializeColors()
 	-- Apply user's custom colors
 	self:UpdateAllColors()
 	-- DO NOT call UpdateBarDisplay() here - it would show the container!
@@ -199,13 +199,13 @@ function LegacyXPBarMixin:InitializeColors()
 end
 
 -- Initialize overlay colors once at startup
-function LegacyXPBarMixin:InitializeOverlayColors()
+function ClassicXPBarMixin:InitializeOverlayColors()
 	-- Apply user's custom colors
 	self:UpdateAllColors()
 end
 
--- Legacy bar now supports color customization (like Flat bar)
-function LegacyXPBarMixin:UpdateBarOverlayColors()
+-- Classic bar now supports color customization (like Flat bar)
+function ClassicXPBarMixin:UpdateBarOverlayColors()
 	-- Update the main bar color immediately
 	self:UpdateStatusBarColor()
 	
@@ -215,12 +215,12 @@ function LegacyXPBarMixin:UpdateBarOverlayColors()
 	self:ApplyLayout(layout)
 end
 
-function LegacyXPBarMixin:UpdateStatusBarTexture()
+function ClassicXPBarMixin:UpdateStatusBarTexture()
 	-- No longer using atlas - colors are now customizable
 	-- StatusBar color is set by UpdateStatusBarColor()
 end
 
-function LegacyXPBarMixin:UpdateStatusBarColor()
+function ClassicXPBarMixin:UpdateStatusBarColor()
 	if not self.StatusBar then 
 		return 
 	end
@@ -244,13 +244,13 @@ function LegacyXPBarMixin:UpdateStatusBarColor()
 	end
 end
 
-function LegacyXPBarMixin:UpdateGainFlashTexture()
+function ClassicXPBarMixin:UpdateGainFlashTexture()
 	-- No longer using atlas - flash is now solid color
 	-- Flash color is set by SetFlashAlpha()
 end
 
 -- Flash effect implementation (solid color for customization)
-function LegacyXPBarMixin:SetFlashAlpha(alpha)
+function ClassicXPBarMixin:SetFlashAlpha(alpha)
 	if not self.GainFlash then
 		return
 	end
@@ -280,7 +280,7 @@ function LegacyXPBarMixin:SetFlashAlpha(alpha)
 end
 
 -- Implementation-specific: Update rested XP overlay (now with customizable colors)
-function LegacyXPBarMixin:UpdateRested()
+function ClassicXPBarMixin:UpdateRested()
 	if not self.ExhaustionLevelFillBar then return end
 	
 	-- Apply user's rested overlay color
@@ -349,7 +349,7 @@ end
 -----------------------------------
 
 -- NEW ARCHITECTURE: Apply calculated layout to UI
-function LegacyXPBarMixin:ApplyLayout(layout)
+function ClassicXPBarMixin:ApplyLayout(layout)
 	if not layout.visible then
 		if self.HideQuestOverlays then
 			self:HideQuestOverlays()
@@ -431,8 +431,8 @@ end
 -----------------------------------
 
 -- Update all bar colors from user settings
-function LegacyXPBarMixin:UpdateAllColors()
-	-- Legacy bar now supports full color customization
+function ClassicXPBarMixin:UpdateAllColors()
+	-- Classic bar now supports full color customization
 	-- Apply user colors to:
 	--   - Main bar: User's XP bar or rested bar color
 	--   - Rested overlay: User's rested color
@@ -453,7 +453,7 @@ end
 -- Mouse Click Handler
 -----------------------------------
 -- override: XPBarMixinBase:OnMouseUp
-function LegacyXPBarMixin:OnMouseUp(button)
+function ClassicXPBarMixin:OnMouseUp(button)
 	-- Alt + Click: Open options panel
 	if IsAltKeyDown() then
 		Addon.Config:OpenOptions()

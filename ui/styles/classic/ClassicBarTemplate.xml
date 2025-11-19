@@ -2,13 +2,13 @@
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/
 ..\..\Blizzard_SharedXML\UI.xsd">
 
-    <!-- XP Bar Enhanced - Legacy Bar Template v2 -->
+    <!-- XP Bar Enhanced - Classic Bar Template  -->
     <!-- Blizzard-style XP bar with border frame and atlas textures -->
     <!-- No container wrapper - border as texture layer on main frame -->
 
-    <Script file="LegacyBarStyle.lua"/>
+    <Script file="ClassicBarStyle.lua"/>
 
-    <Frame name="LegacyBarTemplate" virtual="true" mixin="LegacyBarXPBarMixin" frameStrata="LOW" enableMouse="true" fixedFrameStrata="true">
+    <Frame name="ClassicBarTemplate" virtual="true" mixin="ClassicBarXPBarMixin" frameStrata="LOW" enableMouse="true" fixedFrameStrata="true">
         <Size x="566" y="12"/>
         <Frames>
             <!-- Border frame - separate frame on top of StatusBar -->
@@ -19,7 +19,7 @@
                 </Anchors>
                 <Layers>
                     <Layer level="BACKGROUND">
-                        <Texture parentKey="Background" file="Interface\AddOns\XPBarEnhanced\assets\legacy-background">
+                        <Texture parentKey="Background" file="Interface\AddOns\XPBarEnhanced\assets\classic-background">
                             <Anchors>
                                 <Anchor point="TOPLEFT"/>
                                 <Anchor point="BOTTOMRIGHT"/>
@@ -190,7 +190,7 @@
                 </Anchors>
                 <Layers>
                     <Layer level="ARTWORK">
-                        <Texture parentKey="Texture" file="Interface\AddOns\XPBarEnhanced\assets\legacy-border">
+                        <Texture parentKey="Texture" file="Interface\AddOns\XPBarEnhanced\assets\classic-border">
                             <Anchors>
                                 <Anchor point="TOPLEFT"/>
                                 <Anchor point="BOTTOMRIGHT"/>

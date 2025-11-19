@@ -54,7 +54,7 @@ function XPBarLayoutMixin:CalculateRestedBounds(context, barWidth)
 	local maxXP = context.xpMax or 1
 	local isFullyRested = context.isFullyRested or false
 	
-	-- V2 approach: Rested overlay BEHIND StatusBar, starts from 0
+	--  approach: Rested overlay BEHIND StatusBar, starts from 0
 	-- Width = currentXP + questOverlays + restedXP, so the visible portion shows beyond filled bar and quests
 	-- This way it animates automatically as currentXP changes
 	
@@ -158,7 +158,7 @@ end
 ---@param overlayName string|nil Overlay name (default: "RestedOverlay")
 function XPBarLayoutMixin:UpdateRestedOverlayLayout(context, overlayName)
 	overlayName = overlayName or "RestedOverlay"
-	-- Try main frame first, then StatusBar (for flatbar_v2 compatibility)
+	-- Try main frame first, then StatusBar (for flatbar compatibility)
 	local overlay = self[overlayName] or (self.StatusBar and self.StatusBar[overlayName])
 	
 	if not overlay then
@@ -178,7 +178,7 @@ function XPBarLayoutMixin:UpdateRestedOverlayLayout(context, overlayName)
 	overlay:SetShown(visible)
 	
 	if visible then
-		-- V2: No offset needed, always starts from BOTTOMLEFT (0,0)
+		-- : No offset needed, always starts from BOTTOMLEFT (0,0)
 		-- Width = currentXP + questOffset + restedXP
 		overlay:SetWidth(widthPixels)
 	end
@@ -280,7 +280,7 @@ end
 ---@param tickName string|nil Tick name (default: "ExhaustionTick")
 function XPBarLayoutMixin:UpdateExhaustionTickLayout(context, tickName)
 	tickName = tickName or "ExhaustionTick"
-	-- Try main frame first, then StatusBar (for legacy_v2 compatibility)
+	-- Try main frame first, then StatusBar (for classic compatibility)
 	local tick = self[tickName] or (self.StatusBar and self.StatusBar[tickName])
 	
 	if not tick then
@@ -308,7 +308,7 @@ function XPBarLayoutMixin:UpdateExhaustionTickLayout(context, tickName)
 	
 	if visible then
 		-- Position at the end of rested overlay
-		-- Try multiple locations: main frame, StatusBar, or legacy names
+		-- Try multiple locations: main frame, StatusBar, or classic names
 		local restedOverlay = self.RestedOverlay 
 			or (self.StatusBar and self.StatusBar.RestedOverlay)
 			or self.RestedLevel 

@@ -1,4 +1,4 @@
-# Vertical Bar V2 Migration - Implementation Summary
+# Vertical Bar  Migration - Implementation Summary
 
 ## Status: Implementation Complete ✅
 
@@ -12,7 +12,7 @@
 
 ### 1. Directory Structure ✅
 
-Created `ui/xpbars/vertical_v2/` directory with:
+Created `ui/xpbars/vertical/` directory with:
 - `VerticalBarStyle.lua` (380 lines)
 - `VerticalBarTemplate.xml` (185 lines)
 
@@ -33,7 +33,7 @@ Created `ui/xpbars/vertical_v2/` directory with:
 - Text elements (level, percent, XP/hour)
 
 #### Architecture
-- Follows V2 composition pattern (BaseMixin + Style)
+- Follows  composition pattern (BaseMixin + Style)
 - Implements Pattern 2: AnimationManager + Custom OnUpdate
 - Clean separation: AnimationManager handles standard effects, style handles gravity
 - Proper cleanup in OnHide (timers, tickers, particles)
@@ -71,7 +71,7 @@ Created `ui/xpbars/vertical_v2/` directory with:
 ### Frame Hierarchy
 
 ```
-VerticalBarTemplate_v2
+VerticalBarTemplate
 ├── Background (BACKGROUND layer)
 ├── FilledTexture (ARTWORK-1) - Current XP
 ├── FallingTexture (ARTWORK-4) - Animated falling segment
@@ -93,7 +93,7 @@ VerticalBarTemplate_v2
 
 ### Key Methods
 
-#### V2 Contract Methods
+####  Contract Methods
 - `AnimateBarPosition(stepContext)` - Update bar fill + trigger gravity
 - `AnimateBarEffect(stepContext)` - Flash overlay animation
 - `GetAnimationConfig()` - Animation settings from database
@@ -116,12 +116,12 @@ VerticalBarTemplate_v2
 ### Integration Tasks ⬜
 
 1. **TOC File Updates**
-   - Add `ui\xpbars\vertical_v2\VerticalBarStyle.lua`
-   - Add `ui\xpbars\vertical_v2\VerticalBarTemplate.xml`
-   - Ensure proper load order (after core V2 files)
+   - Add `ui\xpbars\vertical\VerticalBarStyle.lua`
+   - Add `ui\xpbars\vertical\VerticalBarTemplate.xml`
+   - Ensure proper load order (after core  files)
 
 2. **Frames.xml Updates**
-   - Include vertical_v2 XML template
+   - Include vertical XML template
    - Ensure mixin name matches (`VerticalBarXPBarMixin`)
 
 3. **StyleBuilder Registration**
@@ -174,10 +174,10 @@ VerticalBarTemplate_v2
 
 ### Code Reduction
 
-| Component | V1 LOC | V2 LOC | Reduction |
+| Component | V1 LOC |  LOC | Reduction |
 |-----------|--------|--------|-----------|
 | Style File | 894 | 380 | -57% |
-| Container | Included | N/A | Handled by V2 core |
+| Container | Included | N/A | Handled by  core |
 | **Total** | **894** | **380** | **-57%** |
 
 ### Architecture Improvements
@@ -188,15 +188,15 @@ VerticalBarTemplate_v2
 - ✅ Duplicated tooltip logic removed (now in TooltipMixin)
 - ✅ Cleaner separation of concerns (animation vs visuals)
 
-**V2 Benefits**:
+** Benefits**:
 - Standard animations handled by AnimationManager (zero code)
 - Clean custom animation integration via OnUpdate
 - Proper cleanup lifecycle
-- Consistent with other V2 styles
+- Consistent with other  styles
 
 ### Feature Parity
 
-| Feature | V1 | V2 | Notes |
+| Feature | V1 |  | Notes |
 |---------|----|----|-------|
 | Gravity animation | ✅ | ✅ | Same timing (0.4s) |
 | Particle effects | ✅ | ✅ | 8 particles with physics |
@@ -217,8 +217,8 @@ VerticalBarTemplate_v2
 1. **Add includes to TOC/XML**
    ```lua
    -- In XPBarEnhanced.toc
-   ui\xpbars\vertical_v2\VerticalBarStyle.lua
-   ui\xpbars\vertical_v2\VerticalBarTemplate.xml
+   ui\xpbars\vertical\VerticalBarStyle.lua
+   ui\xpbars\vertical\VerticalBarTemplate.xml
    ```
 
 2. **Test in-game**
@@ -264,9 +264,9 @@ VerticalBarTemplate_v2
 
 ## Files Created
 
-1. `ui/xpbars/vertical_v2/VerticalBarStyle.lua` (380 lines)
-2. `ui/xpbars/vertical_v2/VerticalBarTemplate.xml` (185 lines)
-3. `docs/VERTICAL_V2_MIGRATION.md` (this document)
+1. `ui/xpbars/vertical/VerticalBarStyle.lua` (380 lines)
+2. `ui/xpbars/vertical/VerticalBarTemplate.xml` (185 lines)
+3. `docs/VERTICAL_MIGRATION.md` (this document)
 
 ---
 

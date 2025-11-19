@@ -1,4 +1,4 @@
-# V2 Animation System - Robustness Analysis
+#  Animation System - Robustness Analysis
 
 **Date**: November 9, 2025  
 **Status**: Production Ready  
@@ -9,7 +9,7 @@
 ## Root Cause Analysis: Flash Single-Frame Bug
 
 ### The Problem
-Legacy V2 and Flat V2 bars showed flash effect for only 1 frame instead of the expected ~38 frames (0.5s @ 60fps), while bar fill animation worked correctly.
+Classic  and Flat  bars showed flash effect for only 1 frame instead of the expected ~38 frames (0.5s @ 60fps), while bar fill animation worked correctly.
 
 ### Root Cause
 The issue was in `AnimationManager:AnimateTo()` line 239 (old code):
@@ -287,7 +287,7 @@ end
 **Edge Case**: Frame hidden during animation
 ```lua
 // In bar OnHide:
-function LegacyBarStyleTemplate:OnHide()
+function ClassicBarStyleTemplate:OnHide()
     if self.CleanupAnimation then
         self:CleanupAnimation()  // ✅ Already handled by AnimationBase
     end
@@ -350,7 +350,7 @@ end
 
 ## Conclusion
 
-The V2 animation system is now **robust and production-ready**. The core architecture is sound, and the flash bug fix revealed an important principle: **animation states should only be cleared by their natural completion conditions**.
+The  animation system is now **robust and production-ready**. The core architecture is sound, and the flash bug fix revealed an important principle: **animation states should only be cleared by their natural completion conditions**.
 
 The recommended improvements are primarily defensive (validation, clamping, leak prevention) and diagnostic (debug flags, warnings). The system can ship as-is, with these enhancements added in maintenance updates.
 

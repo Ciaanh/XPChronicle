@@ -2,13 +2,13 @@
 
 ## Overview
 
-The debug log system captures all initialization and animation flow logs into a circular buffer that can be dumped on demand via chat commands. This is essential for troubleshooting initialization issues and animation problems in v2 bars.
+The debug log system captures all initialization and animation flow logs into a circular buffer that can be dumped on demand via chat commands. This is essential for troubleshooting initialization issues and animation problems in  bars.
 
 ## Features
 
 - **Circular buffer**: Stores last 500 log entries automatically
 - **Timestamped entries**: Each log has precise timing (GetTime())
-- **Categorized logs**: Logs are tagged by component (BaseMixin, CircularBar, LegacyBar, Animation)
+- **Categorized logs**: Logs are tagged by component (BaseMixin, CircularBar, ClassicBar, Animation)
 - **Chat commands**: Easy dump and management via `/xpbdebug` or `/xpbd`
 - **Zero performance impact when disabled**: Can be toggled on/off
 
@@ -47,7 +47,7 @@ This shows the last 50 log entries, which should capture the entire initializati
 
 Look for the following sequences:
 
-#### Normal Initialization Flow (Circular v2):
+#### Normal Initialization Flow (Circular ):
 ```
 [time] [BaseMixin] OnLoad called
 [time] [BaseMixin] OnLoad calling initial Refresh
@@ -62,16 +62,16 @@ Look for the following sequences:
 [time] [CircularBar] SetArcProgress called with progress 0.45
 ```
 
-#### Normal Animation Flow (Legacy/FlatBar/Vertical v2):
+#### Normal Animation Flow (Classic/FlatBar/Vertical ):
 ```
-[time] [LegacyBar] RenderBar called
-[time] [LegacyBar] RenderBar shouldAnimate: true
-[time] [LegacyBar] RenderBar starting animation
-[time] [LegacyBar] RenderBar config.enableAnimations: true
-[time] [AnimationBase] StartAnimation called for LegacyBar_v2 targetRatio: 0.52 enableAnimations: true
+[time] [ClassicBar] RenderBar called
+[time] [ClassicBar] RenderBar shouldAnimate: true
+[time] [ClassicBar] RenderBar starting animation
+[time] [ClassicBar] RenderBar config.enableAnimations: true
+[time] [AnimationBase] StartAnimation called for ClassicBar targetRatio: 0.52 enableAnimations: true
 [time] [AnimationBase] StartAnimation delegating to AnimationManager
-[time] [AnimationBase] ApplyAnimationStep called for LegacyBar_v2
-[time] [AnimationBase] ApplyAnimationStep called for LegacyBar_v2
+[time] [AnimationBase] ApplyAnimationStep called for ClassicBar
+[time] [AnimationBase] ApplyAnimationStep called for ClassicBar
 ... (repeated per frame)
 ```
 
@@ -84,17 +84,17 @@ Look for the following sequences:
 
 | Category | Component | What it logs |
 |----------|-----------|--------------|
-| `BaseMixin` | Base v2 functionality | OnLoad, Refresh, TriggerBarRefresh calls |
-| `CircularBar` | Circular v2 style | RenderBar, RenderBarFrame, SetArcProgress, AnimateBarPosition |
-| `LegacyBar` | Legacy v2 style | RenderBar, RenderBarFrame |
-| `VerticalBar` | Vertical v2 style | RenderBar, RenderBarFrame |
-| `FlatBar` | FlatBar v2 style | RenderBar, RenderBarFrame |
+| `BaseMixin` | Base  functionality | OnLoad, Refresh, TriggerBarRefresh calls |
+| `CircularBar` | Circular  style | RenderBar, RenderBarFrame, SetArcProgress, AnimateBarPosition |
+| `ClassicBar` | Classic  style | RenderBar, RenderBarFrame |
+| `VerticalBar` | Vertical  style | RenderBar, RenderBarFrame |
+| `FlatBar` | FlatBar  style | RenderBar, RenderBarFrame |
 | `AnimationBase` | Animation mixin | StartAnimation, ApplyAnimationStep |
 | `AnimationManager` | Animation driver | AnimateTo, OnUpdate (if added) |
 
 ## Troubleshooting Common Issues
 
-### Issue: Circular v2 bar not displaying on load
+### Issue: Circular  bar not displaying on load
 
 **Expected logs:**
 - `[CircularBar] RenderBar called`
@@ -107,11 +107,11 @@ Look for the following sequences:
 - Check if `[BaseMixin] TriggerBarRefresh calling RenderBar` appears → If not, RenderBar method not implemented
 - Check if `shouldAnimate` is `true` instead of `false` → Context builder issue
 
-### Issue: Legacy/FlatBar/Vertical v2 XP gains not animated
+### Issue: Classic/FlatBar/Vertical  XP gains not animated
 
 **Expected logs:**
-- `[LegacyBar] RenderBar shouldAnimate: true`
-- `[LegacyBar] RenderBar config.enableAnimations: true`
+- `[ClassicBar] RenderBar shouldAnimate: true`
+- `[ClassicBar] RenderBar config.enableAnimations: true`
 - `[AnimationBase] StartAnimation called`
 - `[AnimationBase] ApplyAnimationStep called` (repeated multiple times)
 
@@ -136,7 +136,7 @@ The debug log is integrated at these key points:
    - `SetArcProgress()` - Segment calculation
    - `AnimateBarPosition()` - Animation callback
 
-3. **LegacyBarStyle.lua** (and other v2 styles):
+3. **ClassicBarStyle.lua** (and other  styles):
    - `RenderBar()` - Render decision
    - `RenderBarFrame()` - Actual rendering
 

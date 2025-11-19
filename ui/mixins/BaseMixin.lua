@@ -1,4 +1,4 @@
--- XP Bar Enhanced - Base Mixin v2
+-- XP Bar Enhanced - Base Mixin 
 -- Core functionality: event orchestration, Trigger/Action methods, overlay actions
 -- Uses ContextBuilder for immutable contexts (no Session dependency)
 
@@ -6,10 +6,10 @@
 -- GLOBAL BASE MIXIN
 -------------------------------------------------------------------
 
----@class XPBarMixinBase_v2
-XPBarMixinBase_v2 = {}
+---@class XPBarMixinBase
+XPBarMixinBase = {}
 
-local BaseMixin = XPBarMixinBase_v2
+local BaseMixin = XPBarMixinBase
 
 -- Reference to addon for Logger access
 local Addon = XPBarEnhanced
@@ -18,7 +18,7 @@ local Addon = XPBarEnhanced
 -- PUBLIC API SURFACE
 -------------------------------------------------------------------
 
---- Refresh bar state from game data (V2 unified pattern)
+--- Refresh bar state from game data ( unified pattern)
 function BaseMixin:Refresh()
 	if XPBarDebugLog then XPBarDebugLog:Log("BaseMixin", "Refresh called") end
 	
@@ -90,11 +90,11 @@ function BaseMixin:OnLoad()
 	end
 
 	-- Register as observer for broadcast updates (color changes, etc.)
-	-- This ensures multiple V2 bars receive updates simultaneously
+	-- This ensures multiple  bars receive updates simultaneously
 	local Addon = XPBarEnhanced
 	if Addon.XPBar and Addon.XPBar.RegisterObserver then
 		-- Use frame name or generate unique ID
-		local observerId = self:GetName() or ("v2_bar_" .. tostring(self))
+		local observerId = self:GetName() or ("_bar_" .. tostring(self))
 		self.__observer_id = Addon.XPBar:RegisterObserver(self, observerId)
 	end
 
@@ -120,7 +120,7 @@ function BaseMixin:OnShow()
 	if not self.__observer_id then
 		local Addon = XPBarEnhanced
 		if Addon.XPBar and Addon.XPBar.RegisterObserver then
-			local observerId = self:GetName() or ("v2_bar_" .. tostring(self))
+			local observerId = self:GetName() or ("_bar_" .. tostring(self))
 			self.__observer_id = Addon.XPBar:RegisterObserver(self, observerId)
 		end
 	end
@@ -206,7 +206,7 @@ end
 -- EVENT ORCHESTRATION (Trigger/Action Pattern)
 -------------------------------------------------------------------
 
---- Event dispatcher - calls ContextBuilder and TriggerBarRefresh (V2 unified pattern)
+--- Event dispatcher - calls ContextBuilder and TriggerBarRefresh ( unified pattern)
 ---@param event string Event name
 ---@param ... any Event arguments
 function BaseMixin:OnEvent(event, ...)
@@ -242,7 +242,7 @@ end
 -------------------------------------------------------------------
 
 -------------------------------------------------------------------
--- V2 UNIFIED RENDER PATTERN (Phase 3: Refactor)
+--  UNIFIED RENDER PATTERN (Phase 3: Refactor)
 -------------------------------------------------------------------
 
 --- Single entry point for all bar updates (NEW unified pattern)

@@ -2,10 +2,10 @@
 
 ## Overview
 
-This document provides a detailed technical overview of the animation system used in the V1 architecture of XPBarEnhanced. It covers all four bar styles (Legacy, Flat, Vertical, and Circular), documenting the UI elements involved, event flows, and function workflows for each animation type.
+This document provides a detailed technical overview of the animation system used in the V1 architecture of XPBarEnhanced. It covers all four bar styles (Classic, Flat, Vertical, and Circular), documenting the UI elements involved, event flows, and function workflows for each animation type.
 
 **Document Version**: 1.0  
-**Architecture Version**: V1 (pre-V2 migration)  
+**Architecture Version**: V1 (pre- migration)  
 **Last Updated**: November 6, 2025
 
 ---
@@ -13,7 +13,7 @@ This document provides a detailed technical overview of the animation system use
 ## Table of Contents
 
 1. [Core Animation System](#core-animation-system)
-2. [Legacy Bar Style Animations](#legacy-bar-style-animations)
+2. [Classic Bar Style Animations](#classic-bar-style-animations)
 3. [Flat Bar Style Animations](#flat-bar-style-animations)
 4. [Vertical Bar Style Animations](#vertical-bar-style-animations)
 5. [Circular Bar Style Animations](#circular-bar-style-animations)
@@ -67,7 +67,7 @@ Each bar maintains an `animation` state object:
     
     -- Context (immutable)
     context = nil,                -- XP change context object
-    metadata = nil,               -- Legacy compatibility field
+    metadata = nil,               -- Classic compatibility field
     
     -- Previous state
     previousXP = 0                -- Last known XP value
@@ -102,22 +102,22 @@ All bar styles share these common elements:
 
 ---
 
-## Legacy Bar Style Animations
+## Classic Bar Style Animations
 
 ### Overview
 
 **Files**: 
-- `ui/xpbar/styles/LegacyXPBarMixin.lua`
-- `ui/xpbar/styles/LegacyXPBar.xml`
+- `ui/xpbar/styles/ClassicXPBarMixin.lua`
+- `ui/xpbar/styles/ClassicXPBar.xml`
 
-The Legacy bar mimics Blizzard's original XP bar with atlas textures and smooth fill animations.
+The Classic bar mimics Blizzard's original XP bar with atlas textures and smooth fill animations.
 
 ### UI Elements
 
 **XML Structure**:
 ```xml
-LegacyXPBarContainer
-├── Bar (LegacyXPBarMixin)
+ClassicXPBarContainer
+├── Bar (ClassicXPBarMixin)
 │   ├── StatusBar (WoW StatusBar widget)
 │   │   ├── Background (atlas: UI-HUD-ExperienceBar-Background)
 │   │   ├── BarTexture (Interface\TargetingFrame\UI-StatusBar)
@@ -150,7 +150,7 @@ LegacyXPBarContainer
 1. Event: PLAYER_XP_UPDATE
    └─> XPBar:HandleXPUpdate()
        └─> Creates immutable context object
-           └─> LegacyXPBarMixin:AnimateXPChange(context)
+           └─> ClassicXPBarMixin:AnimateXPChange(context)
 
 2. AnimateXPChange(context)
    ├─> Updates state.currentXP, state.maxXP
@@ -297,7 +297,7 @@ UpdateStatusBarColor()
 - `ui/xpbar/styles/FlatXPBarMixin.lua`
 - `ui/xpbar/styles/FlatXPBar.xml`
 
-The Flat bar uses solid colors and modern styling with the same animation system as Legacy.
+The Flat bar uses solid colors and modern styling with the same animation system as Classic.
 
 ### UI Elements
 
@@ -323,14 +323,14 @@ FlatXPBarContainer
 
 ### Animation Types
 
-The Flat bar uses **identical animation workflows** to the Legacy bar:
+The Flat bar uses **identical animation workflows** to the Classic bar:
 
-1. **Smooth Bar Fill** - Same as Legacy
-2. **XP Gain Flash** - Same as Legacy
-3. **Level-Up Celebration** - Same as Legacy
-4. **Color Transitions** - Instant (same as Legacy)
+1. **Smooth Bar Fill** - Same as Classic
+2. **XP Gain Flash** - Same as Classic
+3. **Level-Up Celebration** - Same as Classic
+4. **Color Transitions** - Instant (same as Classic)
 
-### Differences from Legacy
+### Differences from Classic
 
 1. **Visual Style**: Uses `WHITE8X8` texture with `SetColorTexture()` instead of atlas textures
 2. **Color Application**: Colors applied via `SetStatusBarColor()` and `SetVertexColor()`
@@ -511,8 +511,8 @@ t=0.1s:  originalHeight (settle)
 
 The Vertical bar also uses the common animation system for:
 - **Bar fill animation** (when no fall animation needed)
-- **XP Gain Flash** (same as Legacy/Flat)
-- **Level-Up Celebration** (same as Legacy/Flat)
+- **XP Gain Flash** (same as Classic/Flat)
+- **Level-Up Celebration** (same as Classic/Flat)
 
 ---
 
@@ -1051,20 +1051,20 @@ ShouldAnimateChange(currentRatio, newRatio, config):
 
 ---
 
-## Migration Notes (V1 → V2)
+## Migration Notes (V1 → )
 
 This V1 architecture has significant code duplication across styles:
 - ~2,825 lines across 4 bar styles
 - ~70% shared logic duplicated per style
 - Event handling repeated in each mixin
 
-The V2 architecture addresses this through:
+The  architecture addresses this through:
 - Composition-based mixins (reusable components)
 - Shared animation system (no per-style duplication)
 - ~83% code reduction per style
 - Immutable context pattern (prevents bugs)
 
-For V2 migration details, see `MIGRATION_PLAN.md`.
+For  migration details, see `MIGRATION_PLAN.md`.
 
 ---
 
@@ -1085,7 +1085,7 @@ For V2 migration details, see `MIGRATION_PLAN.md`.
 | `CalculateAnimationDuration()` | Computes duration from delta | All styles |
 | `ApplyEasing(t)` | Applies easing function | All styles |
 
-### Legacy/Flat Specific
+### Classic/Flat Specific
 
 | Function | Purpose |
 |----------|---------|

@@ -1,8 +1,8 @@
-# V2 Architecture Refactor Summary
+#  Architecture Refactor Summary
 
 ## Problem Statement
 
-The current V2 architecture has **redundant recursive calls** where each event triggers updates twice:
+The current  architecture has **redundant recursive calls** where each event triggers updates twice:
 1. Direct calls from Trigger methods (TriggerXPChanged, TriggerLevelUp, etc.)
 2. Recursive calls from UpdateVisuals() orchestration
 
@@ -12,7 +12,7 @@ Additionally, the split between Layout/Paint mixins creates unnecessary complexi
 
 The circular bar already implements the ideal pattern: **single render method per event**.
 
-### Current Flow (Flat/Legacy/Vertical)
+### Current Flow (Flat/Classic/Vertical)
 ```
 Event → BuildContext → TriggerXPChanged
     → UpdateCurrentXPBar
@@ -149,7 +149,7 @@ end
 ### Phase 2: Implement RenderBar Per Style 🔄
 - Circular: Already done! ✅
 - Flat: Implement RenderBar
-- Legacy: Implement RenderBar
+- Classic: Implement RenderBar
 - Vertical: Implement RenderBar
 
 ### Phase 3: Switch to TriggerBarRefresh ⚠️ BREAKING
@@ -163,7 +163,7 @@ end
 - Keep calculation helpers (CalculateBarRatio, etc.)
 - Keep TextMixin (centralized text formatting)
 
-**No legacy fallback** - cleaner codebase, less maintenance burden!
+**No classic fallback** - cleaner codebase, less maintenance burden!
 
 ## Circular Bar Proof of Concept
 
@@ -205,11 +205,11 @@ The circular bar proves this approach works. Let's extend it to all styles.
 
 ## Next Steps
 
-1. **Review proposal**: `docs/V2_ARCHITECTURE_REFACTOR_PROPOSAL.md`
+1. **Review proposal**: `docs/ARCHITECTURE_REFACTOR_PROPOSAL.md`
 2. **Implement Phase 1**: Add context flags to ContextBuilder
 3. **Implement Phase 2**: Add TriggerBarRefresh to BaseMixin
 4. **Implement Phase 3**: Create RenderBar for Flat style
 5. **Test thoroughly**: Ensure no regressions
-6. **Extend to other styles**: Legacy, Vertical
-7. **Remove legacy code**: Clean up old Trigger methods
+6. **Extend to other styles**: Classic, Vertical
+7. **Remove classic code**: Clean up old Trigger methods
 

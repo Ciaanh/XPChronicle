@@ -1,4 +1,4 @@
-# Circular V2 OnLoad Issue - Visual Summary
+# Circular  OnLoad Issue - Visual Summary
 
 ## The Bug in One Picture
 
@@ -6,7 +6,7 @@
 INITIALIZATION FLOW COMPARISON
 ═══════════════════════════════════════════════════════════════
 
-LEGACY/VERTICAL V2 (✅ WORKS)          CIRCULAR V2 (❌ BROKEN)
+CLASSIC/VERTICAL  (✅ WORKS)          CIRCULAR  (❌ BROKEN)
 ─────────────────────────────          ─────────────────────────
 
 OnLoad()                               OnLoad()
@@ -297,4 +297,4 @@ if not self._currentRatio then
 end
 ```
 
-**That's it!** Remove one `return` statement and add overlay/text update calls at the end of `RenderBar` (matching Legacy/Vertical pattern).
+**That's it!** Remove one `return` statement and add overlay/text update calls at the end of `RenderBar` (matching Classic/Vertical pattern).

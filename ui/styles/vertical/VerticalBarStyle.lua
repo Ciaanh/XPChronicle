@@ -1,14 +1,14 @@
--- XP Bar Enhanced - VerticalBar Style v2
+-- XP Bar Enhanced - VerticalBar Style 
 -- Vertical XP bar with StatusBar widget using vertical orientation
--- Integrates with V2 AnimationManager for standard effects
+-- Integrates with  AnimationManager for standard effects
 
 -------------------------------------------------------------------
 -- DEPENDENCIES
 -------------------------------------------------------------------
 
-if not XPBarStyleBuilder or not XPBarMixinBase_v2 then
+if not XPBarStyleBuilder or not XPBarMixinBase then
     error(
-        "VerticalBarStyle: v2 core (StyleBuilder/BaseMixin) not loaded. Ensure ui/xpbars core files are earlier in the .toc."
+        "VerticalBarStyle:  core (StyleBuilder/BaseMixin) not loaded. Ensure ui/xpbars core files are earlier in the .toc."
     )
 end
 
@@ -19,7 +19,7 @@ end
 local VerticalBarStyleTemplate = {}
 
 -------------------------------------------------------------------
--- V2 ANIMATION IMPLEMENTATION (AnimationManager integration)
+--  ANIMATION IMPLEMENTATION (AnimationManager integration)
 -------------------------------------------------------------------
 
 --- Update bar position - smooth fill animation
@@ -61,10 +61,10 @@ function VerticalBarStyleTemplate:AnimateBarEffect(iterationData, eventContext)
 end
 
 -------------------------------------------------------------------
--- V2 UNIFIED RENDER PATTERN (Phase 2: Refactor)
+--  UNIFIED RENDER PATTERN (Phase 2: Refactor)
 -------------------------------------------------------------------
 
---- Single render method for vertical bar (V2 unified pattern)
+--- Single render method for vertical bar ( unified pattern)
 --- Pure rendering method - orchestration handled by BaseMixin:TriggerBarRefresh
 ---@param context table Immutable context with all state and flags
 function VerticalBarStyleTemplate:RenderBar(context)
@@ -374,7 +374,7 @@ local DefaultConfig = {
         enableAnimations = true,
         flashOnGain = true
     },
-    position = {mode = "DRAGGABLE", positionKey = "VerticalBar_v2"},
+    position = {mode = "DRAGGABLE", positionKey = "VerticalBar"},
     style = {}
 }
 
@@ -383,7 +383,7 @@ local DefaultConfig = {
 -------------------------------------------------------------------
 
 -- Create composed mixin (Base + Behaviors + Style)
-VerticalBarXPBarMixin = XPBarStyleBuilder:Create(XPBarMixinBase_v2, VerticalBarStyleTemplate, DefaultConfig)
+VerticalBarXPBarMixin = XPBarStyleBuilder:Create(XPBarMixinBase, VerticalBarStyleTemplate, DefaultConfig)
 XPBarStyleBuilder:RegisterStyle("vertical", VerticalBarXPBarMixin)
 
 -------------------------------------------------------------------
@@ -394,10 +394,10 @@ XPBarStyleBuilder:RegisterStyle("vertical", VerticalBarXPBarMixin)
 function XPBarEnhanced_CreateVerticalBarFrame()
     local styleKey = "vertical"
 
-    local frame = XPBarStyleBuilder:CreateFrameForStyle(styleKey, DefaultConfig, "VerticalBarTemplate_v2")
+    local frame = XPBarStyleBuilder:CreateFrameForStyle(styleKey, DefaultConfig, "VerticalBarTemplate")
     frame:Show()
 
-    _G.VerticalBar_v2 = frame -- Global reference
+    _G.VerticalBar = frame -- Global reference
 
     return frame
 end

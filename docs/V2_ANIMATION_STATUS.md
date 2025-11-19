@@ -1,14 +1,14 @@
-# V2 Animation System - Implementation Status
+#  Animation System - Implementation Status
 
 **Date**: November 7, 2025  
 **Phase**: Phase 1 - Documentation & Planning  
-**Current Focus**: V2 Animation System Polish
+**Current Focus**:  Animation System Polish
 
 ---
 
 ## ✅ Completed Milestones
 
-### 1. V2 Animation System Implementation
+### 1.  Animation System Implementation
 - **Status**: ✅ **COMPLETE**
 - **Location**: `ui/xpbars/mixins/animation/AnimationManager.lua` (479 lines)
 - **Features**:
@@ -22,8 +22,8 @@
 - **Status**: ✅ **VALIDATED**
 - **Test Results**:
   - V1 Flash: 38 frames, 0.494s duration ✅
-  - V2 Flash: 38 frames, 0.494s duration ✅
-  - **Perfect Match**: Flash timing identical between V1 and V2
+  -  Flash: 38 frames, 0.494s duration ✅
+  - **Perfect Match**: Flash timing identical between V1 and 
 
 ### 3. Double Flash Bug Fix
 - **Issue**: Flash triggering twice on huge XP gains (quest turn-ins)
@@ -41,10 +41,10 @@
 - **Status**: ✅ **IMPLEMENTED**
 - **Systems**:
   - `/animdebug` - Dump animation debug messages (max 50)
-  - `/flashdebug` + `/v2flashlogs` - V2 flash timing logs (max 100)
+  - `/flashdebug` + `/flashlogs` -  flash timing logs (max 100)
   - `/v1flashdebug` + `/v1flashlogs` - V1 flash timing logs (max 100)
   - `/flashtrack` + `/flashtracklogs` - Flash tracking logs (max 100, toggle on/off)
-  - `/testlevelup` - Trigger PLAYER_LEVEL_UP for both V1 and V2
+  - `/testlevelup` - Trigger PLAYER_LEVEL_UP for both V1 and 
 - **Cleanup**: Verbose flash tracking logs removed, essential debug messages retained
 
 ---
@@ -53,7 +53,7 @@
 
 ### Core Components
 
-#### AnimationManager (V2)
+#### AnimationManager ()
 **File**: `ui/xpbars/mixins/animation/AnimationManager.lua`
 
 **Key Methods**:
@@ -120,30 +120,30 @@
    - **Cause**: WoW's StatusBar widget has built-in smoothing (C++ code)
    - **Behavior**: Bar animates from high% → 0% on level-up (~0.5s)
    - **Status**: ℹ️ Not a bug - inherent widget behavior, cannot be disabled
-   - **Note**: V2 uses instant update to avoid this
+   - **Note**:  uses instant update to avoid this
 
 ### ⚠️ Open Questions
 
-None - system stable and production-ready for Flat Bar V2
+None - system stable and production-ready for Flat Bar 
 
 ---
 
 ## 🚀 Next Steps (Migration Plan)
 
 ### Phase 1: Documentation & Planning ✅ **CURRENT PHASE - COMPLETE**
-- ✅ V2 Animation system fully implemented
+- ✅  Animation system fully implemented
 - ✅ Flash timing validated (matches V1 exactly)
 - ✅ Double flash bug fixed
 - ✅ Debug logs cleaned up
 - ⏭️ **Ready to proceed to Phase 2**
 
-### Phase 2: Legacy Bar Migration ⏭️ **NEXT**
-**Objective**: Port Legacy bar (Blizzard-style) to V2 architecture
+### Phase 2: Classic Bar Migration ⏭️ **NEXT**
+**Objective**: Port Classic bar (Blizzard-style) to  architecture
 
 **Tasks**:
-1. Create `ui/xpbars/legacy_v2/` directory
-2. Implement `LegacyBarStyle.lua` (minimal config)
-3. Create `LegacyBarTemplate.xml` (atlas textures)
+1. Create `ui/xpbars/classic/` directory
+2. Implement `ClassicBarStyle.lua` (minimal config)
+3. Create `ClassicBarTemplate.xml` (atlas textures)
 4. Test static positioning (anchored to Blizzard bar)
 5. Validate all overlays (rested, quest, exhaustion)
 6. Side-by-side comparison with V1
@@ -177,7 +177,7 @@ None - system stable and production-ready for Flat Bar V2
 
 ```
 Phase 1: Documentation & Planning    ████████████████████ 100% ✅
-Phase 2: Legacy Bar Migration        ░░░░░░░░░░░░░░░░░░░░   0% ⏭️
+Phase 2: Classic Bar Migration        ░░░░░░░░░░░░░░░░░░░░   0% ⏭️
 Phase 3: Vertical Bar Migration      ░░░░░░░░░░░░░░░░░░░░   0%
 Phase 4: Circular Bar Migration      ░░░░░░░░░░░░░░░░░░░░   0%
 Phase 5: V1 Cleanup                  ░░░░░░░░░░░░░░░░░░░░   0%
@@ -186,10 +186,10 @@ Phase 6: Global Polish               ░░░░░░░░░░░░░░�
 
 ### Style Implementation Status
 
-| Style | V1 (Old) | V2 (New) | Status | Notes |
+| Style | V1 (Old) |  (New) | Status | Notes |
 |-------|----------|----------|--------|-------|
 | **Flat Bar** | ✅ | ✅ | **PRODUCTION READY** | Animation system validated |
-| **Legacy Bar** | ✅ | ⏳ | Phase 2 | Next to implement |
+| **Classic Bar** | ✅ | ⏳ | Phase 2 | Next to implement |
 | **Vertical Bar** | ✅ | ⏳ | Phase 3 | Custom gravity animations |
 | **Circular Bar** | ✅ | ⏳ | Phase 4 | Arc rendering + glow |
 
@@ -199,19 +199,19 @@ Phase 6: Global Polish               ░░░░░░░░░░░░░░�
 
 ### Animation Testing
 
-| Test Category | V1 | V2 | Notes |
+| Test Category | V1 |  | Notes |
 |---------------|----|----|-------|
 | **Flash Timing** | ✅ | ✅ | 38 frames, 0.494s - perfect match |
 | **Flash on XP Gain** | ✅ | ✅ | White overlay fade in/out |
 | **Flash on Level Up** | ✅ | ✅ | Triggered correctly |
 | **Value Smoothing** | ✅ | ✅ | No instant jumps |
-| **Retargeting** | ⚠️ | ✅ | V2 handles aggregation better |
-| **Double Flash Prevention** | ⚠️ | ✅ | V2 has cooldown system |
-| **Level-Up Instant Reset** | ⚠️ | ✅ | V2 uses instant update |
+| **Retargeting** | ⚠️ | ✅ |  handles aggregation better |
+| **Double Flash Prevention** | ⚠️ | ✅ |  has cooldown system |
+| **Level-Up Instant Reset** | ⚠️ | ✅ |  uses instant update |
 
 ### Performance Testing
 
-| Metric | Target | V2 Status | Notes |
+| Metric | Target |  Status | Notes |
 |--------|--------|-----------|-------|
 | **FPS during animation** | ≥60 | ✅ | Smooth OnUpdate loop |
 | **Memory leaks** | None | ✅ | Clean ticker management |
@@ -228,11 +228,11 @@ Phase 6: Global Polish               ░░░░░░░░░░░░░░�
 |-----------|-------|--------|
 | AnimationManager.lua | 479 | ✅ Clean, documented |
 | AnimationUtils.lua | 324 | ✅ Clean, documented |
-| FlatBarStyle.lua (V2) | 225 | ✅ Production ready |
+| FlatBarStyle.lua () | 225 | ✅ Production ready |
 
 ### Code Reduction (Flat Bar)
 - **V1**: ~500 lines (FlatXPBarMixin.lua)
-- **V2**: ~225 lines (FlatBarStyle.lua)
+- ****: ~225 lines (FlatBarStyle.lua)
 - **Reduction**: -55% per style (shared mixins amortized across all styles)
 
 ---
@@ -252,12 +252,12 @@ Phase 6: Global Polish               ░░░░░░░░░░░░░░�
 ### 3. Flash Timing Precision Matters
 **Finding**: Users notice when flash timing differs by even 50-100ms  
 **Approach**: Frame counting and side-by-side comparison essential  
-**Result**: Perfect 38-frame match between V1 and V2
+**Result**: Perfect 38-frame match between V1 and 
 
 ### 4. StatusBar Widget Limitations
 **Discovery**: WoW's StatusBar has built-in smoothing that cannot be disabled  
 **Workaround**: Use instant updates (ApplyAnimationStep with progress=1.0) for level-up  
-**Impact**: V2 avoids "drain" effect that V1 experiences on level-up
+**Impact**:  avoids "drain" effect that V1 experiences on level-up
 
 ---
 
@@ -265,7 +265,7 @@ Phase 6: Global Polish               ░░░░░░░░░░░░░░�
 
 **Phase 1 Status**: ✅ **COMPLETE**
 
-The V2 animation system is fully implemented, validated, and production-ready for the Flat Bar style. All identified bugs have been fixed, debug systems are in place, and the code is clean and well-documented.
+The  animation system is fully implemented, validated, and production-ready for the Flat Bar style. All identified bugs have been fixed, debug systems are in place, and the code is clean and well-documented.
 
 **Key Achievements**:
 - Flash timing matches V1 exactly (38 frames, 0.494s)
@@ -274,7 +274,7 @@ The V2 animation system is fully implemented, validated, and production-ready fo
 - Debug commands facilitate troubleshooting
 - Level-up handling superior to V1 (instant reset, no "drain")
 
-**Ready for Phase 2**: Legacy Bar migration can now proceed with confidence in the animation foundation.
+**Ready for Phase 2**: Classic Bar migration can now proceed with confidence in the animation foundation.
 
 ---
 

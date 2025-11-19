@@ -1,4 +1,4 @@
-# XPBarEnhanced V2 Architecture - Custom Style Developer Guide
+# XPBarEnhanced  Architecture - Custom Style Developer Guide
 
 **Version**: 2.0  
 **Status**: Production Ready  
@@ -8,26 +8,26 @@
 
 ## ⚠️ IMPORTANT NOTE: Animation System Removed
 
-**The animation system (AnimationMixin) has been completely removed from V2** to preserve a smooth, feature-complete implementation during the style migration from V1.
+**The animation system (AnimationMixin) has been completely removed from ** to preserve a smooth, feature-complete implementation during the style migration from V1.
 
 **What this means:**
 - All references to `animation` config in this document are **deprecated**
-- No smooth value transitions, flash effects, or level-up animations in V2
+- No smooth value transitions, flash effects, or level-up animations in 
 - The StatusBar updates are **instant** (no smoothing)
 - This ensures stability and predictability during migration
 - V1 styles retain their full animation capabilities
 
-**If you see animation-related config or code in this document, ignore it.** The V2 implementation is intentionally simplified to focus on core layout and rendering functionality.
+**If you see animation-related config or code in this document, ignore it.** The  implementation is intentionally simplified to focus on core layout and rendering functionality.
 
 ---
 
 ## Introduction
 
-Welcome to the XPBarEnhanced V2 architecture! This document explains how to create custom XP bar styles using the new mixin-based composition system.
+Welcome to the XPBarEnhanced  architecture! This document explains how to create custom XP bar styles using the new mixin-based composition system.
 
-### What is V2?
+### What is ?
 
-V2 is a complete rewrite of the XPBarEnhanced architecture that:
+ is a complete rewrite of the XPBarEnhanced architecture that:
 - **Reduces code duplication** by 80%+ through shared behavior mixins
 - **Simplifies style creation** - new styles require only ~100-200 lines of code
 - **Centralizes common features** - events, tooltips, positioning
@@ -35,7 +35,7 @@ V2 is a complete rewrite of the XPBarEnhanced architecture that:
 
 ### Why Create a Custom Style?
 
-The built-in styles (Flat, Legacy, Vertical, Circular) cover most use cases, but you might want:
+The built-in styles (Flat, Classic, Vertical, Circular) cover most use cases, but you might want:
 - Unique visual layouts (diagonal bars, spiral patterns, etc.)
 - Integration with other addons (portraits, reputation, etc.)
 - Personal aesthetic preferences
@@ -49,7 +49,7 @@ This guide shows you how to build your own style from scratch.
 ### Step 1: Create Your Style Directory
 
 ```
-ui/xpbars/mystyle_v2/
+ui/xpbars/mystyle/
   MyStyleBar.lua        ← Config and registration
   MyStyleTemplate.xml   ← Visual structure
 ```
@@ -64,12 +64,12 @@ local MyStyleTemplate = {}
 local DefaultConfig = {
     interaction = {enabled = true},
     tooltip = {enabled = true},
-    position = {mode = "DRAGGABLE", positionKey = "MyStyle_v2"},
+    position = {mode = "DRAGGABLE", positionKey = "MyStyle"},
     style = {width = 400, height = 40}
 }
 
 -- Register your style with StyleBuilder
-MyStyleXPBarMixin = XPBarStyleBuilder:Create(XPBarMixinBase_v2, MyStyleTemplate, DefaultConfig)
+MyStyleXPBarMixin = XPBarStyleBuilder:Create(XPBarMixinBase, MyStyleTemplate, DefaultConfig)
 XPBarStyleBuilder:RegisterStyle("mystyle", MyStyleXPBarMixin)
 ```
 
@@ -77,7 +77,7 @@ XPBarStyleBuilder:RegisterStyle("mystyle", MyStyleXPBarMixin)
 
 ```xml
 <Ui xmlns="http://www.blizzard.com/wow/ui/">
-    <Frame name="MyStyleTemplate_v2" mixin="MyStyleXPBarMixin" virtual="true">
+    <Frame name="MyStyleTemplate" mixin="MyStyleXPBarMixin" virtual="true">
         <Size x="400" y="40"/>
         
         <!-- Background -->
@@ -91,7 +91,7 @@ XPBarStyleBuilder:RegisterStyle("mystyle", MyStyleXPBarMixin)
         
         <!-- XP Bar (StatusBar widget) -->
         <Frames>
-            <StatusBar parentKey="StatusBar" inherits="XPBarStatusBarTemplate_v2">
+            <StatusBar parentKey="StatusBar" inherits="XPBarStatusBarTemplate">
                 <Anchors>
                     <Anchor point="BOTTOMLEFT"/>
                     <Anchor point="TOPRIGHT"/>
@@ -106,15 +106,15 @@ XPBarStyleBuilder:RegisterStyle("mystyle", MyStyleXPBarMixin)
 
 ```
 # Add to XPBarEnhanced.toc
-ui\xpbars\mystyle_v2\MyStyleBar.lua
-ui\xpbars\mystyle_v2\MyStyleTemplate.xml
+ui\xpbars\mystyle\MyStyleBar.lua
+ui\xpbars\mystyle\MyStyleTemplate.xml
 ```
 
 ### Step 5: Test Your Style In-Game
 
 ```lua
 -- In WoW chat, type:
-/run XPBarStyleBuilder:CreateFrameForStyle("mystyle", nil, "MyStyleTemplate_v2"):Show()
+/run XPBarStyleBuilder:CreateFrameForStyle("mystyle", nil, "MyStyleTemplate"):Show()
 ```
 
 **Congratulations!** You've created a basic custom style. Now let's dive deeper.
@@ -148,7 +148,7 @@ ui\xpbars\mystyle_v2\MyStyleTemplate.xml
 
 Your style relies on these global objects (provided by XPBarEnhanced core):
 
-- `XPBarMixinBase_v2` - Base mixin for all styles
+- `XPBarMixinBase` - Base mixin for all styles
 - `XPBarStyleBuilder` - Mixin composition and registration
 - `XPBarContextBuilder` - Immutable context building
 - `XPBarColors` - User-defined color management
@@ -157,8 +157,8 @@ Your style relies on these global objects (provided by XPBarEnhanced core):
 **Important**: Always check these exist before registering your style:
 
 ```lua
-if not XPBarStyleBuilder or not XPBarMixinBase_v2 then
-    error("MyStyle: V2 core not loaded")
+if not XPBarStyleBuilder or not XPBarMixinBase then
+    error("MyStyle:  core not loaded")
 end
 ```
 
@@ -166,7 +166,7 @@ end
 
 **Required Pattern**:
 ```
-ui/xpbars/yourstyle_v2/
+ui/xpbars/yourstyle/
   YourStyleBar.lua        ← Config, template, registration
   YourStyleTemplate.xml   ← Visual structure
   README.md               ← Optional: style documentation
@@ -206,7 +206,7 @@ Use `XPBarEnhancedDB.barPositions[positionKey]` for saving position:
 local config = {
     position = {
         mode = "DRAGGABLE",  -- or "STATIC"
-        positionKey = "MyStyle_v2"  -- Unique identifier
+        positionKey = "MyStyle"  -- Unique identifier
     }
 }
 ```
@@ -226,9 +226,9 @@ local config = {
 
 ### What You Need to Know (High-Level)
 
-The V2 architecture has three layers:
+The  architecture has three layers:
 
-1. **Base Layer** (`XPBarMixinBase_v2`) - Event handling, action orchestration
+1. **Base Layer** (`XPBarMixinBase`) - Event handling, action orchestration
    - You **don't modify** this
    - Provides: Event registration, Trigger methods, default Action methods
 
@@ -236,13 +236,13 @@ The V2 architecture has three layers:
    - You **rarely modify** these
    - Provides: Animations, tooltips, positioning, text formatting, etc.
 
-3. **Style Layer** (Your code in `ui/xpbars/yourstyle_v2/`) - Visual implementation
+3. **Style Layer** (Your code in `ui/xpbars/yourstyle/`) - Visual implementation
    - You **focus here**
    - Provides: Visual layout, custom animations, overlay positioning
 
 ### What Each Component Does
 
-#### XPBarMixinBase_v2 (Base Layer)
+#### XPBarMixinBase (Base Layer)
 
 **Responsibilities**:
 - Register game events (`PLAYER_XP_UPDATE`, `PLAYER_LEVEL_UP`, etc.)
@@ -356,7 +356,7 @@ local DefaultConfig = {
     -- Position settings
     position = {
         mode = "DRAGGABLE",       -- "DRAGGABLE" or "STATIC"
-        positionKey = "MyStyle_v2"  -- Unique key for saved position
+        positionKey = "MyStyle"  -- Unique key for saved position
     },
     
     -- Style-specific settings (your custom data)
@@ -404,7 +404,7 @@ end
 ```
 
 **When to Override Action Methods**:
-- **Linear layouts (flat, legacy)**: Use default methods (no override needed)
+- **Linear layouts (flat, classic)**: Use default methods (no override needed)
 - **Non-linear layouts (circular, vertical)**: Override overlay positioning methods
 - **Custom animations**: Add new methods and call from Trigger overrides
 
@@ -414,7 +414,7 @@ Use `StyleBuilder:Create()` to compose mixins and create your style mixin:
 
 ```lua
 MyStyleXPBarMixin = XPBarStyleBuilder:Create(
-    XPBarMixinBase_v2,    -- Base mixin
+    XPBarMixinBase,    -- Base mixin
     MyStyleTemplate,       -- Your style template
     DefaultConfig          -- Your config
 )
@@ -440,7 +440,7 @@ The XML defines the visual structure - textures, frames, fontstrings.
 
 **Minimum Required Elements**:
 - `Background` texture
-- `StatusBar` (main XP bar - uses `XPBarStatusBarTemplate_v2`)
+- `StatusBar` (main XP bar - uses `XPBarStatusBarTemplate`)
 
 **Optional Elements**:
 - `RestedLevel` texture (rested overlay)
@@ -520,10 +520,10 @@ Context shape conventions:
 
 Integration plan:
 
-- **Phase 1 (v2)**: ContextBuilder duplicates Session calculation methods independently. ContextBuilder has NO dependencies on existing Session, Database, or other core modules.
+- **Phase 1 ()**: ContextBuilder duplicates Session calculation methods independently. ContextBuilder has NO dependencies on existing Session, Database, or other core modules.
 - **Phase 2 (future, post-migration)**: Refactor `core/Session.lua` to use ContextBuilder internally, Session becomes thin wrapper.
 - **Phase 3 (cleanup, post-migration)**: Consider removing Session entirely if all consumers moved to ContextBuilder.
-- **IMPORTANT**: During Phase 1 (v2 development), NO existing code should be modified. ContextBuilder must be fully independent to minimize complexity and impact.
+- **IMPORTANT**: During Phase 1 ( development), NO existing code should be modified. ContextBuilder must be fully independent to minimize complexity and impact.
 
 ### XPBarStyleBuilder (`ui/xpbars/StyleBuilder.lua`)
 
@@ -541,7 +541,7 @@ Primary responsibilities:
 Usage pattern:
 
 ```lua
--- In flatbar_v2/FlatBarStyle.lua (loaded at addon init)
+-- In flatbar/FlatBarStyle.lua (loaded at addon init)
 local FlatBarStyleTemplate = {} -- Visual methods only
 function FlatBarStyleTemplate:BuildVisuals() ... end
 function FlatBarStyleTemplate:UpdateVisuals() ... end
@@ -553,14 +553,14 @@ local config = {
   position = { mode = "DRAGGABLE", positionKey = "FlatBarXP" }, -- or "STATIC"
 }
 
-FlatBarXPBarMixin = XPBarStyleBuilder:Create(XPBarMixinBase_v2, FlatBarStyleTemplate, config)
+FlatBarXPBarMixin = XPBarStyleBuilder:Create(XPBarMixinBase, FlatBarStyleTemplate, config)
 ```
 
-### XPBarMixinBase_v2 (`ui/xpbars/BaseMixin.lua`)
+### XPBarMixinBase (`ui/xpbars/BaseMixin.lua`)
 
 Primary responsibilities:
 
-- Expose global `XPBarMixinBase_v2 = {}`.
+- Expose global `XPBarMixinBase = {}`.
 - Provide the public API surface: `SetValue`, `GetValue`, `SetMax`, `GetMax`, `SetColor`, `Refresh`.
 - **Event registration and orchestration**: Register events and dispatch to `TriggerXXX` methods.
 - **Use ContextBuilder** to build immutable context objects (does NOT duplicate context building logic).
@@ -667,7 +667,7 @@ Overlay action method signature pattern:
 
 ```lua
 -- Base provides default implementation with default overlay name
-function XPBarMixinBase_v2:UpdateRestedOverlay(context, overlayName)
+function XPBarMixinBase:UpdateRestedOverlay(context, overlayName)
   overlayName = overlayName or "RestedLevel"  -- Default name
   local overlay = self[overlayName]
   
@@ -698,7 +698,7 @@ Context usage pattern:
 
 ```lua
 -- Base event handler calls ContextBuilder and Trigger
-function XPBarMixinBase_v2:OnEvent(event, ...)
+function XPBarMixinBase:OnEvent(event, ...)
   if event == "PLAYER_XP_UPDATE" then
     local context = XPBarContextBuilder.BuildXPChangeContext(event, ...)
     self:TriggerXPChanged(context)
@@ -710,7 +710,7 @@ function XPBarMixinBase_v2:OnEvent(event, ...)
 end
 
 -- Trigger orchestrates action sequence
-function XPBarMixinBase_v2:TriggerXPChanged(context)
+function XPBarMixinBase:TriggerXPChanged(context)
   self:UpdateCurrentXPBar(context)
   self:UpdateRestedOverlay(context)
   self:UpdateQuestCompleteOverlay(context)
@@ -785,7 +785,7 @@ Responsibilities:
 
 Position modes:
 
-- **STATIC**: Frame is anchored to the default Blizzard XP bar position (match current legacy bar behavior).
+- **STATIC**: Frame is anchored to the default Blizzard XP bar position (match current classic bar behavior).
 - **DRAGGABLE**: Frame can be dragged; position is saved to `XPBarEnhancedDB.barPositions[positionKey]` and restored on load.
 
 Persisted storage conventions (DRAGGABLE mode):
@@ -808,12 +808,12 @@ Notes:
 - These methods intentionally duplicate only needed behavior to avoid touching existing `PositionStoreMixin`.
 - The `PositionMixin` will not create or alter other `XPBarEnhancedDB` keys; it operates only in `XPBarEnhancedDB.barPositions`.
 
-### Style mixins (example: FlatBarStyleMixin v2 / `ui/xpbars/flatbar_v2/FlatBarStyleMixin.lua`)
+### Style mixins (example: FlatBarStyleMixin  / `ui/xpbars/flatbar/FlatBarStyleMixin.lua`)
 
 Responsibilities:
 
 - Implement `BuildVisuals(self)` and `UpdateVisuals(self)` to create textures, background, fontstrings and apply the numeric state to visuals.
-- **Global registration**: The style mixin is registered globally (e.g., `FlatBarStyleMixin_v2 = {}`), so XML templates can reference it directly via `mixin="FlatBarStyleMixin_v2"`.
+- **Global registration**: The style mixin is registered globally (e.g., `FlatBarStyleMixin = {}`), so XML templates can reference it directly via `mixin="FlatBarStyleMixin"`.
 - Styles may optionally provide `ApplyStyle(self, styleConfig)` to apply style-specific configuration.
 - Styles **CAN override overlay action methods** to use different overlay names or custom layout logic:
   - Override `UpdateRestedOverlay(context, overlayName)` to use custom overlay name (e.g., circular uses "RestedArc" instead of "ExhaustionLevelFillBar")
@@ -1049,7 +1049,7 @@ The recommended flow (XML-first with builder pattern) is:
 1. **XML template declares the frame and references the style mixin**:
 
    ```xml
-   <Frame name="XPBar_Main_v2" parent="UIParent" mixin="FlatBarStyleMixin_v2" virtual="false">
+   <Frame name="XPBar_Main" parent="UIParent" mixin="FlatBarStyleMixin" virtual="false">
        <Size x="320" y="18"/>
        <Scripts>
            <OnLoad method="OnLoad"/>
@@ -1059,34 +1059,34 @@ The recommended flow (XML-first with builder pattern) is:
 
 2. **Style mixin defines OnLoad to call Setup**:
 
-   In `FlatBarStyleMixin_v2`:
+   In `FlatBarStyleMixin`:
 
    ```lua
-   FlatBarStyleMixin_v2 = {}
+   FlatBarStyleMixin = {}
    
-   function FlatBarStyleMixin_v2:OnLoad()
+   function FlatBarStyleMixin:OnLoad()
        local config = {
            style = { width = 320, height = 18, barColor = { r = 0.2, g = 0.6, b = 1 } },
            animation = { enabled = true, valueSmoothing = 0.2 },
-           interaction = { enabled = true, draggable = true, positionKey = "XPBar_Main_v2" },
+           interaction = { enabled = true, draggable = true, positionKey = "XPBar_Main" },
        }
        self:Setup(config)
    end
    
-   function FlatBarStyleMixin_v2:BuildVisuals()
+   function FlatBarStyleMixin:BuildVisuals()
        -- Create textures, fontstrings, etc.
    end
    
-   function FlatBarStyleMixin_v2:UpdateVisuals()
+   function FlatBarStyleMixin:UpdateVisuals()
        -- Update bar fill, text, etc. based on self:GetValue() / self:GetMax()
    end
    ```
 
-3. **Inside `self:Setup(config)` (provided by `XPBarMixinBase_v2` after being mixed in)**:
+3. **Inside `self:Setup(config)` (provided by `XPBarMixinBase` after being mixed in)**:
 
    - Store `config` on `self.__xpbar_config`.
    - Build behavior mixin list based on `config` (e.g., AnimationMixin, InteractionMixin, DraggableMixin).
-   - Call `Mixin(self, XPBarMixinBase_v2, unpack(behaviorMixins))` to add base and behaviors to the frame.
+   - Call `Mixin(self, XPBarMixinBase, unpack(behaviorMixins))` to add base and behaviors to the frame.
    - Register events via `self:RegisterCommonEvents()`.
    - Call `self:BuildVisuals()` (style-provided).
    - Call `self:ApplyStyle(config.style or {})` if present.
@@ -1094,8 +1094,8 @@ The recommended flow (XML-first with builder pattern) is:
    - If draggable requested, call `self:MakeDraggable(true)`.
 
 4. **At this point**, the frame has:
-   - Style methods (from `FlatBarStyleMixin_v2`, applied via XML).
-   - Base methods (from `XPBarMixinBase_v2`, added by Setup).
+   - Style methods (from `FlatBarStyleMixin`, applied via XML).
+   - Base methods (from `XPBarMixinBase`, added by Setup).
    - Behavior methods (from mixins, added by Setup).
 
 Rationale for ordering:
@@ -1124,12 +1124,12 @@ Event registration rules (strict):
 
 Compatibility note:
 
-- During migration, both v1 and v2 bars might be active and registering the same events; that's expected for dev/testing but must be handled by the user when verifying parity.
+- During migration, both v1 and  bars might be active and registering the same events; that's expected for dev/testing but must be handled by the user when verifying parity.
 
 
 ## 5. Persistence: using `XPBarEnhancedDB.barPositions`
 
-- All position persistence for v2 bars will use the existing `XPBarEnhancedDB.barPositions` table, not a new saved-variables table.
+- All position persistence for  bars will use the existing `XPBarEnhancedDB.barPositions` table, not a new saved-variables table.
 - Expectations/requirements for the saved structure:
   - `XPBarEnhancedDB` must exist in the global saved-variables table for the addon (this is the project's top-level DB).
   - `XPBarEnhancedDB.barPositions` will be a table keyed by `config.interaction.positionKey`.
@@ -1140,7 +1140,7 @@ Example usage in config:
 ```lua
 config.interaction = {
   draggable = true,
-  positionKey = "XPBar_Main_v2",
+  positionKey = "XPBar_Main",
 }
 ```
 
@@ -1149,13 +1149,13 @@ Security: `DraggableMixin` will not modify other `XPBarEnhancedDB` keys.
 
 ## 6. Feature extraction mapping (existing `XPBarMixinBase` -> new components)
 
-This section enumerates features known to exist in `XPBarMixinBase` and maps them to the new architecture components. The goal is to ensure we capture all behavior so v2 is functionally equivalent.
+This section enumerates features known to exist in `XPBarMixinBase` and maps them to the new architecture components. The goal is to ensure we capture all behavior so  is functionally equivalent.
 
-Likely features in current `XPBarMixinBase` and their v2 targets:
+Likely features in current `XPBarMixinBase` and their  targets:
 
-- **Event registration & XP state sync** → `XPBarMixinBase_v2` (Trigger methods, Action methods)
+- **Event registration & XP state sync** → `XPBarMixinBase` (Trigger methods, Action methods)
 
-- **Value storage and getters/setters** → `XPBarMixinBase_v2` (SetValue, GetValue, SetMax, GetMax)
+- **Value storage and getters/setters** → `XPBarMixinBase` (SetValue, GetValue, SetMax, GetMax)
 
 - **Context building from events** → `XPBarContextBuilder` (BuildXPChangeContext, BuildLevelUpContext, BuildRestedContext, BuildQuestContext)
 
@@ -1163,7 +1163,7 @@ Likely features in current `XPBarMixinBase` and their v2 targets:
 
 - **Visual update methods** (textures, text) → Style mixin (`BuildVisuals`, `UpdateVisuals`, `ApplyStyle`)
 
-- **Overlay updates** (rested, quest, exhaustion tick, flash) → `XPBarMixinBase_v2` overlay action methods (UpdateRestedOverlay, UpdateQuestCompleteOverlay, UpdateQuestIncompleteOverlay, UpdateExhaustionTick, UpdateFlashOverlay)
+- **Overlay updates** (rested, quest, exhaustion tick, flash) → `XPBarMixinBase` overlay action methods (UpdateRestedOverlay, UpdateQuestCompleteOverlay, UpdateQuestIncompleteOverlay, UpdateExhaustionTick, UpdateFlashOverlay)
 
 - **Dragging and saved position** → `PositionMixin` (duplicated PositionStore funcs; uses `XPBarEnhancedDB.barPositions`)
 
@@ -1173,11 +1173,11 @@ Likely features in current `XPBarMixinBase` and their v2 targets:
 
 - **Logger and debug hooks** → base may keep calls to existing `Logger.lua` functions (do not change `Logger.lua`)
 
-- **Config/state persistence beyond positions** (if present) → left to future migration; not in scope for initial v2
+- **Config/state persistence beyond positions** (if present) → left to future migration; not in scope for initial 
 
-Visual elements mapping (current → v2):
+Visual elements mapping (current → ):
 
-| Current Element | Default Name (v2) | Component | Notes |
+| Current Element | Default Name () | Component | Notes |
 |----------------|------------------|-----------|-------|
 | Main XP bar | `StatusBar` | Base overlay action | UpdateCurrentXPBar(context, "StatusBar") — WoW StatusBar widget |
 | Rested overlay | `RestedLevel` | Base overlay action | UpdateRestedOverlay(context, "RestedLevel") |
@@ -1190,9 +1190,9 @@ Context integration (Session → ContextBuilder):
 
 | Session Method | ContextBuilder Equivalent | Integration Status |
 |---------------|--------------------------|-------------------|
-| `Session:GetXPPerHour()` | `ContextBuilder.CalculateXPPerHour()` | Duplicated in v2 |
-| `Session:GetTimeToLevel()` | `ContextBuilder.CalculateTimeToLevel()` | Duplicated in v2 |
-| `Session:GetStats()` | `ContextBuilder.BuildSessionStats()` | Duplicated in v2 |
+| `Session:GetXPPerHour()` | `ContextBuilder.CalculateXPPerHour()` | Duplicated in  |
+| `Session:GetTimeToLevel()` | `ContextBuilder.CalculateTimeToLevel()` | Duplicated in  |
+| `Session:GetStats()` | `ContextBuilder.BuildSessionStats()` | Duplicated in  |
 | `Session:OnXPUpdate()` | `ContextBuilder.BuildXPChangeContext()` | Integrated into context |
 | `Session:OnLevelUp()` | `ContextBuilder.BuildLevelUpContext()` | Integrated into context |
 | `Session:OnTimePlayed()` | Context `realLevelTime` / `realTotalTime` | Integrated into context |
@@ -1212,7 +1212,7 @@ Phase 1 — Implementation (isolated, non-invasive):
 
 - Add `ui/xpbars/ContextBuilder.lua` (global `XPBarContextBuilder`) implementing context building functions with integrated Session calculations.
 
-- Add `ui/xpbars/BaseMixin.lua` (global `XPBarMixinBase_v2`) implementing `Setup`, event wiring, Trigger/Action methods, overlay action methods, and abstract visual method checks.
+- Add `ui/xpbars/BaseMixin.lua` (global `XPBarMixinBase`) implementing `Setup`, event wiring, Trigger/Action methods, overlay action methods, and abstract visual method checks.
 
 - Add behavior mixins:
 
@@ -1230,20 +1230,20 @@ Phase 1 — Implementation (isolated, non-invasive):
 
 - Add a demonstration style:
 
-  - `ui/xpbars/flatbar_v2/FlatBarStyleTemplate.lua` — visual methods and optional overlay action overrides
-  - `ui/xpbars/flatbar_v2/FlatBarStyle.lua` — calls StyleBuilder:Create() to register global FlatBarXPBarMixin
-  - `ui/xpbars/flatbar_v2/FlatBarTemplate.xml` — XML template with all visual elements (StatusBar, overlays, tick, flash)
-  - `ui/xpbars/flatbar_v2/README.md` — style-specific documentation
+  - `ui/xpbars/flatbar/FlatBarStyleTemplate.lua` — visual methods and optional overlay action overrides
+  - `ui/xpbars/flatbar/FlatBarStyle.lua` — calls StyleBuilder:Create() to register global FlatBarXPBarMixin
+  - `ui/xpbars/flatbar/FlatBarTemplate.xml` — XML template with all visual elements (StatusBar, overlays, tick, flash)
+  - `ui/xpbars/flatbar/README.md` — style-specific documentation
 
 - Add test harness:
-  - `ui/xpbars/tests/test_v2.lua` — dev harness.
+  - `ui/xpbars/tests/test.lua` — dev harness.
 
 - Keep all new files under `ui/xpbars` only.
 
 
 Phase 2 — Developer testing (in-client QA):
 
-- Enable the test harness to create a v2 bar.
+- Enable the test harness to create a  bar.
 
 - Verify parity of behaviors: XP changes, level ups, rested display, quest overlays (complete/incomplete), exhaustion tick positioning, dragging & persistence, tooltips, animation, flash effects.
 
@@ -1259,21 +1259,21 @@ Phase 2 — Developer testing (in-client QA):
 
 Phase 3 — Porting styles incrementally:
 
-- Port the simplest style (flat) to v2 first.
+- Port the simplest style (flat) to  first.
 
-- Compare behavior to legacy style and refine.
+- Compare behavior to classic style and refine.
 
 - Port more complex styles as needed.
 
 Phase 4 — Integration and final migration:
 
-- When v2 is stable and fully ported, consider switching default bar creation to v2 and removing container layer in a follow-up PR.
+- When  is stable and fully ported, consider switching default bar creation to  and removing container layer in a follow-up PR.
 
 - Provide migration documentation for add-on users and contributors.
 
 Rollout strategy
 
-- Opt-in by default for v2 via `flatbar_v2` and the test harness. No changes to existing code paths until v2 is validated.
+- Opt-in by default for  via `flatbar` and the test harness. No changes to existing code paths until  is validated.
 
 - Use feature-flagged testing in the saved-variables to allow early adopters to opt in.
 
@@ -1281,8 +1281,8 @@ Rollout strategy
 ## 8. Quality gates and verification
 
 - Syntax check: run a luacheck (or WoW-syntax check) pass for the new files locally before committing.
-- Load-time verification in a WoW test client: ensure no load-time errors and that `XPBarMixinBase_v2` is globally available.
-- Smoke tests (dev harness in `ui/xpbars/tests/test_v2.lua`): create a bar, simulate XP changes, drag and reload UI, verify restored position.
+- Load-time verification in a WoW test client: ensure no load-time errors and that `XPBarMixinBase` is globally available.
+- Smoke tests (dev harness in `ui/xpbars/tests/test.lua`): create a bar, simulate XP changes, drag and reload UI, verify restored position.
 - Manual QA: level up, gain XP, change rested state and observe visuals.
 
 
@@ -1291,7 +1291,7 @@ Rollout strategy
 Example `config` used by style in `OnLoad`:
 
 ```lua
-local flatV2Config = {
+local flatConfig = {
   style = {
     width = 320,
     height = 18,
@@ -1299,14 +1299,14 @@ local flatV2Config = {
     backgroundColor = { r = 0.03, g = 0.03, b = 0.03, a = 0.9 },
   },
   animation = { enabled = true, valueSmoothing = 0.2 },
-  interaction = { enabled = true, draggable = true, positionKey = "XPBar_Main_v2" -- Populate tooltip end },
+  interaction = { enabled = true, draggable = true, positionKey = "XPBar_Main" -- Populate tooltip end },
   initialValue = nil, -- nil := read from game state
   initialMax = nil,
 }
 
 -- In style mixin OnLoad:
-function FlatBarStyleMixin_v2:OnLoad()
-    self:Setup(flatV2Config)
+function FlatBarStyleMixin:OnLoad()
+    self:Setup(flatConfig)
 end
 ```
 
@@ -1314,7 +1314,7 @@ Example XML template:
 
 ```xml
 <Ui xmlns="http://www.blizzard.com/wow/ui/">
-    <Frame name="XPBar_Main_v2" parent="UIParent" mixin="FlatBarStyleMixin_v2" virtual="false">
+    <Frame name="XPBar_Main" parent="UIParent" mixin="FlatBarStyleMixin" virtual="false">
         <Size x="320" y="18"/>
         <Anchors>
             <Anchor point="TOP" relativeTo="UIParent" relativePoint="TOP" x="0" y="-100"/>
@@ -1363,7 +1363,7 @@ Before implementing, please confirm the following:
 
 6. ✅ **CONFIRMED**: All six visual elements must be supported: current XP bar (StatusBar widget), rested overlay, completed quest overlay, incomplete quest overlay, exhaustion tick marker, flash overlay (optional).
 
-7. ✅ **CONFIRMED**: ContextBuilder is fully independent with NO dependencies on existing Session, Database, or other core modules. This minimizes complexity and impact on existing code during v2 development.
+7. ✅ **CONFIRMED**: ContextBuilder is fully independent with NO dependencies on existing Session, Database, or other core modules. This minimizes complexity and impact on existing code during  development.
 
 8. ✅ **CONFIRMED**: Overlay action methods validate overlay existence and log warnings if missing. Development phase requires meaningful debug information to evaluate failures. Use `Addon.Logger:Warn()` for missing overlays.
 
@@ -1372,13 +1372,13 @@ Before implementing, please confirm the following:
 
 ## 11. Next steps after signoff
 
-- Implement files under `ui/xpbars` (ContextBuilder, BaseMixin, StyleBuilder, mixins, flatbar_v2, tests). I will run a local syntax check and add a small dev test harness.
+- Implement files under `ui/xpbars` (ContextBuilder, BaseMixin, StyleBuilder, mixins, flatbar, tests). I will run a local syntax check and add a small dev test harness.
 
 - Iterate on behavior until parity is reached.
 
 
 ---
 
-Document created: `ui/xpbars/ARCHITECTURE_V2.md`
+Document created: `ui/xpbars/ARCHITECTURE.md`
 
 If this matches your expectations, I will proceed to implement the files listed in Phase 1. If anything needs to change (events, persistence name, or the exact mixin ordering), tell me now and I will update this plan before writing code.

@@ -1,4 +1,4 @@
--- XP Bar Enhanced - Position Mixin (v2)
+-- XP Bar Enhanced - Position Mixin ()
 -- Behavior mixin for positioning: STATIC (anchored to Blizzard bar) or DRAGGABLE (user-movable with persistence)
 
 local Addon = XPBarEnhanced
@@ -39,7 +39,7 @@ function PositionMixin:InitializePosition()
 	-- Determine mode (default: STATIC)
 	local mode = positionConfig.mode or POSITION_MODE.STATIC
 	self.__position_mode = mode
-	self.__position_key = positionConfig.positionKey or "XPBar_v2_Default"
+	self.__position_key = positionConfig.positionKey or "XPBar_Default"
 
 	-- Apply position based on mode
 	if mode == POSITION_MODE.STATIC then
@@ -168,7 +168,7 @@ end
 --- Get position key for this bar
 ---@return string key Position key for SavedVariables
 function PositionMixin:GetPositionKey()
-	return self.__position_key or "XPBar_v2_Default"
+	return self.__position_key or "XPBar_Default"
 end
 
 --- Get position mode

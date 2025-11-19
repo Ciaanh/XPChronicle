@@ -20,7 +20,7 @@
 
 ## What to Look For
 
-### Circular v2 Not Displaying
+### Circular  Not Displaying
 
 **Check this sequence:**
 1. `[BaseMixin] OnLoad called` ✓
@@ -31,11 +31,11 @@
 
 **Missing any? → That's where it breaks!**
 
-### Legacy/FlatBar/Vertical Not Animating
+### Classic/FlatBar/Vertical Not Animating
 
 **Check this sequence:**
-1. `[LegacyBar] RenderBar shouldAnimate: true` ✓
-2. `[LegacyBar] RenderBar config.enableAnimations: true` ✓
+1. `[ClassicBar] RenderBar shouldAnimate: true` ✓
+2. `[ClassicBar] RenderBar config.enableAnimations: true` ✓
 3. `[AnimationBase] StartAnimation called` ✓
 4. `[AnimationBase] ApplyAnimationStep called` (multiple times) ✓
 

@@ -1,5 +1,5 @@
 -- XP Bar Enhanced - XP Bar Mixin Base (Shared Logic)
--- Contains common functionality used by both Legacy and Flat XP bar implementations
+-- Contains common functionality used by both Classic and Flat XP bar implementations
 
 local Addon = XPBarEnhanced
 
@@ -364,7 +364,7 @@ function XPBarMixinBase:FullUpdate()
 	-- NEW ARCHITECTURE: Use unified update method
 	self:UpdateBarDisplay()
 
-	-- Update visuals (rested state texture changes for Legacy bar)
+	-- Update visuals (rested state texture changes for Classic bar)
 	if self.UpdateVisuals then
 		self:UpdateVisuals()
 	end
@@ -863,7 +863,7 @@ end
 function XPBarMixinBase:AnimateToRatio(targetRatio, metadata)
 	local config = self:GetAnimationConfig()
 
-	-- Use context if available (new path), fall back to metadata (legacy path)
+	-- Use context if available (new path), fall back to metadata (classic path)
 	local context = self.animation.context or metadata
 	local currentRatio = self._currentRatio or 0
 
@@ -908,10 +908,10 @@ function XPBarMixinBase:AnimateToRatio(targetRatio, metadata)
 	self.animation.duration = duration
 	-- Store context reference (already set by AnimateXPChange or converted from metadata)
 	if not self.animation.context then
-		self.animation.context = metadata -- Legacy fallback
+		self.animation.context = metadata -- Classic fallback
 	end
 
-	-- Backward compatibility: Keep metadata field for any legacy code
+	-- Backward compatibility: Keep metadata field for any classic code
 	self.animation.metadata = metadata or context
 
 	-- Register with global driver (frame-driven interpolation)
@@ -953,7 +953,7 @@ function XPBarMixinBase:ShouldAnimateChange(currentRatio, newRatio, config)
 	return true, "normal"
 end
 
--- Legacy compatibility wrapper (old code calls AnimateToValue)
+-- Classic compatibility wrapper (old code calls AnimateToValue)
 function XPBarMixinBase:AnimateToValue(targetValue, immediate)
 	-- Convert to ratio-based call
 	if immediate then
@@ -964,7 +964,7 @@ function XPBarMixinBase:AnimateToValue(targetValue, immediate)
 
 	-- Create metadata for compatibility
 	local metadata = {
-		source = "legacy_AnimateToValue"
+		source = "classic_AnimateToValue"
 	}
 
 	self:AnimateToRatio(targetValue, metadata)

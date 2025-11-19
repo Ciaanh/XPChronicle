@@ -1,9 +1,9 @@
-# Circular V2 OnLoad Issue Analysis
+# Circular  OnLoad Issue Analysis
 
 ## Problem Statement
-The Circular V2 bar does not display the bar status and texts on initial load (`PLAYER_ENTERING_WORLD` event). The bar remains empty until a player XP event occurs (like gaining XP).
+The Circular  bar does not display the bar status and texts on initial load (`PLAYER_ENTERING_WORLD` event). The bar remains empty until a player XP event occurs (like gaining XP).
 
-In contrast, Legacy V2 and Vertical V2 bars display correctly on initial load.
+In contrast, Classic  and Vertical  bars display correctly on initial load.
 
 ## Root Cause Analysis
 
@@ -39,11 +39,11 @@ end
 - The bar segments are drawn, but **NO OVERLAYS** and **NO TEXT** are rendered
 
 ### Issue 2: Missing Updates After RenderBar
-Compare with Legacy V2 and Vertical V2, which update overlays and text **AFTER** the animation decision:
+Compare with Classic  and Vertical , which update overlays and text **AFTER** the animation decision:
 
-**LegacyBarStyle.lua** (lines 115-138):
+**ClassicBarStyle.lua** (lines 115-138):
 ```lua
-function LegacyBarStyleTemplate:RenderBar(context)
+function ClassicBarStyleTemplate:RenderBar(context)
     -- Calculate target ratio
     local targetRatio = 0
     if context.xpMax and context.xpMax > 0 then
@@ -79,7 +79,7 @@ end
 ```
 
 **Key Difference:**
-- Legacy/Vertical styles update overlays and text **at the RenderBar level**
+- Classic/Vertical styles update overlays and text **at the RenderBar level**
 - Circular style only updates text **inside RenderBarFrame**
 - When the early return happens, overlays and text are never updated
 
@@ -114,10 +114,10 @@ function CircularBarStyleTemplate:RenderBarFrame(currentRatio, context)
 
 ## Workflow Comparison
 
-### Circular V2 (Broken) - First Load Flow
+### Circular  (Broken) - First Load Flow
 ```
 OnLoad()
-  └─> XPBarMixinBase_v2.OnLoad(self)
+  └─> XPBarMixinBase.OnLoad(self)
         └─> self:Refresh()
               └─> BuildXPChangeContext("PLAYER_ENTERING_WORLD")
                     └─> TriggerBarRefresh(context)
@@ -135,10 +135,10 @@ OnLoad()
                                 ❌ UpdateExhaustionTick() - NEVER CALLED
 ```
 
-### Legacy/Vertical V2 (Working) - First Load Flow
+### Classic/Vertical  (Working) - First Load Flow
 ```
 OnLoad()
-  └─> XPBarMixinBase_v2.OnLoad(self)  [Note: No style-specific OnLoad]
+  └─> XPBarMixinBase.OnLoad(self)  [Note: No style-specific OnLoad]
         └─> self:Refresh()
               └─> BuildXPChangeContext("PLAYER_ENTERING_WORLD")
                     └─> TriggerBarRefresh(context)
@@ -155,7 +155,7 @@ OnLoad()
                                 └─> ✅ UpdateTexts(context)
 ```
 
-### Circular V2 - After XP Event (Works)
+### Circular  - After XP Event (Works)
 ```
 OnEvent("PLAYER_XP_UPDATE")
   └─> BuildXPChangeContext("PLAYER_XP_UPDATE")
@@ -194,8 +194,8 @@ function CircularBarStyleTemplate:OnLoad()
     self:CreateRingSegments()
 
     -- Call base OnLoad first (initializes animation system)
-    if XPBarMixinBase_v2 and XPBarMixinBase_v2.OnLoad then
-        XPBarMixinBase_v2.OnLoad(self)
+    if XPBarMixinBase and XPBarMixinBase.OnLoad then
+        XPBarMixinBase.OnLoad(self)
     end
     
     -- Build initial context and render
@@ -214,7 +214,7 @@ end
 3. The base `OnLoad` **also** calls `Refresh()` which triggers another `RenderBar` call
 4. **Both calls** hit the early return because `_currentRatio` is still nil after the first call sets it
 
-**Legacy/Vertical V2 have NO custom OnLoad** - they rely solely on base `OnLoad` → `Refresh` → `RenderBar` flow.
+**Classic/Vertical  have NO custom OnLoad** - they rely solely on base `OnLoad` → `Refresh` → `RenderBar` flow.
 
 ## Why Text Shows Up Eventually
 
@@ -230,7 +230,7 @@ However, overlays (rested, quest complete, quest incomplete, exhaustion tick) ar
 ## Solution Options
 
 ### Option 1: Remove Early Return (Recommended)
-Remove the early return and follow the same pattern as Legacy/Vertical:
+Remove the early return and follow the same pattern as Classic/Vertical:
 
 ```lua
 function CircularBarStyleTemplate:RenderBar(context)
@@ -261,7 +261,7 @@ function CircularBarStyleTemplate:RenderBar(context)
         self:RenderBarFrame(targetRatio, context)
     end
     
-    -- ✅ Always update overlays and text (like Legacy/Vertical)
+    -- ✅ Always update overlays and text (like Classic/Vertical)
     if self.UpdateRestedOverlay then
         self:UpdateRestedOverlay(context)
     end
@@ -303,8 +303,8 @@ function CircularBarStyleTemplate:OnLoad()
     self:CreateRingSegments()
 
     -- Call base OnLoad (will handle Refresh)
-    if XPBarMixinBase_v2 and XPBarMixinBase_v2.OnLoad then
-        XPBarMixinBase_v2.OnLoad(self)
+    if XPBarMixinBase and XPBarMixinBase.OnLoad then
+        XPBarMixinBase.OnLoad(self)
     end
     
     -- ❌ REMOVE THIS - let base OnLoad call Refresh
@@ -365,9 +365,9 @@ end
 **Use Option 1 (Remove Early Return) + Option 2 (Simplify OnLoad)**
 
 This approach:
-1. Makes circular bar consistent with legacy/vertical patterns
+1. Makes circular bar consistent with classic/vertical patterns
 2. Ensures overlays and text are always updated
 3. Removes unnecessary complexity and duplicate render calls
-4. Follows the established V2 architecture pattern
+4. Follows the established  architecture pattern
 
 The early return was likely added as an optimization but actually breaks the initialization flow.

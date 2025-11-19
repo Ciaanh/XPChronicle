@@ -1,4 +1,4 @@
--- XP Bar Enhanced - FlatBar Style v2
+-- XP Bar Enhanced - FlatBar Style 
 -- Minimal style file: XML owns visual creation via contract.
 -- Only provides config and registration. No overrides needed for standard flat layout.
 
@@ -6,9 +6,9 @@
 -- DEPENDENCIES
 -------------------------------------------------------------------
 
-if not XPBarStyleBuilder or not XPBarMixinBase_v2 then
+if not XPBarStyleBuilder or not XPBarMixinBase then
 	error(
-		"FlatBarStyle: v2 core (StyleBuilder/BaseMixin) not loaded. Ensure ui/xpbars core files are earlier in the .toc."
+		"FlatBarStyle:  core (StyleBuilder/BaseMixin) not loaded. Ensure ui/xpbars core files are earlier in the .toc."
 	)
 end
 
@@ -20,7 +20,7 @@ end
 local FlatBarStyleTemplate = {}
 
 -------------------------------------------------------------------
--- V2 ANIMATION IMPLEMENTATION (StatusBar-based)
+--  ANIMATION IMPLEMENTATION (StatusBar-based)
 -------------------------------------------------------------------
 
 --- Update bar position - smooth fill animation
@@ -77,10 +77,10 @@ function FlatBarStyleTemplate:AnimateBarEffect(iterationData, eventContext)
 end
 
 -------------------------------------------------------------------
--- V2 UNIFIED RENDER PATTERN (Phase 2: Refactor)
+--  UNIFIED RENDER PATTERN (Phase 2: Refactor)
 -------------------------------------------------------------------
 
---- Single render method for flat bar (V2 unified pattern)
+--- Single render method for flat bar ( unified pattern)
 --- Pure rendering method - orchestration handled by BaseMixin:TriggerBarRefresh
 ---@param context table Immutable context with all state and flags
 function FlatBarStyleTemplate:RenderBar(context)
@@ -165,7 +165,7 @@ local DefaultConfig = {
 		enableAnimations = true,
 		flashOnGain = true
 	},
-	position = {mode = "DRAGGABLE", positionKey = "FlatBar_v2"},
+	position = {mode = "DRAGGABLE", positionKey = "FlatBar"},
 	style = {}
 }
 
@@ -174,7 +174,7 @@ local DefaultConfig = {
 -------------------------------------------------------------------
 
 -- Create composed mixin (Base + Behaviors + Style)
-FlatBarXPBarMixin = XPBarStyleBuilder:Create(XPBarMixinBase_v2, FlatBarStyleTemplate, DefaultConfig)
+FlatBarXPBarMixin = XPBarStyleBuilder:Create(XPBarMixinBase, FlatBarStyleTemplate, DefaultConfig)
 XPBarStyleBuilder:RegisterStyle("flat", FlatBarXPBarMixin)
 
 -------------------------------------------------------------------
@@ -185,10 +185,10 @@ XPBarStyleBuilder:RegisterStyle("flat", FlatBarXPBarMixin)
 function XPBarEnhanced_CreateFlatBarFrame()
 	local styleKey = "flat"
 
-	local frame = XPBarStyleBuilder:CreateFrameForStyle(styleKey, DefaultConfig, "FlatBarTemplate_v2")
+	local frame = XPBarStyleBuilder:CreateFrameForStyle(styleKey, DefaultConfig, "FlatBarTemplate")
 	frame:Show()
 
-	_G.FlatBar_v2 = frame -- Global reference
+	_G.FlatBar = frame -- Global reference
 
 	return frame
 end

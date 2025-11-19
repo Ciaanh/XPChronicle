@@ -1,5 +1,5 @@
--- XP Bar Enhanced - V2 Animation Utilities
--- Helper functions for V2 animation system (copied from V1, independent implementation)
+-- XP Bar Enhanced -  Animation Utilities
+-- Helper functions for  animation system (copied from V1, independent implementation)
 
 local AddonName, Addon = ...
 

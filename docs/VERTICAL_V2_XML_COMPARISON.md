@@ -1,4 +1,4 @@
-# Vertical Bar XML Comparison: V1 vs V2
+# Vertical Bar XML Comparison: V1 vs 
 
 ## Key Differences
 
@@ -11,7 +11,7 @@
 - Explicit `<Scripts>` section declaring all event handlers
 - Bar creates textures programmatically in Lua
 
-**V2 (New Architecture):**
+** (New Architecture):**
 - Single-level template (no container/bar split)
 - One mixin: `VerticalBarXPBarMixin`
 - No `<Scripts>` section (handled by BaseMixin)
@@ -35,8 +35,8 @@
     </Scripts>
 </Frame>
 
-<!-- V2 -->
-<Frame name="VerticalBarTemplate_v2" virtual="true" mixin="VerticalBarXPBarMixin">
+<!--  -->
+<Frame name="VerticalBarTemplate" virtual="true" mixin="VerticalBarXPBarMixin">
     <!-- No Scripts section - BaseMixin handles this -->
 </Frame>
 ```
@@ -51,7 +51,7 @@ if not self.FilledTexture then
 end
 ```
 
-**V2:** All textures declared in XML
+**:** All textures declared in XML
 ```xml
 <!-- In XML -->
 <Texture parentKey="FilledTexture" file="Interface\Buttons\WHITE8X8">
@@ -72,44 +72,44 @@ if not self.LevelText then
 end
 ```
 
-**V2:** Text declared in XML within `OverlayFrameTextContainer`
+**:** Text declared in XML within `OverlayFrameTextContainer`
 ```xml
 <Frame parentKey="OverlayFrameTextContainer">
     <Layers>
         <FontString parentKey="LevelText" inherits="GameFontNormal">
 ```
 
-### V2 Benefits
+###  Benefits
 
 1. **Declarative Structure:** Visual hierarchy clear in XML
 2. **No Duplicate Code:** BaseMixin handles all common events
 3. **Easier Debugging:** Can see all UI elements in XML
-4. **Standard Pattern:** Matches flat bar and legacy bar V2
+4. **Standard Pattern:** Matches flat bar and classic bar 
 
 ### Potential Issues Identified
 
-#### ✅ Correct in V2:
+#### ✅ Correct in :
 - Mixin name: `VerticalBarXPBarMixin` (created by StyleBuilder)
 - No Scripts section (BaseMixin provides OnLoad, OnShow, etc.)
 - All textures declared in XML
 - Text containers properly structured
 
 #### ⚠️ Potential Issue:
-The V2 template doesn't have explicit `<Scripts>` handlers, which is correct for V2 architecture. However, the mixin MUST be properly composed with BaseMixin for this to work.
+The  template doesn't have explicit `<Scripts>` handlers, which is correct for  architecture. However, the mixin MUST be properly composed with BaseMixin for this to work.
 
 ### Verification Checklist
 
 - [x] Mixin name matches: `VerticalBarXPBarMixin`
-- [x] StyleBuilder creates mixin: `XPBarStyleBuilder:Create(XPBarMixinBase_v2, VerticalBarStyleTemplate, DefaultConfig)`
+- [x] StyleBuilder creates mixin: `XPBarStyleBuilder:Create(XPBarMixinBase, VerticalBarStyleTemplate, DefaultConfig)`
 - [x] StyleBuilder registers: `XPBarStyleBuilder:RegisterStyle("vertical", VerticalBarXPBarMixin)`
 - [x] All required textures in XML: FilledTexture, FallingTexture, RestedOverlay, Quest overlays, GainFlash
 - [x] Text containers: OverlayFrameTextContainer, BelowBarTextContainer
-- [x] OnLoad override calls parent: `XPBarMixinBase_v2.OnLoad(self)`
+- [x] OnLoad override calls parent: `XPBarMixinBase.OnLoad(self)`
 
-### V2 Template Structure Summary
+###  Template Structure Summary
 
 ```
-VerticalBarTemplate_v2 (Frame)
+VerticalBarTemplate (Frame)
 ├── Layers
 │   ├── BACKGROUND-1: Background
 │   ├── ARTWORK-1: FilledTexture (current XP)
@@ -125,7 +125,7 @@ VerticalBarTemplate_v2 (Frame)
         └── RateText, SessionText, QuestSummaryText, XPText
 ```
 
-### V1 vs V2 Architecture Flow
+### V1 vs  Architecture Flow
 
 **V1 OnLoad Flow:**
 1. XML declares `<OnLoad method="OnLoad"/>`
@@ -134,17 +134,17 @@ VerticalBarTemplate_v2 (Frame)
 4. Mixin manually calls `self:SetupTextures()`
 5. Mixin manually registers events
 
-**V2 OnLoad Flow:**
+** OnLoad Flow:**
 1. XML declares mixin (no Scripts needed)
 2. StyleBuilder composes: BaseMixin + VerticalBarStyleTemplate
 3. When frame created, WoW automatically calls `OnLoad` (from BaseMixin)
-4. `VerticalBarStyleTemplate:OnLoad()` calls `XPBarMixinBase_v2.OnLoad(self)` first
+4. `VerticalBarStyleTemplate:OnLoad()` calls `XPBarMixinBase.OnLoad(self)` first
 5. Parent's OnLoad handles: config init, animation init, position init, event registration, observer pattern
 6. Child's OnLoad adds: gravity state, particle pool, custom OnUpdate
 
 ### Conclusion
 
-The V2 XML is **correct** and follows the proper V2 architecture pattern. The differences from V1 are intentional improvements:
+The  XML is **correct** and follows the proper  architecture pattern. The differences from V1 are intentional improvements:
 
 1. ✅ No `<Scripts>` section (BaseMixin handles this)
 2. ✅ Declarative textures in XML (not programmatic)

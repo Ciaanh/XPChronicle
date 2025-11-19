@@ -231,15 +231,15 @@ hasGainedXP = (xpGained and xpGained > 0)  -- ❌ Wrong for level-up!
 
 All documentation has been updated to reflect this correction:
 
-✅ **V2_ARCHITECTURE_REFACTOR_PROPOSAL.md**
+✅ **ARCHITECTURE_REFACTOR_PROPOSAL.md**
 - BuildLevelUpContext now correctly sets hasGainedXP
 - Added detailed explanation section
 
-✅ **V2_EVENT_WORKFLOW_DIAGRAM.md**
+✅ **EVENT_WORKFLOW_DIAGRAM.md**
 - Added "Important: Level-Up XP Gain" section
 - Example scenario with calculations
 
-✅ **V2_REFACTOR_SUMMARY.md**
+✅ **REFACTOR_SUMMARY.md**
 - Updated context flags description
 - Clarified hasGainedXP includes level-up XP
 

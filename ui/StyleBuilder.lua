@@ -1,4 +1,4 @@
--- XP Bar Enhanced - Style Builder (v2)
+-- XP Bar Enhanced - Style Builder ()
 -- Composition utility for creating style mixins via CreateFromMixins
 
 -------------------------------------------------------------------
@@ -30,7 +30,7 @@ end
 
 --- Create a composed style mixin using CreateFromMixins
 --- Composition order: Base → Behaviors → StyleTemplate (style wins on method collision)
----@param baseMixin table Base mixin (XPBarMixinBase_v2)
+---@param baseMixin table Base mixin (XPBarMixinBase)
 ---@param styleTemplate table Style-specific visual methods
 ---@param config table Configuration for behaviors and style
 ---@return table composedMixin Composed mixin ready for global registration
@@ -89,7 +89,7 @@ function StyleBuilder:BuildBehaviorList(config)
 		table.insert(behaviors, XPBarTextMixin)
 	end
 
-	-- Animation mixin (V2 animation system)
+	-- Animation mixin ( animation system)
 	if XPBarAnimationMixin then
 		table.insert(behaviors, XPBarAnimationMixin)
 	end
@@ -152,7 +152,7 @@ end
 --- The XML template provides the visual structure; this applies behavior via mixin.
 ---@param styleKey string Style registry key (e.g., "flat", "circular")
 ---@param config table|nil Optional config overrides
----@param templateName string|nil XML virtual template name (default: "FlatBarTemplate_v2")
+---@param templateName string|nil XML virtual template name (default: "FlatBarTemplate")
 ---@return table|nil frame Created frame or nil on error
 function StyleBuilder:CreateFrameForStyle(styleKey, config, templateName)
 	-- Get registered style mixin

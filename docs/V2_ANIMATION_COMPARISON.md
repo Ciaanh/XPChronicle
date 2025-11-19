@@ -1,16 +1,16 @@
-# V2 Flat Bar — XP Gain Animation Implementation Plan
+#  Flat Bar — XP Gain Animation Implementation Plan
 
-**Purpose**: Implement the complete V2 animation stack for the **Flat bar style** with smooth XP bar fill, gain flash effects, retargeting, and level-up handling. Legacy bar specificities are documented for future migration.
+**Purpose**: Implement the complete  animation stack for the **Flat bar style** with smooth XP bar fill, gain flash effects, retargeting, and level-up handling. Classic bar specificities are documented for future migration.
 
-**Scope**: Complete animation system for Flat bar (uses WoW StatusBar widget). Legacy, Circular, and Vertical styles will be migrated later using the same foundation.
+**Scope**: Complete animation system for Flat bar (uses WoW StatusBar widget). Classic, Circular, and Vertical styles will be migrated later using the same foundation.
 
 ## Executive summary
 
 - **V1 reference**: V1 Flat bar implements smooth bar fill (0.3–2.0s with easeOut quad) and XP gain flash (0.5s additive overlay, purple/cyan color) on top of a shared `XPBarMixinBase` and global `AnimationDriver`. Flat uses WoW StatusBar widget for rendering with solid color texture.
-- **V2 independence**: V2 will have its **own** animation module completely separate from V1. Copy V1 helper functions (easing, duration calculation) into V2 rather than sharing code.
-- **Architecture**: Build a standalone V2 AnimationManager (single shared OnUpdate driver) + AnimationBase mixin + per-bar animation state. Flat style provides concrete implementations of AnimateBarPosition and AnimateBarEffect.
-- **Initial implementation**: Flat bar only with full feature set (smooth fill, flash, retargeting, level-up handling). Other styles (Legacy, Circular, Vertical) will be migrated later.
-- **Legacy bar notes**: Legacy bar uses identical animation logic to Flat bar (both StatusBar-based), only differing in visual texture (atlas vs solid color). Documented for future migration reference.
+- ** independence**:  will have its **own** animation module completely separate from V1. Copy V1 helper functions (easing, duration calculation) into  rather than sharing code.
+- **Architecture**: Build a standalone  AnimationManager (single shared OnUpdate driver) + AnimationBase mixin + per-bar animation state. Flat style provides concrete implementations of AnimateBarPosition and AnimateBarEffect.
+- **Initial implementation**: Flat bar only with full feature set (smooth fill, flash, retargeting, level-up handling). Other styles (Classic, Circular, Vertical) will be migrated later.
+- **Classic bar notes**: Classic bar uses identical animation logic to Flat bar (both StatusBar-based), only differing in visual texture (atlas vs solid color). Documented for future migration reference.
 
 ## Contract (what to deliver)
 
@@ -62,12 +62,12 @@ The Flat bar in V1 uses the following animation behaviors:
    - Reset bar to 0, then animate to new XP position.
    - Update level display immediately.
 
-### Legacy bar specificities (for future migration reference)
+### Classic bar specificities (for future migration reference)
 
-Legacy bar uses **identical animation logic** to Flat bar with one key difference:
-- **Visual texture**: Legacy uses atlas texture (`"UI-HUD-ExperienceBar-Fill"`) via `StatusBar:SetStatusBarTexture()`, while Flat uses solid color via `StatusBar:SetStatusBarColor(r, g, b)`.
+Classic bar uses **identical animation logic** to Flat bar with one key difference:
+- **Visual texture**: Classic uses atlas texture (`"UI-HUD-ExperienceBar-Fill"`) via `StatusBar:SetStatusBarTexture()`, while Flat uses solid color via `StatusBar:SetStatusBarColor(r, g, b)`.
 - **Animation code**: 100% identical to Flat bar (same StatusBar:SetValue, same GainFlash overlay, same helpers).
-- **Migration strategy**: When migrating Legacy bar to V2 later, copy Flat bar's three animation methods (`ApplyAnimationStep`, `AnimateBarPosition`, `AnimateBarEffect`) verbatim. Only bar initialization/styling differs.
+- **Migration strategy**: When migrating Classic bar to  later, copy Flat bar's three animation methods (`ApplyAnimationStep`, `AnimateBarPosition`, `AnimateBarEffect`) verbatim. Only bar initialization/styling differs.
 
 3. **Retargeting** (required)
    - When new XP gain arrives during active animation, aggregate contexts and smoothly retarget to new ratio.
@@ -80,9 +80,9 @@ Legacy bar uses **identical animation logic** to Flat bar with one key differenc
    - Reset bar to 0, then animate to new XP position.
    - Update level display immediately.
 
-## V2 architecture design
+##  architecture design
 
-**Principle**: V2 animation code is completely independent of V1. Copy helpers from V1 where needed rather than sharing. Support multiple styles (Legacy and Flat implemented now, Circular/Vertical later) through a unified animation base with style-specific apply implementations.
+**Principle**:  animation code is completely independent of V1. Copy helpers from V1 where needed rather than sharing. Support multiple styles (Classic and Flat implemented now, Circular/Vertical later) through a unified animation base with style-specific apply implementations.
 
 **Components**:
 
@@ -108,7 +108,7 @@ Legacy bar uses **identical animation logic** to Flat bar with one key differenc
      - `AnimateBarPosition(stepContext)` — updates bar fill based on currentRatio.
      - `AnimateBarEffect(stepContext)` — applies visual effects (flash overlay).
    - **Flat bar**: Implements all three methods for StatusBar-based rendering with solid color texture.
-   - **Future styles**: Legacy (copy Flat's methods, only styling differs), Circular (custom rendering), Vertical (custom rendering).
+   - **Future styles**: Classic (copy Flat's methods, only styling differs), Circular (custom rendering), Vertical (custom rendering).
 
 **Step Context Structure**:
 
@@ -170,13 +170,13 @@ Each style mixin implements three methods:
    ```
 
 2. **`AnimateBarPosition(stepContext)`** — updates bar fill/segments:
-   - **Legacy bar**: Updates StatusBar:SetValue(currentRatio).
+   - **Classic bar**: Updates StatusBar:SetValue(currentRatio).
    - **Flat bar**: Updates StatusBar:SetValue(currentRatio).
    - **Circular style** (future): Shows/hides ring segments based on currentRatio; could use timing for custom easing per segment.
    - **Vertical style** (future): Updates fill texture height; could use elapsedTime for physics-based falling animation.
 
 3. **`AnimateBarEffect(stepContext)`** — applies visual effects:
-   - **Legacy bar**: Shows/hides flash overlay with color/alpha based on flashElapsed.
+   - **Classic bar**: Shows/hides flash overlay with color/alpha based on flashElapsed.
    - **Flat bar**: Shows/hides flash overlay with color/alpha based on flashElapsed.
    - **Circular style** (future): Shows/hides glow overlay with alpha; could use timing for custom pulse patterns.
    - **Vertical style** (future): Could trigger particle effects based on progress, bounce animation based on elapsedTime, etc.
@@ -200,7 +200,7 @@ AnimationManager:Unregister(bar)
 **Event flow**:
 
 ```text
-1. V2 XP update event
+1.  XP update event
    └─> ContextBuilder creates context { xpBefore, xpAfter, xpMax, xpGained, isRested }
 
 2. Style mixin (Flat/Circular) receives context
@@ -285,15 +285,15 @@ AnimationManager:Unregister(bar)
 - `ui/xpbars/animation/AnimationBase.lua` — mixin providing common animation behavior, calls style-specific ApplyAnimationStep.
 - `ui/xpbars/animation/AnimationUtils.lua` — copied V1 helpers: `CalculateDuration`, `EaseOutQuad`, `ShouldAnimate`, `BuildStepContext`, `AggregateContexts`, `DetectLevelUp`.
 
-**Modified files** (Legacy and Flat bar integration):
+**Modified files** (Classic and Flat bar integration):
 
 - `ui/xpbars/BaseMixin.lua` — mix in AnimationBase, add animation state initialization, registration/unregistration hooks (OnShow/OnHide).
-- `ui/xpbars/styles/LegacyBar.lua` (or existing legacy style file):
+- `ui/xpbars/styles/ClassicBar.lua` (or existing classic style file):
   - Implement `ApplyAnimationStep(stepContext)` — orchestrator.
   - Implement `AnimateBarPosition(stepContext)` — updates StatusBar:SetValue(currentRatio).
   - Implement `AnimateBarEffect(stepContext)` — shows/hides flash overlay, can use flashElapsed for custom timing.
   - Wire XP update to call `AnimationManager:AnimateTo`.
-- `ui/xpbars/styles/LegacyBar.xml` (or template file) — add `GainFlash` texture (simple white texture, additive blend mode) if not already present.
+- `ui/xpbars/styles/ClassicBar.xml` (or template file) — add `GainFlash` texture (simple white texture, additive blend mode) if not already present.
 - `ui/xpbars/styles/FlatBar.lua` (or existing flat style file):
   - Implement `ApplyAnimationStep(stepContext)` — orchestrator.
   - Implement `AnimateBarPosition(stepContext)` — updates StatusBar:SetValue(currentRatio).
@@ -304,7 +304,7 @@ AnimationManager:Unregister(bar)
 
 **Future migration files** (not in this phase):
 
-- `ui/xpbars/styles/LegacyBar.lua` — will copy Flat bar's three animation methods verbatim (only texture styling differs).
+- `ui/xpbars/styles/ClassicBar.lua` — will copy Flat bar's three animation methods verbatim (only texture styling differs).
 - `ui/xpbars/styles/CircularBar.lua` — will implement custom animation methods for segment rendering.
 - `ui/xpbars/styles/VerticalBar.lua` — will implement custom animation methods for falling animation.
 
@@ -330,7 +330,7 @@ AnimationManager:Unregister(bar)
 9. **Multiple rapid level-ups** — ensure each level-up properly resets the bar.
 10. **XP loss** (rare but possible) — handle negative xpGained gracefully.
 
-**Note:** Legacy bar will share these edge cases when migrated (identical StatusBar-based logic).
+**Note:** Classic bar will share these edge cases when migrated (identical StatusBar-based logic).
 
 **Proposed tests** (manual in-game checks for Flat bar):
 
@@ -342,7 +342,7 @@ AnimationManager:Unregister(bar)
 - **Config change during animation**: change speed setting, verify next animation uses new speed.
 - **Multiple rapid level-ups** (if testable with rapid XP potions): verify each level-up resets properly.
 
-**Future migration QA:** When migrating Legacy bar, repeat all tests above and verify visual parity with Flat bar (only texture should differ).
+**Future migration QA:** When migrating Classic bar, repeat all tests above and verify visual parity with Flat bar (only texture should differ).
 
 ## Performance considerations
 
@@ -389,20 +389,20 @@ AnimationManager:Unregister(bar)
 - Add `ui/xpbars/animation/README.md` with API contract and usage examples.
 - Verify cleanup logic for all edge cases.
 - Performance profiling (ensure minimal overhead on OnUpdate).
-- Add config toggle `db.v2AnimationsEnabled` (default false initially) for staged rollout.
+- Add config toggle `db.AnimationsEnabled` (default false initially) for staged rollout.
 
 **Phase 4 — QA and rollout** (1 day):
 
 - Manual QA for all test cases (see tests section above).
 - Fix any issues found during QA.
-- Enable `db.v2AnimationsEnabled` by default.
-- Document migration path for other styles (Legacy, Circular, Vertical) in separate migration doc.
+- Enable `db.AnimationsEnabled` by default.
+- Document migration path for other styles (Classic, Circular, Vertical) in separate migration doc.
 
-**Total estimate for Flat bar V2 animation**: **4–6 days**.
+**Total estimate for Flat bar  animation**: **4–6 days**.
 
 **Future migration** (not in this phase):
 
-- Legacy style: **1 day** (copy Flat bar's three methods verbatim, only texture styling differs).
+- Classic style: **1 day** (copy Flat bar's three methods verbatim, only texture styling differs).
 - Circular style: **2–3 days** (implement custom animation methods for segment rendering, test retargeting).
 - Vertical style: **3–4 days** (implement custom animation methods for falling animation, particles).
 
@@ -410,7 +410,7 @@ AnimationManager:Unregister(bar)
 
 1. Implement Phase 1 (core animation system with AnimationBase, retargeting, level-up).
 2. Implement Phase 2 (Flat bar: ApplyAnimationStep, AnimateBarPosition, AnimateBarEffect).
-3. Add config toggle `db.v2AnimationsEnabled` (default false) for staged rollout.
+3. Add config toggle `db.AnimationsEnabled` (default false) for staged rollout.
 4. Manual QA for Flat bar:
    - Turn in quest → verify smooth fill + flash.
    - Kill 3–5 mobs rapidly → verify retargeting, smooth transition without jumps.
@@ -420,14 +420,14 @@ AnimationManager:Unregister(bar)
    - Change speed setting during animation → verify next animation uses new speed.
 5. Implement Phase 3 (polish and hardening).
 6. Final QA pass with all edge cases.
-7. Enable `db.v2AnimationsEnabled` by default after successful QA.
-8. Document migration path for Legacy, Circular, and Vertical styles in separate doc.
+7. Enable `db.AnimationsEnabled` by default after successful QA.
+8. Document migration path for Classic, Circular, and Vertical styles in separate doc.
 
 ## Backward compatibility notes
 
-- **V1 independence**: V2 animation code does not touch V1 files (`ui/xpbar/*`). V1 bars continue to use `XPBarMixinBase.lua` and existing AnimationDriver.
-- **No shared code**: Copy helpers from V1 into V2 `AnimationUtils.lua`. Accept duplication; refactor later if needed.
-- **Config separation**: V2 uses same config keys (`enableAnimations`, `animationSpeed`, `flashOnGain`) but reads them independently in V2 animation module.
+- **V1 independence**:  animation code does not touch V1 files (`ui/xpbar/*`). V1 bars continue to use `XPBarMixinBase.lua` and existing AnimationDriver.
+- **No shared code**: Copy helpers from V1 into  `AnimationUtils.lua`. Accept duplication; refactor later if needed.
+- **Config separation**:  uses same config keys (`enableAnimations`, `animationSpeed`, `flashOnGain`) but reads them independently in  animation module.
 
 ## Suggested follow-ups / low-risk extras
 
@@ -508,10 +508,10 @@ function CircularBarMixin:AnimateBarEffect(stepContext)
 end
 ```
 
-### Legacy style (future migration reference)
+### Classic style (future migration reference)
 
-**Implementation note:** When migrating Legacy bar, use the **exact same three methods as Flat bar**. The only difference is texture initialization:
-- Legacy: `StatusBar:SetStatusBarTexture("UI-HUD-ExperienceBar-Fill")` during bar setup
+**Implementation note:** When migrating Classic bar, use the **exact same three methods as Flat bar**. The only difference is texture initialization:
+- Classic: `StatusBar:SetStatusBarTexture("UI-HUD-ExperienceBar-Fill")` during bar setup
 - Flat: `StatusBar:SetStatusBarColor(r, g, b)` during bar setup
 
 Animation code is 100% identical to Flat bar shown above.
@@ -519,4 +519,4 @@ Animation code is 100% identical to Flat bar shown above.
 ---
 
 **Document revision**: 2025-11-06  
-**Prepared for implementation**: Complete V2 animation stack for Flat bar style with retargeting and level-up handling. Legacy, Circular, and Vertical styles will be migrated in future phases using this foundation.
+**Prepared for implementation**: Complete  animation stack for Flat bar style with retargeting and level-up handling. Classic, Circular, and Vertical styles will be migrated in future phases using this foundation.

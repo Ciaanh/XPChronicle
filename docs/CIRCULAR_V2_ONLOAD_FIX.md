@@ -1,8 +1,8 @@
-# Circular V2 OnLoad Fix - Executive Summary
+# Circular  OnLoad Fix - Executive Summary
 
 ## The Problem
 
-Circular V2 bar doesn't display correctly on initial load (`PLAYER_ENTERING_WORLD`):
+Circular  bar doesn't display correctly on initial load (`PLAYER_ENTERING_WORLD`):
 - Bar segments show as empty/background color
 - No text displays
 - Bar only renders correctly after an XP event occurs
@@ -29,7 +29,7 @@ end
 
 ## What Makes Circular Different
 
-### Circular V2 (Broken Pattern)
+### Circular  (Broken Pattern)
 ```
 RenderBar()
   ├─ If first load: RenderBarFrame() → RETURN ❌
@@ -40,7 +40,7 @@ RenderBarFrame()
   └─ UpdateTexts() - called here but overlays not updated
 ```
 
-### Legacy/Vertical V2 (Working Pattern)
+### Classic/Vertical  (Working Pattern)
 ```
 RenderBar()
   ├─ Animation decision
@@ -53,7 +53,7 @@ RenderBar()
 
 ## The Fix
 
-**Remove the early return** and follow the same pattern as Legacy/Vertical:
+**Remove the early return** and follow the same pattern as Classic/Vertical:
 
 ```lua
 function CircularBarStyleTemplate:RenderBar(context)
@@ -93,7 +93,7 @@ function CircularBarStyleTemplate:RenderBar(context)
         self:RenderBarFrame(targetRatio, context)
     end
     
-    -- ✅ ALWAYS update overlays (matches Legacy/Vertical pattern)
+    -- ✅ ALWAYS update overlays (matches Classic/Vertical pattern)
     if self.UpdateRestedOverlay then
         self:UpdateRestedOverlay(context)
     end
@@ -107,7 +107,7 @@ function CircularBarStyleTemplate:RenderBar(context)
         self:UpdateExhaustionTick(context)
     end
     
-    -- ✅ ALWAYS update text (matches Legacy/Vertical pattern)
+    -- ✅ ALWAYS update text (matches Classic/Vertical pattern)
     if self.UpdateTexts then
         self:UpdateTexts(context)
     end
@@ -123,8 +123,8 @@ function CircularBarStyleTemplate:OnLoad()
     -- ... setup code ...
     
     -- Call base OnLoad
-    if XPBarMixinBase_v2 and XPBarMixinBase_v2.OnLoad then
-        XPBarMixinBase_v2.OnLoad(self)  -- This calls Refresh() → RenderBar()
+    if XPBarMixinBase and XPBarMixinBase.OnLoad then
+        XPBarMixinBase.OnLoad(self)  -- This calls Refresh() → RenderBar()
     end
     
     -- ❌ REMOVE THIS - duplicate call
@@ -141,7 +141,7 @@ end
 
 ## Files to Modify
 
-1. **`ui/xpbars/circular_v2/CircularBarStyle.lua`**
+1. **`ui/xpbars/circular/CircularBarStyle.lua`**
    - Fix `RenderBar` method (remove early return, add overlay/text updates)
    - Fix `OnLoad` method (remove duplicate RenderBar call)
 
@@ -158,6 +158,6 @@ After applying fix, verify:
 
 ## Impact
 
-- **Low risk:** Changes align circular bar with established Legacy/Vertical pattern
+- **Low risk:** Changes align circular bar with established Classic/Vertical pattern
 - **High value:** Fixes critical UX issue where bar appears broken on load
 - **No breaking changes:** Same behavior, just working correctly from start

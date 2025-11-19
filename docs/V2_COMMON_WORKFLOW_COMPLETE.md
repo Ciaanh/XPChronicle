@@ -1,4 +1,4 @@
-# V2 Common Execution Workflow - Implementation Complete
+#  Common Execution Workflow - Implementation Complete
 
 ## ✅ Changes Implemented
 
@@ -26,7 +26,7 @@ BaseMixin:TriggerBarRefresh()  ← SOLE ORCHESTRATOR
 **Files Modified:**
 - ✅ `CircularBarStyle.lua:RenderBar()` - Removed animation decision (48 lines → 25 lines)
 - ✅ `FlatBarStyle.lua:RenderBar()` - Removed animation decision (70 lines → 27 lines)
-- ✅ `LegacyBarStyle.lua:RenderBar()` - Removed animation decision (60 lines → 17 lines)
+- ✅ `ClassicBarStyle.lua:RenderBar()` - Removed animation decision (60 lines → 17 lines)
 - ✅ `VerticalBarStyle.lua:RenderBar()` - Removed animation decision (45 lines → 16 lines)
 
 ---
@@ -68,7 +68,7 @@ CircularBar:FullUpdate()
 -- Inconsistent across styles:
 CircularBar: context.xpAfter or context.currentXP
 FlatBar:     context.currentXP or 0
-LegacyBar:   context.currentXP or 0
+ClassicBar:   context.currentXP or 0
 VerticalBar: context.currentXP or 0
 ```
 
@@ -133,7 +133,7 @@ targetRatio = (context.currentXP or 0) / context.xpMax
 
 ## Validation
 
-**Compilation:** ✅ No errors in V2 files
+**Compilation:** ✅ No errors in  files
 **Deprecated Methods:** ✅ All removed (UpdateCurrentXPBar, UpdateBarLayout)
 **Dual Orchestration:** ✅ Removed from all styles
 **Duplicate Updates:** ✅ Removed from FullUpdate
@@ -148,7 +148,7 @@ When testing in-game:
 1. **XP Gain Animation:**
    - ✅ Should animate smoothly for CircularBar
    - ✅ Should animate smoothly for FlatBar
-   - ✅ Should animate smoothly for LegacyBar
+   - ✅ Should animate smoothly for ClassicBar
    - ✅ Should animate smoothly for VerticalBar
 
 2. **BROADCAST_UPDATE (xpGained:0):**

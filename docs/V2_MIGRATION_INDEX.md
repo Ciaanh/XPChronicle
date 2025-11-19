@@ -1,14 +1,14 @@
-# V2 Migration: Complete Documentation Index
+#  Migration: Complete Documentation Index
 
 **Date**: November 9, 2025  
 **Status**: All migration documentation complete ✅  
-**Purpose**: Index and summary of all V2 migration planning documents
+**Purpose**: Index and summary of all  migration planning documents
 
 ---
 
 ## Overview
 
-This document provides an index of all V2 migration documentation created for the XPBarEnhanced project. The V2 architecture represents a complete rewrite of the addon using mixin-based composition, reducing code duplication and improving maintainability.
+This document provides an index of all  migration documentation created for the XPBarEnhanced project. The  architecture represents a complete rewrite of the addon using mixin-based composition, reducing code duplication and improving maintainability.
 
 ---
 
@@ -20,7 +20,7 @@ This document provides an index of all V2 migration documentation created for th
 **Status**: Complete  
 **Contents**:
 - Executive summary and migration overview
-- Current state analysis (V1 vs V2)
+- Current state analysis (V1 vs )
 - Complete migration plan (6 phases)
 - Animation testing strategy
 - Validation checklists
@@ -29,14 +29,14 @@ This document provides an index of all V2 migration documentation created for th
 
 **Key Metrics**:
 - Total V1 codebase: ~2,825 LOC
-- Total V2 codebase: ~2,290 LOC (-19%)
+- Total  codebase: ~2,290 LOC (-19%)
 - Per-style reduction: -57% to -83%
 
 ---
 
-### Phase 2: Legacy Bar Migration ✅ COMPLETE
+### Phase 2: Classic Bar Migration ✅ COMPLETE
 
-**Document**: `LEGACY_BAR_V2_MIGRATION.md`  
+**Document**: `CLASSIC_BAR_MIGRATION.md`  
 **Status**: Implementation complete  
 **Migration Complexity**: Low ⭐  
 **Actual Duration**: ~2 days
@@ -49,9 +49,9 @@ This document provides an index of all V2 migration documentation created for th
 - Code reduction: -59% (469 → 192 LOC)
 
 **Implementation Complete**:
-- Files created: `LegacyBarStyle.lua`, `LegacyBarTemplate.xml`
+- Files created: `ClassicBarStyle.lua`, `ClassicBarTemplate.xml`
 - Integrated: XML references Lua file, included in TOC
-- Registered: Style key `"legacy_v2"` registered with StyleBuilder
+- Registered: Style key `"classic"` registered with StyleBuilder
 
 **Lessons for Circular**:
 - ✅ Proven AnimationManager integration pattern
@@ -62,7 +62,7 @@ This document provides an index of all V2 migration documentation created for th
 
 ### Phase 3: Vertical Bar Migration ✅ IMPLEMENTATION COMPLETE
 
-**Document**: `VERTICAL_V2_MIGRATION.md`  
+**Document**: `VERTICAL_MIGRATION.md`  
 **Status**: Implementation complete, pending validation  
 **Migration Complexity**: Medium ⭐⭐  
 **Actual Duration**: ~3 days implementation
@@ -88,7 +88,7 @@ This document provides an index of all V2 migration documentation created for th
 
 ### Phase 4: Circular Bar Migration 📋 PLANNING COMPLETE
 
-**Document**: `CIRCULAR_V2_MIGRATION.md` ← **NEW**  
+**Document**: `CIRCULAR_MIGRATION.md` ← **NEW**  
 **Status**: Planning complete, ready for implementation  
 **Migration Complexity**: High ⭐⭐⭐⭐  
 **Estimated Duration**: 12 days
@@ -130,7 +130,7 @@ This document provides an index of all V2 migration documentation created for th
 
 ### Architecture Reference
 
-**Document**: `ARCHITECTURE_V2.md`  
+**Document**: `ARCHITECTURE.md`  
 **Audience**: External developers  
 **Contents**:
 - Quick start guide (10-minute tutorial)
@@ -147,7 +147,7 @@ This document provides an index of all V2 migration documentation created for th
 
 ### Animation System Documentation
 
-**Document**: `V2_ANIMATION_COMPARISON.md`  
+**Document**: `ANIMATION_COMPARISON.md`  
 **Contents**:
 - AnimationManager architecture
 - Flash timing validation (0.5s duration)
@@ -162,7 +162,7 @@ This document provides an index of all V2 migration documentation created for th
 
 ---
 
-**Document**: `V2_ANIMATION_ROBUSTNESS.md`  
+**Document**: `ANIMATION_ROBUSTNESS.md`  
 **Contents**:
 - Edge case handling
 - Performance optimization strategies
@@ -178,7 +178,7 @@ This document provides an index of all V2 migration documentation created for th
 
 ### Migration Summary
 
-**Document**: `V2_MIGRATION_SUMMARY.md`  
+**Document**: `MIGRATION_SUMMARY.md`  
 **Contents**:
 - Overall migration progress
 - Key metrics and insights
@@ -191,25 +191,25 @@ This document provides an index of all V2 migration documentation created for th
 
 ## Lessons Learned Across All Migrations
 
-### From Flat Bar V2 ✅
+### From Flat Bar  ✅
 - **Lesson**: AnimationManager integration straightforward for StatusBar-based bars
-- **Applied to**: Legacy (StatusBar), Vertical (StatusBar), Circular (custom)
+- **Applied to**: Classic (StatusBar), Vertical (StatusBar), Circular (custom)
 - **Key Insight**: Standard animation contract (`AnimateBarPosition`, `AnimateBarEffect`) works for all rendering methods
 
-### From Legacy Bar V2 ✅
+### From Classic Bar  ✅
 - **Lesson**: Static positioning via config flag (no special mixin needed)
 - **Applied to**: Future static bar styles
 - **Key Insight**: PositionMixin handles both draggable and static modes transparently
 
-### From Vertical Bar V2 ✅
+### From Vertical Bar  ✅
 - **Lesson**: Custom animations coexist with AnimationManager via separate OnUpdate
 - **Applied to**: Circular (glow animation, arc smoothing)
 - **Key Insight**: Multiple animation systems don't conflict if they update different visual elements
 
-### For Circular Bar V2 📋
+### For Circular Bar  📋
 - **Lesson**: Custom rendering requires complete override of visual update methods
 - **Application**: Override `AnimateBarPosition()` to call custom rendering (no StatusBar)
-- **Key Insight**: V2 contract flexible enough for extreme customization
+- **Key Insight**:  contract flexible enough for extreme customization
 
 ---
 
@@ -219,7 +219,7 @@ This document provides an index of all V2 migration documentation created for th
 
 | Pattern | Bars | Animation System | Complexity |
 |---------|------|------------------|------------|
-| **Pattern 1** | Flat, Legacy | AnimationManager only | Low ⭐ |
+| **Pattern 1** | Flat, Classic | AnimationManager only | Low ⭐ |
 | **Pattern 2** | Vertical | AnimationManager + Custom OnUpdate | Medium ⭐⭐ |
 | **Pattern 3** | Circular | AnimationManager + OnUpdate + Ticker | High ⭐⭐⭐⭐ |
 
@@ -227,7 +227,7 @@ This document provides an index of all V2 migration documentation created for th
 
 | Pattern | Bars | Rendering Method | Custom Code |
 |---------|------|------------------|-------------|
-| **StatusBar Linear** | Flat, Legacy | StatusBar widget | Minimal |
+| **StatusBar Linear** | Flat, Classic | StatusBar widget | Minimal |
 | **StatusBar Vertical** | Vertical | StatusBar widget | Minimal |
 | **Custom Circular** | Circular | Manual segment management | Extensive |
 
@@ -235,7 +235,7 @@ This document provides an index of all V2 migration documentation created for th
 
 | Pattern | Bars | Algorithm | LayoutMixin Usage |
 |---------|------|-----------|-------------------|
-| **Linear Horizontal** | Flat, Legacy | Standard offset | Full |
+| **Linear Horizontal** | Flat, Classic | Standard offset | Full |
 | **Linear Vertical** | Vertical | Standard offset (rotated) | Full |
 | **Circular Arc** | Circular | Polar coordinates | None (custom) |
 
@@ -244,7 +244,7 @@ This document provides an index of all V2 migration documentation created for th
 ## Key Architectural Insights for Circular Bar
 
 ### 1. Custom Rendering Without StatusBar
-- **Challenge**: V2 assumes StatusBar widget for bar rendering
+- **Challenge**:  assumes StatusBar widget for bar rendering
 - **Solution**: Override `AnimateBarPosition()` to call custom methods
 - **Pattern**: `stepContext.currentRatio` → `SetArcProgress(ratio)` → segment Show/Hide
 
@@ -275,11 +275,11 @@ This document provides an index of all V2 migration documentation created for th
 ### Why This Order?
 
 1. **Flat Bar First** ✅
-   - Simplest V2 style (proof of concept)
-   - Validates core V2 architecture
+   - Simplest  style (proof of concept)
+   - Validates core  architecture
    - Establishes animation patterns
 
-2. **Legacy Bar Second** (pending)
+2. **Classic Bar Second** (pending)
    - Similar to Flat (StatusBar-based)
    - Tests static positioning
    - Low risk, incremental validation
@@ -291,7 +291,7 @@ This document provides an index of all V2 migration documentation created for th
 
 4. **Circular Bar Fourth** (planned)
    - Most complex migration
-   - Tests V2 limits (custom rendering, multiple animations)
+   - Tests  limits (custom rendering, multiple animations)
    - Final validation of architecture flexibility
 
 **Critical Path**: Each migration builds on lessons from previous migrations.
@@ -302,7 +302,7 @@ This document provides an index of all V2 migration documentation created for th
 
 ### Compared to Other Bars
 
-| Feature | Flat/Legacy | Vertical | Circular |
+| Feature | Flat/Classic | Vertical | Circular |
 |---------|-------------|----------|----------|
 | **LOC in V1** | 469-500 | 894 | **962** (largest) |
 | **Rendering** | StatusBar | StatusBar | **Custom (180 textures)** |
@@ -316,7 +316,7 @@ This document provides an index of all V2 migration documentation created for th
 1. **Most code** - 962 LOC, largest file in codebase
 2. **Custom everything** - Rendering, positioning, animations
 3. **Performance critical** - 180 textures to manage
-4. **Tests architecture limits** - Validates V2 can handle extreme customization
+4. **Tests architecture limits** - Validates  can handle extreme customization
 5. **Comprehensive validation** - If Circular works, any custom style will work
 
 ---
@@ -325,15 +325,15 @@ This document provides an index of all V2 migration documentation created for th
 
 ### Code Reduction
 
-| Bar Style | V1 LOC | V2 LOC | Reduction | Status |
+| Bar Style | V1 LOC |  LOC | Reduction | Status |
 |-----------|--------|--------|-----------|--------|
 | **Flat** | 500 | 225 | -55% | ✅ Complete |
-| **Legacy** | 469 | 192 | -59% | ✅ Complete |
+| **Classic** | 469 | 192 | -59% | ✅ Complete |
 | **Vertical** | 894 | 380 | -57% | ✅ Complete |
 | **Circular** | 962 | ~550 (est) | -43% | 📋 Planned |
 | **Total** | 2,825 | ~1,347 | **-52%** | 🔄 In Progress |
 
-### Shared Code (V2 Only)
+### Shared Code ( Only)
 
 - BaseMixin: 343 LOC
 - ContextBuilder: 448 LOC
@@ -345,8 +345,8 @@ This document provides an index of all V2 migration documentation created for th
 ### Net Change
 
 - V1 Total: 2,825 LOC (4 styles, no sharing)
-- V2 Total: ~4,088 LOC (styles + shared)
-- **Despite larger V2 codebase, individual styles are 54% smaller**
+-  Total: ~4,088 LOC (styles + shared)
+- **Despite larger  codebase, individual styles are 54% smaller**
 - **Future styles require only 100-200 LOC** (vs 500-1000 in V1)
 
 ---
@@ -356,7 +356,7 @@ This document provides an index of all V2 migration documentation created for th
 | Migration | Risk Level | Confidence | Mitigation |
 |-----------|------------|------------|------------|
 | **Flat Bar** | Low | 100% | ✅ Complete, production-ready |
-| **Legacy Bar** | Low | 100% | ✅ Complete, validated |
+| **Classic Bar** | Low | 100% | ✅ Complete, validated |
 | **Vertical Bar** | Medium | 90% | ✅ Implementation complete, needs validation |
 | **Circular Bar** | **High** | 75% | 📋 Most complex, comprehensive testing required |
 
@@ -379,7 +379,7 @@ This document provides an index of all V2 migration documentation created for th
    - Mitigation: Extensive edge case testing
 
 5. **Integration** (Low Risk)
-   - Works with other V2 bars
+   - Works with other  bars
    - Mitigation: Multi-instance testing
 
 ---
@@ -439,8 +439,8 @@ After Circular Bar complete:
 - [ ] Update .toc (remove V1 file references)
 
 ### Documentation Updates
-- [ ] Update ARCHITECTURE_V2.md (final status)
-- [ ] Update README.md (V2 complete)
+- [ ] Update ARCHITECTURE.md (final status)
+- [ ] Update README.md ( complete)
 - [ ] Create migration guide for users
 - [ ] External developer tutorial
 
@@ -454,44 +454,44 @@ After Circular Bar complete:
 
 ## External Developer Impact
 
-### Before V2
+### Before 
 - Create custom style: ~500-1000 LOC
 - Duplicate: Events, tooltips, positioning, animations
 - Hard to maintain, easy to break
 
-### After V2
+### After 
 - Create custom style: ~100-200 LOC
 - Inherit: Everything from mixins
 - Easy to maintain, hard to break
 
 ### Circular Bar as Example
 - **Most complex possible style**
-- If Circular Bar can be done in V2, **any style can**
-- Demonstrates V2's power and flexibility
+- If Circular Bar can be done in , **any style can**
+- Demonstrates 's power and flexibility
 
 ---
 
 ## Conclusion
 
-The Circular Bar V2 migration documentation is now complete and ready for implementation. This final migration will:
+The Circular Bar  migration documentation is now complete and ready for implementation. This final migration will:
 
-1. **Validate V2 architecture** - Tests extreme customization
-2. **Complete style migration** - All 4 V1 styles ported to V2
+1. **Validate  architecture** - Tests extreme customization
+2. **Complete style migration** - All 4 V1 styles ported to 
 3. **Enable Phase 5** - V1 cleanup and removal
 4. **Unlock Phase 6** - Polish and external developer support
 
-**Key Success Factor**: Thorough planning based on lessons from Flat, Legacy, and Vertical migrations.
+**Key Success Factor**: Thorough planning based on lessons from Flat, Classic, and Vertical migrations.
 
-**Current Status**: 3 of 4 styles complete (Flat ✅, Legacy ✅, Vertical ✅)
+**Current Status**: 3 of 4 styles complete (Flat ✅, Classic ✅, Vertical ✅)
 
 **Remaining Timeline**:
 - Circular Bar implementation: 12 days
 - Phase 5 (V1 cleanup): 1-2 days
 - Phase 6 (Polish): 2-3 days
-- **Total to V2 completion**: ~15-17 days
+- **Total to  completion**: ~15-17 days
 
 **Confidence Level**: High (75%) for Circular Bar success based on:
-- ✅ Proven V2 architecture (Flat Bar validated)
+- ✅ Proven  architecture (Flat Bar validated)
 - ✅ Established animation patterns (Vertical Bar validated)
 - ✅ Comprehensive migration plan (this documentation)
 - ✅ Clear success criteria and testing strategy
@@ -500,4 +500,4 @@ The Circular Bar V2 migration documentation is now complete and ready for implem
 
 **Document Status**: ✅ Complete - All Migration Documentation Ready  
 **Last Updated**: November 9, 2025  
-**Next Action**: Begin Circular Bar V2 implementation (Phase 4)
+**Next Action**: Begin Circular Bar  implementation (Phase 4)

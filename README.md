@@ -4,7 +4,7 @@ XP Bar Enhanced is a World of Warcraft add-on that replaces and augments the def
 
 ## Features
 
-- Multiple bar styles (legacy, flat, vertical, circular)
+- Multiple bar styles (classic, flat, vertical, circular)
 - Quest XP overlay and completion summaries
 - Session tracking and statistics view
 - Color customization and presets

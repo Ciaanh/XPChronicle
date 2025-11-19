@@ -888,6 +888,6 @@ end
 Addon.Mixins = Addon.Mixins or {}
 Addon.Mixins.VerticalXPBarContainerMixin = VerticalXPBarContainerMixin
 Addon.Mixins.VerticalXPBarMixin = VerticalXPBarMixin
--- Legacy compatibility
+-- Classic compatibility
 _G.VerticalXPBarContainerMixin = VerticalXPBarContainerMixin
 _G.VerticalXPBarMixin = VerticalXPBarMixin

@@ -14,7 +14,7 @@ local XPBarTooltip = _G and _G.XPBarTooltip
 
 local defaults = {
     -- Bar Style Selection
-    barStyle = "legacy", -- "none", "legacy", "flat", "vertical", "circular"
+    barStyle = "classic", -- "none", "classic", "flat", "vertical", "circular"
     hideBlizzardBar = true,
     barLocked = false,
     -- Text Display Settings
@@ -77,7 +77,7 @@ local defaults = {
     },
     -- Per-style saved positions (migrated from single barPosition when needed)
     barPositions = {
-        legacy = {
+        classic = {
             point = "BOTTOM",
             relativeTo = "UIParent",
             relativePoint = "BOTTOM",
@@ -121,7 +121,7 @@ local optionDetails = {
         description = Addon.L["OPT_BAR_STYLE_DESC"],
         options = {
             {value = "none", label = Addon.L["OPT_BAR_STYLE_NONE"]},
-            {value = "legacy", label = Addon.L["OPT_BAR_STYLE_LEGACY"]},
+            {value = "classic", label = Addon.L["OPT_BAR_STYLE_CLASSIC"]},
             {value = "flat", label = Addon.L["OPT_BAR_STYLE_FLAT"]},
             {value = "vertical", label = Addon.L["OPT_BAR_STYLE_VERTICAL"]},
             {value = "circular", label = Addon.L["OPT_BAR_STYLE_CIRCULAR"]}
@@ -349,7 +349,7 @@ Config.colorOptionByKey = colorOptionByKey
 -- INITIALIZATION
 -------------------------------------------------------------------
 
----Initialize configuration state and migrate any legacy settings
+---Initialize configuration state and migrate any classic settings
 function Config:Initialize()
     -- Configuration is now managed by Database module
     -- Migrate single barPosition to per-style barPositions if needed
@@ -358,7 +358,7 @@ function Config:Initialize()
             -- If user has an existing single position, copy it to all styles as a sensible default
             if Addon.db.barPosition then
                 Addon.db.barPositions = {
-                    legacy = Addon.db.barPosition,
+                    classic = Addon.db.barPosition,
                     flat = Addon.db.barPosition,
                     vertical = Addon.db.barPosition,
                     circular = Addon.db.barPosition
@@ -527,7 +527,7 @@ function Config:SetColor(key, hex, silent)
         Addon.db.xpBarColor = colorTable
     end
 
-    -- -- Update color on visible XP bars (Legacy bar uses static colors)
+    -- -- Update color on visible XP bars (Classic bar uses static colors)
     -- local flatBar = _G.FlatXPBar and _G.FlatXPBar.Bar
     -- if flatBar and flatBar.UpdateBarOverlayColors then
     --     flatBar:UpdateBarOverlayColors()
@@ -556,8 +556,8 @@ function Config:SetColor(key, hex, silent)
         optionsView:UpdateColorControls()
     end
 
-    -- Force visual refresh of flat and legacy bars if present
-    local flatBar = _G and _G.FlatBar_v2
+    -- Force visual refresh of flat and classic bars if present
+    local flatBar = _G and _G.FlatBar
     if flatBar and flatBar.Refresh then
         flatBar:Refresh()
     end
@@ -665,18 +665,18 @@ function Config:ApplyOptionSideEffects(key)
             end
         end
 
-        -- Force visual refresh of legacy bar
+        -- Force visual refresh of classic bar
         local _G_alias2 = _G
-        local legacyBar = _G_alias2.LegacyXPBar
-        if legacyBar and legacyBar:IsShown() and legacyBar.Bar then
-            if legacyBar.Bar.UpdateBarOverlayColors then
-                legacyBar.Bar:UpdateBarOverlayColors()
+        local classicBar = _G_alias2.ClassicXPBar
+        if classicBar and classicBar:IsShown() and classicBar.Bar then
+            if classicBar.Bar.UpdateBarOverlayColors then
+                classicBar.Bar:UpdateBarOverlayColors()
             end
-            if legacyBar.Bar.UpdateTextVisibility then
-                legacyBar.Bar:UpdateTextVisibility()
+            if classicBar.Bar.UpdateTextVisibility then
+                classicBar.Bar:UpdateTextVisibility()
             end
-            if legacyBar.Bar.UpdateAllText then
-                legacyBar.Bar:UpdateAllText()
+            if classicBar.Bar.UpdateAllText then
+                classicBar.Bar:UpdateAllText()
             end
         end
     end
@@ -751,7 +751,7 @@ function Config:ShowHelp()
     print("     Customize colors and features from the options panel.")
     print("  |cFFFFD700/xpbe reset|r - Reset all settings to defaults")
     print("  |cFFFFD700/xpbe resetstats|r - Clear all tracked statistics")
-    print("  |cFFFFD700/xpbe style <none|legacy|flat>|r - Change bar style")
+    print("  |cFFFFD700/xpbe style <none|classic|flat>|r - Change bar style")
 end
 
 function Config:OpenOptions()

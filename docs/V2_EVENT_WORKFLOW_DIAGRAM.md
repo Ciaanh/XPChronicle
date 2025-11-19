@@ -1,6 +1,6 @@
-# V2 BaseMixin Event Workflow Diagram
+#  BaseMixin Event Workflow Diagram
 
-This document provides a detailed workflow for all registered events in the V2 XPBar architecture, tracking function calls, their order, recursion patterns, and context immutability.
+This document provides a detailed workflow for all registered events in the  XPBar architecture, tracking function calls, their order, recursion patterns, and context immutability.
 
 ## Context Immutability Legend
 
@@ -575,7 +575,7 @@ AnimationManager OnUpdate Ticker
 
 ## Conclusion
 
-The V2 BaseMixin architecture successfully implements an immutable context pattern for most of the event workflow. However, there are critical areas where immutability is compromised:
+The  BaseMixin architecture successfully implements an immutable context pattern for most of the event workflow. However, there are critical areas where immutability is compromised:
 
 1. **Animation context aggregation** creates mutable contexts
 2. **Color methods** don't receive context at all

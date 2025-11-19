@@ -1,8 +1,8 @@
-# V2 Architecture OnLoad Workflow Comparison
+#  Architecture OnLoad Workflow Comparison
 
-This document visualizes the initialization workflow differences between Circular V2 and other V2 styles.
+This document visualizes the initialization workflow differences between Circular  and other  styles.
 
-## Common Base Flow (All V2 Styles)
+## Common Base Flow (All  Styles)
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -23,7 +23,7 @@ This document visualizes the initialization workflow differences between Circula
                      │
                      ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ XPBarMixinBase_v2.OnLoad(self)                             │
+│ XPBarMixinBase.OnLoad(self)                             │
 │ - Initialize animation system                              │
 │ - Initialize position behavior                             │
 │ - Register common events (PLAYER_XP_UPDATE, etc.)         │
@@ -52,11 +52,11 @@ This document visualizes the initialization workflow differences between Circula
 └─────────────────────────────────────────────────────────────┘
 ```
 
-## Legacy/Vertical V2 Flow (Working)
+## Classic/Vertical  Flow (Working)
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│ LegacyBarStyleTemplate / VerticalBarStyleTemplate          │
+│ ClassicBarStyleTemplate / VerticalBarStyleTemplate          │
 │ ⚠️  NO custom OnLoad - relies on base flow only            │
 └─────────────────────┬───────────────────────────────────────┘
                       │
@@ -105,7 +105,7 @@ This document visualizes the initialization workflow differences between Circula
 └─────────────────────────────────────────────────────────────┘
 ```
 
-## Circular V2 Flow (Broken - Current State)
+## Circular  Flow (Broken - Current State)
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -127,7 +127,7 @@ This document visualizes the initialization workflow differences between Circula
 ║    - All initialized with EMPTY_SEGMENT_COLOR               ║
 ║                                                             ║
 ║ 3. Call Base OnLoad                                         ║
-║    XPBarMixinBase_v2.OnLoad(self)                          ║
+║    XPBarMixinBase.OnLoad(self)                          ║
 ║    └─> Refresh() → RenderBar(context)  [FIRST CALL]        ║
 ║                                                             ║
 ║ 4. ❌ Duplicate Manual RenderBar Call                       ║
@@ -185,7 +185,7 @@ This document visualizes the initialization workflow differences between Circula
 └─────────────────────────────────────────────────────────────┘
 ```
 
-## Circular V2 Flow After XP Event (Works)
+## Circular  Flow After XP Event (Works)
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -236,7 +236,7 @@ This document visualizes the initialization workflow differences between Circula
 
 ## The Key Difference
 
-### Working Styles (Legacy/Vertical)
+### Working Styles (Classic/Vertical)
 ```
 RenderBar()
   ├─ Animation logic
@@ -293,7 +293,7 @@ SetArcProgress(progress, hasRestedXP)
 
 ## Summary
 
-| Aspect | Legacy/Vertical | Circular (Current) | Circular (Fixed) |
+| Aspect | Classic/Vertical | Circular (Current) | Circular (Fixed) |
 |--------|-----------------|-------------------|------------------|
 | Custom OnLoad | No | Yes (duplicate call) | Yes (no duplicate) |
 | Early return | No | Yes (breaks flow) | No |

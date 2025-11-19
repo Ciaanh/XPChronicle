@@ -1,6 +1,6 @@
--- XP Bar Enhanced - Tooltip Mixin (v2)
+-- XP Bar Enhanced - Tooltip Mixin ()
 -- Behavior mixin for tooltip management and GameTooltip integration
--- Restored feature parity with legacy XPBarTooltip: config checks, anchors, sections, colors, refresh/owner tracking
+-- Restored feature parity with classic XPBarTooltip: config checks, anchors, sections, colors, refresh/owner tracking
 
 -------------------------------------------------------------------
 -- GLOBAL TOOLTIP MIXIN
@@ -103,7 +103,7 @@ function TooltipMixin:Hide() -- public helper
 end
 
 -------------------------------------------------------------------
--- SECTION BUILDERS (compatibility with legacy behavior)
+-- SECTION BUILDERS (compatibility with classic behavior)
 -------------------------------------------------------------------
 
 -- Add XP / percent lines to content.lines
@@ -331,7 +331,7 @@ function TooltipMixin:AddQuestSection(content, ctx, cfg)
 	end
 end
 
--- Session section: multiple rules/thresholds like legacy implementation
+-- Session section: multiple rules/thresholds like classic implementation
 function TooltipMixin:AddSessionSection(content, ctx, cfg)
 	local sessionXP = ctx.sessionXP or 0
 	local sessionStart = ctx.sessionStart or nil
@@ -350,7 +350,7 @@ function TooltipMixin:AddSessionSection(content, ctx, cfg)
 	if sessionStart then
 		sessionDuration = time() - sessionStart
 	end
-	-- legacy thresholds: at least 30s and at least 100 xp to show (preserve parity)
+	-- classic thresholds: at least 30s and at least 100 xp to show (preserve parity)
 	local minDuration = (cfg and cfg.sessionMinDuration) or global.sessionMinDuration or 30
 	local minXP = (cfg and cfg.sessionMinXP) or global.sessionMinXP or 100
 
@@ -440,7 +440,7 @@ function TooltipMixin:AddSessionSection(content, ctx, cfg)
 	end
 end
 
--- final hints section (legacy displayed help/hints)
+-- final hints section (classic displayed help/hints)
 function TooltipMixin:AddHintSection(content, ctx, cfg)
 	local global = GetGlobalDB()
 	if (cfg and cfg.showHints == false) or (global.showHints == false) then
@@ -456,7 +456,7 @@ function TooltipMixin:AddHintSection(content, ctx, cfg)
 	end
 end
 
---- Get hint text for V2 bars
+--- Get hint text for  bars
 -- Returns appropriate hint based on position mode and interaction config
 function TooltipMixin:GetHintText()
 	local L = XPBarEnhanced and XPBarEnhanced.L or {}
@@ -587,7 +587,7 @@ function TooltipMixin:OnEnter()
 		return
 	end
 
-	-- Set owner using best anchor (legacy used smart anchoring)
+	-- Set owner using best anchor (classic used smart anchoring)
 	GameTooltip:SetOwner(self, self:GetBestAnchor())
 
 	-- Title
@@ -639,7 +639,7 @@ function TooltipMixin:GetTooltipContent()
 		ctx = self:GetContext()
 	end
 	if ctx and type(ctx) == "table" then
-		-- build content like legacy did (use helper builders)
+		-- build content like classic did (use helper builders)
 		local content = {title = string.format(L["TT_LEVEL_FMT"] or "Level %d", tonumber(c.level) or 1), lines = {}}
 		self:AddXPSection(content, c, self.__xpbar_config and self.__xpbar_config.tooltip)
 		self:AddRestedSection(content, c, self.__xpbar_config and self.__xpbar_config.tooltip)

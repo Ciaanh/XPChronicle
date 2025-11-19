@@ -720,7 +720,7 @@ function XPBar:HideTooltip()
 end
 
 --------------------------------------------------------------------------------
--- View Management (coordinates Legacy/Flat/Future views)
+-- View Management (coordinates Classic/Flat/Future views)
 --------------------------------------------------------------------------------
 
 XPBar.currentView = nil
@@ -788,7 +788,7 @@ function XPBar:BroadcastUpdate(context)
 end
 
 function XPBar:GetView()
-    -- Legacy compatibility: old code expected Addon.UI.Views.XPBar
+    -- Classic compatibility: old code expected Addon.UI.Views.XPBar
     -- Now we just return self since XPBar module is the coordinator
     return self
 end
@@ -797,8 +797,8 @@ function XPBar:GetActiveView()
     return self.currentView
 end
 
-function XPBar:GetLegacyContainer()
-    return _G.LegacyXPBar
+function XPBar:GetClassicContainer()
+    return _G.ClassicXPBar
 end
 
 function XPBar:GetFlatContainer()
@@ -817,8 +817,8 @@ function XPBar:GetTestContainer()
     return _G.TestXPBar
 end
 
-function XPBar:GetLegacyView()
-    local container = self:GetLegacyContainer()
+function XPBar:GetClassicView()
+    local container = self:GetClassicContainer()
     return container and container.Bar
 end
 
@@ -844,7 +844,7 @@ end
 
 function XPBar:SetBarStyle(style, skipSave)
     -- Validate style
-    local validStyles = { "none", "legacy", "flat", "vertical", "circular" }
+    local validStyles = { "none", "classic", "flat", "vertical", "circular" }
     local isValid = false
     for _, validStyle in ipairs(validStyles) do
         if style == validStyle then
@@ -859,7 +859,7 @@ function XPBar:SetBarStyle(style, skipSave)
     
     -- Define all containers and their view getters
     local containers = {
-        legacy = { container = self:GetLegacyContainer(), viewGetter = function() return self:GetLegacyView() end },
+        classic = { container = self:GetClassicContainer(), viewGetter = function() return self:GetClassicView() end },
         flat = { container = self:GetFlatContainer(), viewGetter = function() return self:GetFlatView() end },
         vertical = { container = self:GetVerticalContainer(), viewGetter = function() return self:GetVerticalView() end },
         circular = { container = self:GetCircularContainer(), viewGetter = function() return self:GetCircularView() end },
@@ -948,7 +948,7 @@ function XPBar:Initialize()
 	self:RegisterQuestEvents()
 	
 	-- Load saved bar style and show the appropriate bar
-	local style = Addon.db and Addon.db.barStyle or "legacy"
+	local style = Addon.db and Addon.db.barStyle or "classic"
 	self:SetBarStyle(style, true)
 	
 	-- Initial update
@@ -958,16 +958,16 @@ function XPBar:Initialize()
 	self:StartPeriodicUpdates()
 end
 
---- Update all bars (legacy currentView + new observer pattern)
+--- Update all bars (classic currentView + new observer pattern)
 --- This maintains backward compatibility while supporting multiple bars
 function XPBar:Update()
-	-- Legacy pattern: update currentView if set
+	-- Classic pattern: update currentView if set
 	if self.currentView and self.currentView.FullUpdate then
 		self.currentView:FullUpdate()
 	end
 	
 	-- New pattern: broadcast to all observers
-	-- This allows multiple bars to coexist (e.g., V1 + V2 test bars)
+	-- This allows multiple bars to coexist (e.g., V1 +  test bars)
 	self:BroadcastUpdate()
 end
 
@@ -1106,7 +1106,7 @@ function XPBar:HandleXPUpdate()
 	Addon._lastKnownLevel = level
 	
 	-- Update all non-active views' state without animation
-	for _, view in pairs({self:GetLegacyView(), self:GetFlatView(), self:GetVerticalView(), self:GetCircularView()}) do
+	for _, view in pairs({self:GetClassicView(), self:GetFlatView(), self:GetVerticalView(), self:GetCircularView()}) do
 		if view and view ~= activeView then
 			-- Sync state only (no animation)
 			if view.state then

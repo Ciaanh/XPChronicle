@@ -1,4 +1,4 @@
--- XP Bar Enhanced - v2 Test Harness
+-- XP Bar Enhanced -  Test Harness
 -- Minimal, safe test harness that registers Addon.Tests and uses the StyleBuilder factory.
 -- Slash command handling is centralized in core/Core.lua which will call Addon.Tests.* when dev mode is enabled.
 
@@ -31,7 +31,7 @@ end
 local TestFrame = nil
 local TestObserverId = nil -- Observer pattern registration ID
 local STYLE_KEY = "flat"
-local TEMPLATE_NAME = "FlatBarTemplate_v2"
+local TEMPLATE_NAME = "FlatBarTemplate"
 
 local function create_frame_from_factory(config)
 	config = config or {}
@@ -40,7 +40,7 @@ local function create_frame_from_factory(config)
 	elseif type(XPBarEnhanced_CreateFlatBarFrame) == "function" then
 		return XPBarEnhanced_CreateFlatBarFrame(config)
 	else
-		logError("v2 test harness: no factory available to create frame")
+		logError(" test harness: no factory available to create frame")
 		return nil
 	end
 end
@@ -52,7 +52,7 @@ local function CreateTestBar(config)
 		frame = XPBarEnhanced_CreateFlatBarFrame()
 	elseif XPBarStyleBuilder and XPBarStyleBuilder.CreateFrameForStyle then
 		-- Fallback: create directly from style builder
-		frame = XPBarStyleBuilder:CreateFrameForStyle("flat", config, "FlatBarTemplate_v2")
+		frame = XPBarStyleBuilder:CreateFrameForStyle("flat", config, "FlatBarTemplate")
 	end
 
 	if not frame then
@@ -63,14 +63,14 @@ local function CreateTestBar(config)
 	TestFrame = frame
 	
 	-- Register as global for easy access
-	_G.FlatBar_v2 = frame
+	_G.FlatBar = frame
 
 	-- Register with observer pattern (allows multiple bars to coexist)
 	if Addon and Addon.XPBar and Addon.XPBar.RegisterObserver then
-		TestObserverId = Addon.XPBar:RegisterObserver(frame, "flat_v2_test")
-		logInfo(string.format("V2 test bar registered as observer: %s", TestObserverId))
+		TestObserverId = Addon.XPBar:RegisterObserver(frame, "flat_test")
+		logInfo(string.format(" test bar registered as observer: %s", TestObserverId))
 	else
-		logWarn("V2 test bar: XPBar observer pattern not available")
+		logWarn(" test bar: XPBar observer pattern not available")
 	end
 
 	-- Ensure frame is shown
@@ -95,7 +95,7 @@ local function DestroyTestBar()
 	-- Unregister from observer pattern
 	if Addon and Addon.XPBar and Addon.XPBar.UnregisterObserver and TestObserverId then
 		Addon.XPBar:UnregisterObserver(TestObserverId)
-		logInfo(string.format("V2 test bar unregistered observer: %s", TestObserverId))
+		logInfo(string.format(" test bar unregistered observer: %s", TestObserverId))
 		TestObserverId = nil
 	end
 
@@ -106,9 +106,9 @@ local function DestroyTestBar()
 		pcall(TestFrame.OnUnload, TestFrame)
 	end
 	TestFrame:Hide()
-	_G.FlatBar_v2 = nil
+	_G.FlatBar = nil
 	TestFrame = nil
-	logInfo("v2 test bar destroyed")
+	logInfo(" test bar destroyed")
 end
 
 -- PrintContext: output a sample context built by ContextBuilder (if available)
@@ -141,7 +141,7 @@ local function PrintContext()
 		return
 	end
 
-	print("|cff00ff00v2 Context:|r")
+	print("|cff00ff00 Context:|r")
 	print((" Level: %d"):format(ctx.level or 0))
 	print((" XP: %d / %d (%.1f%%)"):format(ctx.currentXP or 0, ctx.xpMax or ctx.maxXP or 0, (ctx.percentComplete or 0)))
 	print((" Rested: %d (%.1f%%)"):format(ctx.restedXP or 0, (ctx.restedPercent or 0)))
@@ -154,18 +154,18 @@ local function TriggerFlash(amount)
 	-- Try to find any available test frame
 	local targetFrame = nil
 	
-	-- Priority: Vertical > Legacy > Flat
+	-- Priority: Vertical > Classic > Flat
 	if VerticalTestFrame and VerticalTestFrame:IsShown() then
 		targetFrame = VerticalTestFrame
-	elseif LegacyTestFrame and LegacyTestFrame:IsShown() then
-		targetFrame = LegacyTestFrame
+	elseif ClassicTestFrame and ClassicTestFrame:IsShown() then
+		targetFrame = ClassicTestFrame
 	elseif TestFrame and TestFrame:IsShown() then
 		targetFrame = TestFrame
 	end
 	
 	-- If no frame is shown, try any that exist
 	if not targetFrame then
-		targetFrame = VerticalTestFrame or LegacyTestFrame or TestFrame
+		targetFrame = VerticalTestFrame or ClassicTestFrame or TestFrame
 	end
 	
 	if not targetFrame then
@@ -181,15 +181,15 @@ local function TriggerFlash(amount)
 	-- Log which frame we're triggering on
 	local frameName = "unknown"
 	if targetFrame == VerticalTestFrame then
-		frameName = "Vertical Bar V2"
-	elseif targetFrame == LegacyTestFrame then
-		frameName = "Legacy Bar V2"
+		frameName = "Vertical Bar "
+	elseif targetFrame == ClassicTestFrame then
+		frameName = "Classic Bar "
 	elseif targetFrame == TestFrame then
-		frameName = "Flat Bar V2"
+		frameName = "Flat Bar "
 	end
 	logInfo(string.format("Triggering flash on: %s", frameName))
 
-	-- Try V2 animation methods (used by all V2 bars)
+	-- Try  animation methods (used by all  bars)
 	if targetFrame.TriggerXPChanged and XPBarContextBuilder then
 		-- Build a fake XP gain context
 		local baseCtx = XPBarContextBuilder.BuildXPChangeContext("TEST_FLASH")
@@ -244,22 +244,22 @@ Addon.Tests.CreateTestBar = CreateTestBar
 Addon.Tests.DestroyTestBar = DestroyTestBar
 Addon.Tests.PrintContext = PrintContext
 Addon.Tests.TriggerFlash = TriggerFlash
--- Trigger a flash specifically for circular bar v2 and report a summary of segment alphas
+-- Trigger a flash specifically for circular bar  and report a summary of segment alphas
 local function TriggerCircularFlash(amount)
-	if not CircularBar_v2 then
+	if not CircularBar then
 		if XPBarEnhanced_CreateCircularBarFrame then
-			CircularBar_v2 = XPBarEnhanced_CreateCircularBarFrame()
+			CircularBar = XPBarEnhanced_CreateCircularBarFrame()
 		else
-			CircularBar_v2 = XPBarStyleBuilder and XPBarStyleBuilder.CreateFrameForStyle("circular", nil, "CircularBarTemplate_v2")
+			CircularBar = XPBarStyleBuilder and XPBarStyleBuilder.CreateFrameForStyle("circular", nil, "CircularBarTemplate")
 		end
 	end
-	if not CircularBar_v2 then
+	if not CircularBar then
 		logError("CircularBar not available")
 		return
 	end
 
 	-- Create a fake XP gain context and trigger it on the circular bar
-	if CircularBar_v2.TriggerXPChanged and XPBarContextBuilder and XPBarContextBuilder.BuildXPChangeContext then
+	if CircularBar.TriggerXPChanged and XPBarContextBuilder and XPBarContextBuilder.BuildXPChangeContext then
 		local baseCtx = XPBarContextBuilder.BuildXPChangeContext("TEST_FLASH")
 		if baseCtx then
 			local testXPGain = amount or 1000
@@ -281,12 +281,12 @@ local function TriggerCircularFlash(amount)
 				showRestedOverlay = baseCtx.showRestedOverlay,
 				changeSource = "TEST_FLASH_CIRCULAR"
 			}
-			pcall(CircularBar_v2.TriggerXPChanged, CircularBar_v2, testCtx)
+			pcall(CircularBar.TriggerXPChanged, CircularBar, testCtx)
 			logInfo("Triggered circular Test Flash")
 			-- Print a summary of first 10 segment alphas for manual verification
 			local alphasSummary = {}
-			for i = 1, math.min(10, #CircularBar_v2.segments) do
-				local seg = CircularBar_v2.segments[i]
+			for i = 1, math.min(10, #CircularBar.segments) do
+				local seg = CircularBar.segments[i]
 				local r,g,b,a = seg:GetVertexColor()
 				table.insert(alphasSummary, string.format("%d: %.2f", i, a))
 			end
@@ -308,10 +308,10 @@ local function ToggleQuestXPForCircular(toggle)
 		Addon.XPBar:Update()
 	end
 	-- Print post-update context and circular cached values
-	if CircularBar_v2 and CircularBar_v2.FullUpdate then
+	if CircularBar and CircularBar.FullUpdate then
 		local ctx = XPBarContextBuilder and XPBarContextBuilder.BuildXPChangeContext and XPBarContextBuilder.BuildXPChangeContext("MANUAL_REFRESH")
 		if ctx then
-			pcall(CircularBar_v2.FullUpdate, CircularBar_v2, ctx)
+			pcall(CircularBar.FullUpdate, CircularBar, ctx)
 		end
 	end
 	print("Toggled showQuestXP to:", tostring(toggle))
@@ -328,47 +328,47 @@ local function SimulateLevelUpOnCircular(newLevel)
 		logError("Could not build level up context")
 		return
 	end
-	if CircularBar_v2 and CircularBar_v2.TriggerBarRefresh then
-		pcall(CircularBar_v2.TriggerBarRefresh, CircularBar_v2, ctx)
+	if CircularBar and CircularBar.TriggerBarRefresh then
+		pcall(CircularBar.TriggerBarRefresh, CircularBar, ctx)
 	end
 	print("Simulated level up for CircularBar to level:", tostring(newLevel))
 end
 Addon.Tests.SimulateLevelUpOnCircular = SimulateLevelUpOnCircular
 
 -------------------------------------------------------------------
--- LEGACY BAR V2 TEST FUNCTIONS
+-- CLASSIC BAR  TEST FUNCTIONS
 -------------------------------------------------------------------
 
-local LegacyTestFrame = nil
-local LegacyTestObserverId = nil
+local ClassicTestFrame = nil
+local ClassicTestObserverId = nil
 
--- CreateLegacyTestBar: create and initialize Legacy Bar V2 test frame
-local function CreateLegacyTestBar(config)
+-- CreateClassicTestBar: create and initialize Classic Bar  test frame
+local function CreateClassicTestBar(config)
 	local frame
-	if XPBarEnhanced_CreateLegacyBarFrame then
-		frame = XPBarEnhanced_CreateLegacyBarFrame()
+	if XPBarEnhanced_CreateClassicBarFrame then
+		frame = XPBarEnhanced_CreateClassicBarFrame()
 	elseif XPBarStyleBuilder and XPBarStyleBuilder.CreateFrameForStyle then
 		-- Fallback: create directly from style builder
-		frame = XPBarStyleBuilder:CreateFrameForStyle("legacy_v2", config, "LegacyBarTemplate")
+		frame = XPBarStyleBuilder:CreateFrameForStyle("classic", config, "ClassicBarTemplate")
 	end
 
 	if not frame then
-		logError("Failed to create Legacy Bar V2 test frame")
+		logError("Failed to create Classic Bar  test frame")
 		return
 	end
 
 	-- Store frame reference
-	LegacyTestFrame = frame
+	ClassicTestFrame = frame
 	
 	-- Register as global for easy access
-	_G.LegacyBar_v2 = frame
+	_G.ClassicBar = frame
 
 	-- Register with observer pattern (allows multiple bars to coexist)
 	if Addon and Addon.XPBar and Addon.XPBar.RegisterObserver then
-		LegacyTestObserverId = Addon.XPBar:RegisterObserver(frame, "legacy_v2_test")
-		logInfo(string.format("Legacy V2 test bar registered as observer: %s", LegacyTestObserverId))
+		ClassicTestObserverId = Addon.XPBar:RegisterObserver(frame, "classic_test")
+		logInfo(string.format("Classic  test bar registered as observer: %s", ClassicTestObserverId))
 	else
-		logWarn("Legacy V2 test bar: XPBar observer pattern not available")
+		logWarn("Classic  test bar: XPBar observer pattern not available")
 	end
 
 	-- Ensure frame is shown
@@ -380,59 +380,59 @@ local function CreateLegacyTestBar(config)
 		frame:UpdateVisuals(ctx)
 	end
 
-	logInfo("Legacy Bar V2 test frame created successfully!")
+	logInfo("Classic Bar  test frame created successfully!")
 	return frame
 end
 
--- DestroyLegacyTestBar: cleanup Legacy Bar V2 test frame
-local function DestroyLegacyTestBar()
-	if not LegacyTestFrame then
-		logWarn("No Legacy Bar V2 test frame to destroy")
+-- DestroyClassicTestBar: cleanup Classic Bar  test frame
+local function DestroyClassicTestBar()
+	if not ClassicTestFrame then
+		logWarn("No Classic Bar  test frame to destroy")
 		return
 	end
 
 	-- Unregister from observer pattern
-	if Addon and Addon.XPBar and Addon.XPBar.UnregisterObserver and LegacyTestObserverId then
-		Addon.XPBar:UnregisterObserver(LegacyTestObserverId)
-		logInfo(string.format("Legacy V2 test bar unregistered observer: %s", LegacyTestObserverId))
-		LegacyTestObserverId = nil
+	if Addon and Addon.XPBar and Addon.XPBar.UnregisterObserver and ClassicTestObserverId then
+		Addon.XPBar:UnregisterObserver(ClassicTestObserverId)
+		logInfo(string.format("Classic  test bar unregistered observer: %s", ClassicTestObserverId))
+		ClassicTestObserverId = nil
 	end
 
-	if LegacyTestFrame.UnregisterAllEvents then
-		pcall(LegacyTestFrame.UnregisterAllEvents, LegacyTestFrame)
+	if ClassicTestFrame.UnregisterAllEvents then
+		pcall(ClassicTestFrame.UnregisterAllEvents, ClassicTestFrame)
 	end
-	if LegacyTestFrame.OnUnload then
-		pcall(LegacyTestFrame.OnUnload, LegacyTestFrame)
+	if ClassicTestFrame.OnUnload then
+		pcall(ClassicTestFrame.OnUnload, ClassicTestFrame)
 	end
-	LegacyTestFrame:Hide()
-	_G.LegacyBar_v2 = nil
-	LegacyTestFrame = nil
-	logInfo("Legacy Bar V2 test frame destroyed")
+	ClassicTestFrame:Hide()
+	_G.ClassicBar = nil
+	ClassicTestFrame = nil
+	logInfo("Classic Bar  test frame destroyed")
 end
 
--- Export Legacy Bar V2 test functions
-Addon.Tests.CreateLegacyTestBar = CreateLegacyTestBar
-Addon.Tests.DestroyLegacyTestBar = DestroyLegacyTestBar
+-- Export Classic Bar  test functions
+Addon.Tests.CreateClassicTestBar = CreateClassicTestBar
+Addon.Tests.DestroyClassicTestBar = DestroyClassicTestBar
 
 -------------------------------------------------------------------
--- VERTICAL BAR V2 TEST FUNCTIONS
+-- VERTICAL BAR  TEST FUNCTIONS
 -------------------------------------------------------------------
 
 local VerticalTestFrame = nil
 local VerticalTestObserverId = nil
 
--- CreateVerticalTestBar: create and initialize Vertical Bar V2 test frame
+-- CreateVerticalTestBar: create and initialize Vertical Bar  test frame
 local function CreateVerticalTestBar(config)
 	local frame
 	if XPBarEnhanced_CreateVerticalBarFrame then
 		frame = XPBarEnhanced_CreateVerticalBarFrame()
 	elseif XPBarStyleBuilder and XPBarStyleBuilder.CreateFrameForStyle then
 		-- Fallback: create directly from style builder
-		frame = XPBarStyleBuilder:CreateFrameForStyle("vertical", config, "VerticalBarTemplate_v2")
+		frame = XPBarStyleBuilder:CreateFrameForStyle("vertical", config, "VerticalBarTemplate")
 	end
 
 	if not frame then
-		logError("Failed to create Vertical Bar V2 test frame")
+		logError("Failed to create Vertical Bar  test frame")
 		return
 	end
 
@@ -440,14 +440,14 @@ local function CreateVerticalTestBar(config)
 	VerticalTestFrame = frame
 	
 	-- Register as global for easy access
-	_G.VerticalBar_v2 = frame
+	_G.VerticalBar = frame
 
 	-- Register with observer pattern (allows multiple bars to coexist)
 	if Addon and Addon.XPBar and Addon.XPBar.RegisterObserver then
-		VerticalTestObserverId = Addon.XPBar:RegisterObserver(frame, "vertical_v2_test")
-		logInfo(string.format("Vertical V2 test bar registered as observer: %s", VerticalTestObserverId))
+		VerticalTestObserverId = Addon.XPBar:RegisterObserver(frame, "vertical_test")
+		logInfo(string.format("Vertical  test bar registered as observer: %s", VerticalTestObserverId))
 	else
-		logWarn("Vertical V2 test bar: XPBar observer pattern not available")
+		logWarn("Vertical  test bar: XPBar observer pattern not available")
 	end
 
 	-- Ensure frame is shown
@@ -459,22 +459,22 @@ local function CreateVerticalTestBar(config)
 		frame:UpdateVisuals(ctx)
 	end
 
-	logInfo("Vertical Bar V2 test frame created successfully!")
+	logInfo("Vertical Bar  test frame created successfully!")
 	logInfo("Test gravity animation with: /xptest flash")
 	return frame
 end
 
--- DestroyVerticalTestBar: cleanup Vertical Bar V2 test frame
+-- DestroyVerticalTestBar: cleanup Vertical Bar  test frame
 local function DestroyVerticalTestBar()
 	if not VerticalTestFrame then
-		logWarn("No Vertical Bar V2 test frame to destroy")
+		logWarn("No Vertical Bar  test frame to destroy")
 		return
 	end
 
 	-- Unregister from observer pattern
 	if Addon and Addon.XPBar and Addon.XPBar.UnregisterObserver and VerticalTestObserverId then
 		Addon.XPBar:UnregisterObserver(VerticalTestObserverId)
-		logInfo(string.format("Vertical V2 test bar unregistered observer: %s", VerticalTestObserverId))
+		logInfo(string.format("Vertical  test bar unregistered observer: %s", VerticalTestObserverId))
 		VerticalTestObserverId = nil
 	end
 
@@ -485,11 +485,11 @@ local function DestroyVerticalTestBar()
 		pcall(VerticalTestFrame.OnUnload, VerticalTestFrame)
 	end
 	VerticalTestFrame:Hide()
-	_G.VerticalBar_v2 = nil
+	_G.VerticalBar = nil
 	VerticalTestFrame = nil
-	logInfo("Vertical Bar V2 test frame destroyed")
+	logInfo("Vertical Bar  test frame destroyed")
 end
 
--- Export Vertical Bar V2 test functions
+-- Export Vertical Bar  test functions
 Addon.Tests.CreateVerticalTestBar = CreateVerticalTestBar
 Addon.Tests.DestroyVerticalTestBar = DestroyVerticalTestBar

@@ -1,4 +1,4 @@
--- XP Bar Enhanced - Context Builder (v2)
+-- XP Bar Enhanced - Context Builder ()
 -- Standalone utility module for building immutable context objects
 -- Integrates session calculation methods (duplicated from core/Session.lua)
 -- NO DEPENDENCIES on existing Session, Database, or other core modules

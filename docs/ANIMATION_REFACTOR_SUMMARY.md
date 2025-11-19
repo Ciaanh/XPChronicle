@@ -116,7 +116,7 @@ XPBarEnhanced has **two independent animation workflows**:
 
 - [ ] CircularBarStyle: Pass full `context` to `StartAnimation` (not xpContext subset)
 - [ ] FlatBarStyle: Pass full `context` to `StartAnimation`
-- [ ] LegacyBarStyle: Pass full `context` to `StartAnimation`
+- [ ] ClassicBarStyle: Pass full `context` to `StartAnimation`
 - [ ] VerticalBarStyle: Pass full `context` to `StartAnimation`
 
 **Validation**:
@@ -179,7 +179,7 @@ XPBarEnhanced has **two independent animation workflows**:
 
 ### ✅ Phase 5: Bar Style Updates (Week 3)
 
-**All Bar Styles** (CircularBarStyle, FlatBarStyle, LegacyBarStyle, VerticalBarStyle):
+**All Bar Styles** (CircularBarStyle, FlatBarStyle, ClassicBarStyle, VerticalBarStyle):
 
 #### Update RenderBarFrame (Dynamic Rendering)
 
@@ -190,7 +190,7 @@ XPBarEnhanced has **two independent animation workflows**:
 - [ ] Render flash based on `flashAlpha > 0`
 - [ ] Update text every frame during animation
 
-**FlatBarStyle.lua** (and Legacy/Vertical):
+**FlatBarStyle.lua** (and Classic/Vertical):
 
 - [ ] Update `RenderBarFrame(currentRatio, context, flashAlpha, flashPhase)` signature
   - Set bar value to `currentRatio`
@@ -247,7 +247,7 @@ XPBarEnhanced has **two independent animation workflows**:
 - [ ] Test flash-only (instant bar update with flash)
 - [ ] Test bar-only (animate without flash)
 - [ ] Test both workflows simultaneously
-- [ ] Test all 4 bar styles (Circular, Flat, Legacy, Vertical)
+- [ ] Test all 4 bar styles (Circular, Flat, Classic, Vertical)
 - [ ] Test with animations disabled
 
 **Day 7: Final Validation**:
@@ -270,7 +270,7 @@ XPBarEnhanced has **two independent animation workflows**:
 | `AnimationManager.lua` | 375 | ~400 | +25 (integration) |
 | `CircularBarStyle.lua` | 686 | ~656 | -30 |
 | `FlatBarStyle.lua` | ~280 | ~250 | -30 |
-| `LegacyBarStyle.lua` | ~280 | ~250 | -30 |
+| `ClassicBarStyle.lua` | ~280 | ~250 | -30 |
 | `VerticalBarStyle.lua` | ~280 | ~250 | -30 |
 
 **Net Change**: **-324 lines** removed (excluding ContextBuilder additions)
@@ -345,7 +345,7 @@ XPBarEnhanced has **two independent animation workflows**:
 1. **ANIMATION_REFACTOR_PLAN.md** - Full detailed plan with code examples
 2. **BLIZZARD_STATUSBAR_REFERENCE.md** - How Blizzard handles status bars
 3. **ANIMATION_REFACTOR_ANALYSIS.md** - Analysis of animation system improvements
-4. **V2_ANIMATION_STATUS.md** - Current V2 animation architecture
+4. **ANIMATION_STATUS.md** - Current  animation architecture
 
 ---
 

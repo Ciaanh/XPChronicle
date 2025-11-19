@@ -684,7 +684,7 @@ RenderBar(context)
 3. ✅ Add flash state to context
 4. ✅ Update FlatBarStyle RenderBarFrame with dynamic overlays
 5. ✅ Update CircularBarStyle RenderBarFrame with flash integration
-6. ✅ Update LegacyBarStyle and VerticalBarStyle similarly
+6. ✅ Update ClassicBarStyle and VerticalBarStyle similarly
 7. ✅ Remove ApplyAnimationStep pattern
 8. ✅ Test all styles with animations
 9. ✅ Document new pattern

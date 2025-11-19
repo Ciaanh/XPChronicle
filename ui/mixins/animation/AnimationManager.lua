@@ -1,5 +1,5 @@
--- XP Bar Enhanced - V2 Animation Manager
--- Core animation driver for V2 bar styles
+-- XP Bar Enhanced -  Animation Manager
+-- Core animation driver for  bar styles
 
 local AddonName, Addon = ...
 local AnimationUtils = Addon.AnimationUtils
@@ -287,7 +287,7 @@ function AnimationManager:AnimateTo(bar, targetRatio, xpContext, config)
 					anim.questOverlayCompleteInitialAlpha = bar.StatusBar.QuestOverlayComplete and bar.StatusBar.QuestOverlayComplete:GetAlpha() or 1.0
 					anim.questOverlayIncompleteInitialAlpha = bar.StatusBar.QuestOverlayIncomplete and bar.StatusBar.QuestOverlayIncomplete:GetAlpha() or 1.0
 				elseif bar.QuestOverlayComplete or bar.QuestOverlayIncomplete then
-					-- Flat V2 style
+					-- Flat  style
 					anim.questOverlayCompleteInitialAlpha = bar.QuestOverlayComplete and bar.QuestOverlayComplete:GetAlpha() or 1.0
 					anim.questOverlayIncompleteInitialAlpha = bar.QuestOverlayIncomplete and bar.QuestOverlayIncomplete:GetAlpha() or 1.0
 				end
@@ -353,7 +353,7 @@ function AnimationManager:UpdateBarAnimation(bar, now)
 					bar.StatusBar.QuestOverlayIncomplete:SetAlpha(anim.questOverlayIncompleteInitialAlpha)
 				end
 			elseif bar.QuestOverlayComplete or bar.QuestOverlayIncomplete then
-				-- Flat V2 style
+				-- Flat  style
 				if bar.QuestOverlayComplete and anim.questOverlayCompleteInitialAlpha then
 					bar.QuestOverlayComplete:SetAlpha(anim.questOverlayCompleteInitialAlpha)
 				end

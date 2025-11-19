@@ -1,12 +1,12 @@
 <Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/
 ..\..\Blizzard_SharedXML\UI.xsd">
 
-	<!-- XP Bar Enhanced - CircularBar Template v2 -->
+	<!-- XP Bar Enhanced - CircularBar Template  -->
 	<!-- Circular progress ring with optimized segment system -->
 
 	<Script file="CircularBarStyle.lua"/>
 
-	<Frame name="CircularBarTemplate_v2" virtual="true" mixin="CircularBarXPBarMixin" frameStrata="LOW" enableMouse="true" fixedFrameStrata="true">
+	<Frame name="CircularBarTemplate" virtual="true" mixin="CircularBarXPBarMixin" frameStrata="LOW" enableMouse="true" fixedFrameStrata="true">
 		<Size x="256" y="256"/>
 		<Layers>
 			<!-- Border PNG -->

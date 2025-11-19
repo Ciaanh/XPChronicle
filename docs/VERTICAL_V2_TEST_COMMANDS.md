@@ -1,8 +1,8 @@
-# Vertical Bar V2 Test Commands
+# Vertical Bar  Test Commands
 
 ## Overview
 
-Test commands have been added to create and test the Vertical Bar V2 implementation without needing to integrate it into the main addon yet.
+Test commands have been added to create and test the Vertical Bar  implementation without needing to integrate it into the main addon yet.
 
 ## Test Commands
 
@@ -10,13 +10,13 @@ Test commands have been added to create and test the Vertical Bar V2 implementat
 ```
 /xptest vertical
 ```
-Creates a test instance of the Vertical Bar V2 with:
+Creates a test instance of the Vertical Bar  with:
 - Full animation support (AnimationManager + gravity)
 - Observer pattern registration
 - Live XP tracking
 - Gravity animation with particle effects
 
-The frame will be stored globally as `VerticalBar_v2` for easy access.
+The frame will be stored globally as `VerticalBar` for easy access.
 
 ### Destroy Vertical Bar
 ```
@@ -98,7 +98,7 @@ Shows all available test commands.
 
 ### Files Modified
 
-1. **`ui/xpbars/tests/test_v2.lua`**
+1. **`ui/xpbars/tests/test.lua`**
    - Added `CreateVerticalTestBar()` function (55 lines)
    - Added `DestroyVerticalTestBar()` function (25 lines)
    - Exported to `Addon.Tests` namespace
@@ -112,19 +112,19 @@ Shows all available test commands.
 
 The test uses `XPBarStyleBuilder:CreateFrameForStyle()`:
 ```lua
-frame = XPBarStyleBuilder:CreateFrameForStyle("vertical", nil, "VerticalBarTemplate_v2")
+frame = XPBarStyleBuilder:CreateFrameForStyle("vertical", nil, "VerticalBarTemplate")
 ```
 
 This requires:
 - `VerticalBarStyle.lua` to be loaded (style registration)
-- `VerticalBarTemplate_v2` template defined in XML
+- `VerticalBarTemplate` template defined in XML
 - StyleBuilder to be initialized
 
 ### Observer Pattern
 
 The test bar registers as an observer:
 ```lua
-VerticalTestObserverId = Addon.XPBar:RegisterObserver(frame, "vertical_v2_test")
+VerticalTestObserverId = Addon.XPBar:RegisterObserver(frame, "vertical_test")
 ```
 
 This means:
@@ -136,14 +136,14 @@ This means:
 
 Test frame is stored globally:
 ```lua
-_G.VerticalBar_v2 = frame
+_G.VerticalBar = frame
 ```
 
 You can access it directly for debugging:
 ```lua
-/dump VerticalBar_v2
-/dump VerticalBar_v2.gravityState
-/dump VerticalBar_v2.animation
+/dump VerticalBar
+/dump VerticalBar.gravityState
+/dump VerticalBar.animation
 ```
 
 ## Testing Checklist
@@ -182,7 +182,7 @@ You can access it directly for debugging:
 
 1. **Requires style registration:** The vertical bar style must be registered with StyleBuilder before the test command works.
 
-2. **Template must exist:** The `VerticalBarTemplate_v2` XML template must be loaded via TOC/Frames.xml.
+2. **Template must exist:** The `VerticalBarTemplate` XML template must be loaded via TOC/Frames.xml.
 
 3. **Dev mode only:** Test commands are intended for development/testing, not production use.
 
@@ -190,8 +190,8 @@ You can access it directly for debugging:
 
 Once testing is complete:
 
-1. Add vertical_v2 includes to TOC file
-2. Add vertical_v2 template to Frames.xml
+1. Add vertical includes to TOC file
+2. Add vertical template to Frames.xml
 3. Verify auto-registration on load
 4. Run full validation checklist
 5. Document any issues found
@@ -201,4 +201,4 @@ Once testing is complete:
 
 **Created:** November 9, 2025  
 **Status:** Test commands ready for use  
-**Related:** VERTICAL_V2_MIGRATION.md
+**Related:** VERTICAL_MIGRATION.md

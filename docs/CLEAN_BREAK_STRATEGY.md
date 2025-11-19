@@ -1,8 +1,8 @@
 # Clean Break Refactor Strategy
 
-## Why No Legacy Fallback?
+## Why No Classic Fallback?
 
-The refactor proposal intentionally **does NOT include legacy fallback code** (like `RenderBarLegacy`). Here's why:
+The refactor proposal intentionally **does NOT include classic fallback code** (like `RenderBarClassic`). Here's why:
 
 ### Problems with Dual Code Paths
 
@@ -13,7 +13,7 @@ function TriggerBarRefresh(context)
     if self.RenderBar then
         self:RenderBar(context)  -- New pattern
     else
-        self:RenderBarLegacy(context)  -- Old pattern
+        self:RenderBarClassic(context)  -- Old pattern
     end
 end
 
@@ -23,7 +23,7 @@ end
 #### 2. Confusing Hybrid State
 - Which styles use new pattern?
 - Which still use old pattern?
-- When is it safe to remove legacy code?
+- When is it safe to remove classic code?
 - Edge cases where patterns interact poorly
 
 #### 3. Increased Complexity
@@ -70,7 +70,7 @@ end
 Branch: feature/render-bar-refactor
 
 ⏳ Implement FlatBarStyle.RenderBar()
-⏳ Implement LegacyBarStyle.RenderBar()
+⏳ Implement ClassicBarStyle.RenderBar()
 ⏳ Implement VerticalBarStyle.RenderBar()
 ✅ CircularBarStyle.RenderBar() (already done!)
 
@@ -111,7 +111,7 @@ Result: Simplified codebase, clear architecture
 | With Fallback | Clean Break |
 |---------------|-------------|
 | 2 code paths | 1 code path |
-| 1490 lines + legacy | 1500 lines total |
+| 1490 lines + classic | 1500 lines total |
 | Complex conditionals | Simple error if missing |
 | Gradual removal | Immediate cleanup |
 
@@ -142,7 +142,7 @@ Once merged:
 - ✅ Performance improvements (no redundant calls)
 - ✅ Context consistency (everywhere)
 - ✅ Simpler architecture (one pattern)
-- ✅ Cleaner code (no legacy clutter)
+- ✅ Cleaner code (no classic clutter)
 
 ---
 
@@ -168,7 +168,7 @@ Once merged:
 
 ```
 Developer A: Works on FlatBarStyle.RenderBar()
-Developer B: Works on LegacyBarStyle.RenderBar()
+Developer B: Works on ClassicBarStyle.RenderBar()
 Developer C: Works on VerticalBarStyle.RenderBar()
 
 Each can work independently
@@ -212,16 +212,16 @@ But this is **still simpler than permanent fallback** because:
 
 ```
 Timeline:
-Week 1: Add TriggerBarRefresh + RenderBarLegacy fallback
+Week 1: Add TriggerBarRefresh + RenderBarClassic fallback
 Week 2: Implement CircularBar.RenderBar
 Week 3: Implement FlatBar.RenderBar
 Week 4: Test flat bar, fix issues
-Week 5: Implement LegacyBar.RenderBar
-Week 6: Test legacy bar, fix issues
+Week 5: Implement ClassicBar.RenderBar
+Week 6: Test classic bar, fix issues
 Week 7: Implement VerticalBar.RenderBar
 Week 8: Test vertical bar, fix issues
 Week 9: Verify all styles use RenderBar
-Week 10: Remove RenderBarLegacy fallback
+Week 10: Remove RenderBarClassic fallback
 Week 11: Remove old Trigger methods
 Week 12: Clean up mixins
 
@@ -259,11 +259,11 @@ function BaseMixin:TriggerBarRefresh(context)
     if self.RenderBar then
         self:RenderBar(context)
     else
-        self:RenderBarLegacy(context)  -- Maintains old pattern
+        self:RenderBarClassic(context)  -- Maintains old pattern
     end
 end
 
-function BaseMixin:RenderBarLegacy(context)
+function BaseMixin:RenderBarClassic(context)
     -- 30 lines of orchestration code
     if self.UpdateBars then ... end
     if self.UpdateOverlays then ... end
@@ -293,9 +293,9 @@ function BaseMixin:TriggerBarRefresh(context)
     self:RenderBar(context)
 end
 
--- NO legacy methods
+-- NO classic methods
 -- NO old Trigger methods
--- NO RenderBarLegacy
+-- NO RenderBarClassic
 
 -- VisualsMixin.lua - DELETED
 -- LayoutMixin.lua (150 lines) - Calculation helpers only
@@ -345,5 +345,5 @@ Don't maintain dual code paths. Instead:
 4. ✅ **Clean**: Remove old code immediately
 5. ✅ **Done**: Clean, simple, maintainable code
 
-**No legacy fallback = Less code, clearer intent, faster delivery!**
+**No classic fallback = Less code, clearer intent, faster delivery!**
 

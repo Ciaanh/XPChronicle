@@ -2,7 +2,7 @@
 ## Unified RenderBarFrame Integration with Context Optimization
 
 **Created**: November 11, 2025  
-**Target**: XP Bar Enhanced V2 Animation Architecture  
+**Target**: XP Bar Enhanced  Animation Architecture  
 **Goals**: 
 1. Integrate RenderBarFrame with AnimationManager
 2. Optimize context structure and usage
@@ -1037,7 +1037,7 @@ end
 
 ---
 
-### 4.3 Legacy and Vertical Styles
+### 4.3 Classic and Vertical Styles
 
 Apply same pattern as FlatBarStyle (identical structure, different orientations).
 
@@ -1123,7 +1123,7 @@ end
 **Files to update**:
 - `CircularBarStyle.lua` - Remove `ApplyAnimationStep`, `AnimateBarPosition`, `AnimateBarEffect`
 - `FlatBarStyle.lua` - Remove implementations
-- `LegacyBarStyle.lua` - Remove implementations
+- `ClassicBarStyle.lua` - Remove implementations
 - `VerticalBarStyle.lua` - Remove implementations
 
 **Each style removes ~30 lines** of abstract method implementations.
@@ -1328,7 +1328,7 @@ end
 - Add ~100 lines (BuildAnimationFrameContext + CalculateFlashState)
 - Net: +100 lines (but better organization)
 
-**All Bar Styles** (Circular, Flat, Legacy, Vertical):
+**All Bar Styles** (Circular, Flat, Classic, Vertical):
 - Remove ~30 lines each (ApplyAnimationStep implementations)
 - Result: ~120 lines removed total
 
@@ -1440,7 +1440,7 @@ end
 ### Week 3: Bar Style Updates
 - [ ] Day 1-2: Update FlatBarStyle RenderBarFrame
 - [ ] Day 3: Update CircularBarStyle RenderBarFrame
-- [ ] Day 4: Update LegacyBarStyle RenderBarFrame
+- [ ] Day 4: Update ClassicBarStyle RenderBarFrame
 - [ ] Day 5: Update VerticalBarStyle RenderBarFrame
 - [ ] Day 6-7: Remove old ApplyAnimationStep implementations
 
@@ -1508,7 +1508,7 @@ end
 | **AnimationUtils.lua** | 255 lines | 80 lines | **-175 lines (69%)** |
 | **CircularBarStyle.lua** | 686 lines | ~656 lines | **-30 lines** |
 | **FlatBarStyle.lua** | ~280 lines | ~250 lines | **-30 lines** |
-| **LegacyBarStyle.lua** | ~280 lines | ~250 lines | **-30 lines** |
+| **ClassicBarStyle.lua** | ~280 lines | ~250 lines | **-30 lines** |
 | **VerticalBarStyle.lua** | ~280 lines | ~250 lines | **-30 lines** |
 | **Context size** | 1KB/event | 144 bytes/event | **-86%** |
 | **Frame context** | 1KB/frame | 176 bytes/frame | **-83%** |

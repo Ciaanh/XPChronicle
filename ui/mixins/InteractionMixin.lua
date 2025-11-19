@@ -1,4 +1,4 @@
--- XP Bar Enhanced - Interaction Mixin (v2)
+-- XP Bar Enhanced - Interaction Mixin ()
 -- Behavior mixin for mouse handling and click interactions (non-tooltip)
 
 -------------------------------------------------------------------
@@ -114,7 +114,7 @@ end
 
 --- OnRightClick - Handle right mouse click
 function InteractionMixin:OnRightClick()
-	-- Right-click intentionally disabled to match legacy interaction parity.
+	-- Right-click intentionally disabled to match classic interaction parity.
 	-- Keep this method present so styles can override if they really need it,
 	-- but do nothing by default to avoid unexpected context menu behavior.
 end

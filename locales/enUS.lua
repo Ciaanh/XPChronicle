@@ -111,9 +111,9 @@ L["OPT_TEXT_BELOW_BAR"] = "Text BELOW the Bar"
 
 -- Options
 L["OPT_BAR_STYLE"] = "Bar Style"
-L["OPT_BAR_STYLE_DESC"] = "Choose which XP bar to display: None (Blizzard only), Legacy (Blizzard-style), Flat (Draggable), Vertical (Falling animation), or Circular (Progress ring)."
+L["OPT_BAR_STYLE_DESC"] = "Choose which XP bar to display: None (Blizzard only), Classic (Blizzard-style), Flat (Draggable), Vertical (Falling animation), or Circular (Progress ring)."
 L["OPT_BAR_STYLE_NONE"] = "None (Blizzard only)"
-L["OPT_BAR_STYLE_LEGACY"] = "Legacy (Blizzard-style)"
+L["OPT_BAR_STYLE_CLASSIC"] = "Classic (Blizzard-style)"
 L["OPT_BAR_STYLE_FLAT"] = "Flat (Custom draggable)"
 L["OPT_BAR_STYLE_VERTICAL"] = "Vertical (Falling XP)"
 L["OPT_BAR_STYLE_CIRCULAR"] = "Circular (Progress ring)"

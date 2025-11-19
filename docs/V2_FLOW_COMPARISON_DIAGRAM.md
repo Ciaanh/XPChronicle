@@ -1,4 +1,4 @@
-# V2 Event Flow Comparison: Current vs Proposed
+#  Event Flow Comparison: Current vs Proposed
 
 ## Visual Comparison
 
@@ -185,7 +185,7 @@ CIRCULAR BAR PROVES THE PATTERN WORKS:
 | Style | Current (Split) | Proposed (Unified) | Reduction |
 |-------|----------------:|-------------------:|----------:|
 | **Flat Bar** | 18 methods | 6 methods | **-67%** |
-| **Legacy Bar** | 18 methods | 6 methods | **-67%** |
+| **Classic Bar** | 18 methods | 6 methods | **-67%** |
 | **Vertical Bar** | 18 methods | 6 methods | **-67%** |
 | **Circular Bar** | 2 methods ✅ | 2 methods ✅ | **Already optimal** |
 
@@ -394,7 +394,7 @@ T+9ms:  Done ← 6ms faster!
 1. ✅ **Phase 1**: Add event flags to context (non-breaking)
 2. ✅ **Phase 2**: Add TriggerBarRefresh (non-breaking)
 3. 🔄 **Phase 3**: Implement RenderBar per style (gradual)
-4. ⏳ **Phase 4**: Remove legacy code (breaking)
+4. ⏳ **Phase 4**: Remove classic code (breaking)
 
 The circular bar proves this pattern works in production. Let's standardize it across all styles.
 

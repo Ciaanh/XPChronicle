@@ -1,4 +1,4 @@
-# V2 Architecture Analysis - Workflow and Responsibility Issues
+#  Architecture Analysis - Workflow and Responsibility Issues
 
 ## Executive Summary
 
@@ -237,7 +237,7 @@ function CircularBarStyleTemplate:UpdateCurrentXPBar(context)
 end
 ```
 **Impact:** 🚨 **ISSUE #4: DEPRECATED METHOD STILL ACTIVE**
-- This method is called by... NOTHING in v2 workflow!
+- This method is called by... NOTHING in  workflow!
 - It's a V1 compatibility method
 - If called, bypasses entire TriggerBarRefresh orchestration
 - **Result:** Potential parallel execution path that shouldn't exist
@@ -324,7 +324,7 @@ end
 
 ---
 
-### 2.3 LegacyBar Overrides
+### 2.3 ClassicBar Overrides
 
 **OVERRIDE: RenderBar() - Lines 84-142**
 - ✅ Same pattern as FlatBar
@@ -408,7 +408,7 @@ xpAfter = currentXP           -- Event field (DUPLICATE!)
 -- Styles use DIFFERENT fields:
 CircularBar: targetRatio = (context.xpAfter or context.currentXP) / context.xpMax
 FlatBar:     targetRatio = (context.currentXP or 0) / context.xpMax
-LegacyBar:   targetRatio = (context.currentXP or 0) / context.xpMax
+ClassicBar:   targetRatio = (context.currentXP or 0) / context.xpMax
 VerticalBar: targetRatio = (context.currentXP or 0) / context.xpMax
 ```
 
@@ -480,7 +480,7 @@ end
 **PROBLEM: Old V1 methods still present**
 
 ```lua
--- These methods should NOT exist in V2:
+-- These methods should NOT exist in :
 CircularBarStyleTemplate:UpdateCurrentXPBar(context)  -- Bypasses TriggerBarRefresh
 CircularBarStyleTemplate:UpdateBarLayout(context)     -- Bypasses TriggerBarRefresh
 FlatBarStyleTemplate:UpdateCurrentXPBar(context)      -- Bypasses TriggerBarRefresh
@@ -489,18 +489,18 @@ VerticalBarStyleTemplate:UpdateBarLayout(context)     -- Bypasses TriggerBarRefr
 
 **WHO CALLS THEM?**
 - Checked: NOT called by BaseMixin
-- Checked: NOT called by other V2 code
+- Checked: NOT called by other  code
 - Risk: Might be called by external code expecting V1 API
 
 **RECOMMENDED FIX:**
 ```lua
 -- Deprecate with clear error message
 function CircularBarStyleTemplate:UpdateCurrentXPBar(context)
-    error("UpdateCurrentXPBar is deprecated in v2. Use TriggerBarRefresh() instead.", 2)
+    error("UpdateCurrentXPBar is deprecated in . Use TriggerBarRefresh() instead.", 2)
 end
 
 function CircularBarStyleTemplate:UpdateBarLayout(context, barName)
-    error("UpdateBarLayout is deprecated in v2. Use TriggerBarRefresh() instead.", 2)
+    error("UpdateBarLayout is deprecated in . Use TriggerBarRefresh() instead.", 2)
 end
 ```
 

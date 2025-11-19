@@ -1,10 +1,10 @@
 <Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/
 ..\..\Blizzard_SharedXML\UI.xsd">
 
-	<Script file="LegacyXPBarMixin.lua"/>
+	<Script file="ClassicXPBarMixin.lua"/>
 
-	<!-- Legacy XP Bar Template (simplified from StatusTrackingBarTemplate) -->
-	<Frame name="LegacyXPBarTemplate" virtual="true" mixin="LegacyXPBarMixin" frameStrata="LOW" enableMouse="true" fixedFrameStrata="true">
+	<!-- Classic XP Bar Template (simplified from StatusTrackingBarTemplate) -->
+	<Frame name="ClassicXPBarTemplate" virtual="true" mixin="ClassicXPBarMixin" frameStrata="LOW" enableMouse="true" fixedFrameStrata="true">
 		<Size x="563" y="9"/>
 		<Layers>
 			<!-- Flash effect overlay (solid color for customization) -->
@@ -144,7 +144,7 @@
 	</Frame>
 
 	<!-- Container Template (holds border and bar) -->
-	<Frame name="LegacyXPBarContainerTemplate" virtual="true" mixin="LegacyXPBarContainerMixin">
+	<Frame name="ClassicXPBarContainerTemplate" virtual="true" mixin="ClassicXPBarContainerMixin">
 		<Size x="571" y="17"/>
 		<Layers>
 			<Layer level="OVERLAY">
@@ -152,7 +152,7 @@
 			</Layer>
 		</Layers>
 		<Frames>
-			<Frame parentKey="Bar" inherits="LegacyXPBarTemplate">
+			<Frame parentKey="Bar" inherits="ClassicXPBarTemplate">
 				<Anchors>
 					<Anchor point="CENTER" x="0" y="0"/>
 				</Anchors>
@@ -170,9 +170,9 @@
 		</Scripts>
 	</Frame>
 
-	<!-- Main Legacy XP Bar Instance (hidden by default - controller shows based on barStyle) -->
+	<!-- Main Classic XP Bar Instance (hidden by default - controller shows based on barStyle) -->
 	<!-- Position set in Lua to match Blizzard's XP bar exactly -->
-	<Frame name="LegacyXPBar" parent="UIParent" inherits="LegacyXPBarContainerTemplate" hidden="true">
+	<Frame name="ClassicXPBar" parent="UIParent" inherits="ClassicXPBarContainerTemplate" hidden="true">
 		<!-- Default position if Blizzard bar not found -->
 		<Anchors>
 			<Anchor point="BOTTOM" relativePoint="BOTTOM" x="0" y="12"/>

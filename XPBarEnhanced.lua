@@ -230,7 +230,7 @@ local function showHelp()
     print("|cff33ff99XP Bar Enhanced|r Commands:")
     print("  /xpbe |cFFFFFFFFoptions|r - Open options panel")
     print("  /xpbe |cFFFFFFFFstats|r - Toggle statistics window")
-    print("  /xpbe |cFFFFFFFFstyle <none|legacy|flat|vertical|circular>|r - Change bar style")
+    print("  /xpbe |cFFFFFFFFstyle <none|classic|flat|vertical|circular>|r - Change bar style")
     print("  /xpbe |cFFFFFFFFreset|r - Reset all settings")
     print("  /xpbe |cFFFFFFFFresetstats|r - Reset statistics")
     print("  /xpbe |cFFFFFFFFresetcolors|r - Reset colors to defaults")
@@ -296,13 +296,13 @@ local function handleStyle(style)
 
     if style == "" then
         -- Show current style
-        local currentStyle = Addon.db.barStyle or "legacy"
+        local currentStyle = Addon.db.barStyle or "classic"
         print("|cFF00FF00XP Bar Enhanced:|r Current bar style: " .. currentStyle)
-        print("Usage: /xpbe style <none|legacy|flat>")
+        print("Usage: /xpbe style <none|classic|flat>")
         return
     end
 
-    if style == "none" or style == "legacy" or style == "flat" or style == "vertical" or style == "circular" then
+    if style == "none" or style == "classic" or style == "flat" or style == "vertical" or style == "circular" then
         -- Use simplified XPBar module
         if Addon.XPBar and Addon.XPBar.SetBarStyle then
             Addon.XPBar:SetBarStyle(style)
@@ -311,7 +311,7 @@ local function handleStyle(style)
             print("|cFFFF0000XP Bar Enhanced:|r XP Bar module not available")
         end
     else
-        print("|cFFFF0000XP Bar Enhanced:|r Invalid style. Use: none, legacy, flat, vertical, circular")
+        print("|cFFFF0000XP Bar Enhanced:|r Invalid style. Use: none, classic, flat, vertical, circular")
     end
 end
 
@@ -378,13 +378,13 @@ SlashCmdList["XPTEST"] = function(msg)
     cmd = cmd and cmd:lower()
 
     if cmd == "help" then
-        print("|cff00ff00XPBarEnhanced v2 Test:|r")
-        print(" /xptest create   - create Flat Bar V2 test bar (requires dev mode)")
-        print(" /xptest destroy  - destroy Flat Bar V2 test bar (requires dev mode)")
-        print(" /xptest legacy   - create Legacy Bar V2 test bar (requires dev mode)")
-        print(" /xptest legacydestroy - destroy Legacy Bar V2 test bar (requires dev mode)")
-        print(" /xptest vertical - create Vertical Bar V2 test bar (requires dev mode)")
-        print(" /xptest verticaldestroy - destroy Vertical Bar V2 test bar (requires dev mode)")
+        print("|cff00ff00XPBarEnhanced  Test:|r")
+        print(" /xptest create   - create Flat Bar  test bar (requires dev mode)")
+        print(" /xptest destroy  - destroy Flat Bar  test bar (requires dev mode)")
+        print(" /xptest classic   - create Classic Bar  test bar (requires dev mode)")
+        print(" /xptest classicdestroy - destroy Classic Bar  test bar (requires dev mode)")
+        print(" /xptest vertical - create Vertical Bar  test bar (requires dev mode)")
+        print(" /xptest verticaldestroy - destroy Vertical Bar  test bar (requires dev mode)")
         print(" /xptest context  - print current context")
         print(" /xptest flash    - trigger xp gain flash (if available)")
         print(" /xptest help     - this help")
@@ -399,11 +399,11 @@ SlashCmdList["XPTEST"] = function(msg)
         elseif cmd == "destroy" and Addon.Tests.DestroyTestBar then
             Addon.Tests.DestroyTestBar()
             return
-        elseif cmd == "legacy" and Addon.Tests.CreateLegacyTestBar then
-            Addon.Tests.CreateLegacyTestBar()
+        elseif cmd == "classic" and Addon.Tests.CreateClassicTestBar then
+            Addon.Tests.CreateClassicTestBar()
             return
-        elseif cmd == "legacydestroy" and Addon.Tests.DestroyLegacyTestBar then
-            Addon.Tests.DestroyLegacyTestBar()
+        elseif cmd == "classicdestroy" and Addon.Tests.DestroyClassicTestBar then
+            Addon.Tests.DestroyClassicTestBar()
             return
         elseif cmd == "vertical" and Addon.Tests.CreateVerticalTestBar then
             Addon.Tests.CreateVerticalTestBar()
@@ -427,16 +427,16 @@ SlashCmdList["XPTEST"] = function(msg)
     end
     -- Fallback manual handlers when Addon.Tests is not available
     if cmd == "circular" then
-        -- Create circular v2 frame programmatically
+        -- Create circular  frame programmatically
         if XPBarEnhanced_CreateCircularBarFrame then
             XPBarEnhanced_CreateCircularBarFrame()
             return
         end
     elseif cmd == "circulardestroy" then
-        -- Destroy circular v2 frame if exists
-        if _G.CircularBar_v2 and type(_G.CircularBar_v2.Hide) == "function" then
-            _G.CircularBar_v2:Hide()
-            _G.CircularBar_v2 = nil
+        -- Destroy circular  frame if exists
+        if _G.CircularBar and type(_G.CircularBar.Hide) == "function" then
+            _G.CircularBar:Hide()
+            _G.CircularBar = nil
             return
         end
     end

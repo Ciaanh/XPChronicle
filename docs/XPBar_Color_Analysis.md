@@ -3,7 +3,7 @@
 
 ## Overview
 
-This document analyzes how each XP bar style (Flat, Legacy, Circular, Vertical) in XPBarEnhanced handles color application for the main bar and overlays (gained XP, quest complete/incomplete, rested XP), and whether user-configured colors from the options panel are respected.
+This document analyzes how each XP bar style (Flat, Classic, Circular, Vertical) in XPBarEnhanced handles color application for the main bar and overlays (gained XP, quest complete/incomplete, rested XP), and whether user-configured colors from the options panel are respected.
 
 ---
 
@@ -24,7 +24,7 @@ This document analyzes how each XP bar style (Flat, Legacy, Circular, Vertical) 
 
 ---
 
-## 2. LegacyXPBarMixin
+## 2. ClassicXPBarMixin
 
 - **Main Bar Color:**
   - Uses `UpdateStatusBarColor()` which fetches the color via `self:GetEffectiveBarColor()` and applies it with `self:ApplyStatusBarColor(color)`.
@@ -80,7 +80,7 @@ This document analyzes how each XP bar style (Flat, Legacy, Circular, Vertical) 
 | Bar Style      | Main Bar Color | Rested Overlay | Quest Overlays | Gained XP Overlay |
 |----------------|---------------|----------------|----------------|-------------------|
 | Flat           | User color    | User color     | Unclear/Partial| Unclear           |
-| Legacy         | User color    | User color     | User color     | User color        |
+| Classic         | User color    | User color     | User color     | User color        |
 | Circular       | User color    | User color     | Unclear        | Unclear           |
 | Vertical       | User color    | Default/White  | Default/White  | Unclear           |
 
@@ -89,14 +89,14 @@ This document analyzes how each XP bar style (Flat, Legacy, Circular, Vertical) 
 ## Key Findings
 
 - **Main bar color** is consistently user-configurable in all styles.
-- **Rested overlay** uses user color in Flat, Legacy, and Circular, but not in Vertical (defaults to white with alpha).
-- **Quest overlays** (complete/incomplete) do not consistently use user-configured colors; Flat and Legacy may support it, but Circular and Vertical likely do not.
-- **Gained XP overlay/flash** uses user color in Legacy, unclear in others.
+- **Rested overlay** uses user color in Flat, Classic, and Circular, but not in Vertical (defaults to white with alpha).
+- **Quest overlays** (complete/incomplete) do not consistently use user-configured colors; Flat and Classic may support it, but Circular and Vertical likely do not.
+- **Gained XP overlay/flash** uses user color in Classic, unclear in others.
 
 ---
 
 ## Recommendations
 
 - Ensure all overlays (rested, quest complete/incomplete, gained XP) in all bar styles use the user-configured colors from the options panel.
-- Refactor Vertical and Circular bars to fetch and apply user colors for overlays, matching the approach in Flat/Legacy.
+- Refactor Vertical and Circular bars to fetch and apply user colors for overlays, matching the approach in Flat/Classic.
 - Audit and unify overlay color application logic across all mixins for consistency.

@@ -1,13 +1,13 @@
 <Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/
 ..\..\Blizzard_SharedXML\UI.xsd">
 
-	<!-- XP Bar Enhanced - FlatBar Template v2 -->
-	<!-- Follows project conventions from existing FlatXPBar.xml -->
+	<!-- XP Bar Enhanced - VerticalBar Template  -->
+	<!-- Vertical XP bar with StatusBar widget and vertical orientation -->
 
-	<Script file="FlatBarStyle.lua"/>
+	<Script file="VerticalBarStyle.lua"/>
 
-	<Frame name="FlatBarTemplate_v2" virtual="true" mixin="FlatBarXPBarMixin" frameStrata="LOW" enableMouse="true" fixedFrameStrata="true">
-		<Size x="565" y="30"/>
+	<Frame name="VerticalBarTemplate" virtual="true" mixin="VerticalBarXPBarMixin" frameStrata="LOW" enableMouse="true" fixedFrameStrata="true">
+		<Size x="60" y="300"/>
 		<Layers>
 			<!-- Background layer -->
 			<Layer level="BACKGROUND" textureSubLevel="1">
@@ -16,7 +16,19 @@
 				</Texture>
 			</Layer>
 
-			<!-- Flash effect overlay -->
+			<!-- Rested overlay (behind StatusBar - grows from bottom) -->
+			<Layer level="BACKGROUND" textureSubLevel="2">
+				<Texture parentKey="RestedOverlay" hidden="true" file="Interface\Buttons\WHITE8X8">
+					<Size x="60" y="0"/>
+					<Anchors>
+						<Anchor point="BOTTOMLEFT" x="0" y="0"/>
+					</Anchors>
+					<!-- Initial color matches Config.lua defaults.colors.rested -->
+					<Color r="0.07" g="0.58" b="0.95" a="0.5"/>
+				</Texture>
+			</Layer>
+
+			<!-- Flash effect overlay (full bar coverage) -->
 			<Layer level="OVERLAY" textureSubLevel="3">
 				<Texture parentKey="GainFlash" hidden="true" alphaMode="BLEND">
 					<Anchors>
@@ -27,9 +39,9 @@
 			</Layer>
 		</Layers>
 		<Frames>
-			<!-- XP StatusBar (solid color, no texture atlas) -->
-			<StatusBar parentKey="StatusBar" minValue="0" maxValue="1" defaultValue="0">
-				<Size x="565" y="30"/>
+			<!-- XP StatusBar (vertical orientation) -->
+			<StatusBar parentKey="StatusBar" minValue="0" maxValue="1" defaultValue="0" orientation="VERTICAL">
+				<Size x="60" y="300"/>
 				<Anchors>
 					<Anchor point="CENTER" x="0" y="0"/>
 				</Anchors>
@@ -37,23 +49,10 @@
 				<BarColor r="0.58" g="0.0" b="0.55"/>
 				<BarTexture file="Interface\Buttons\WHITE8X8"/>
 				<Layers>
-					<!-- Rested XP overlay - BEHIND status bar fill, starts from 0 -->
-					<!-- Width = currentXP + restedXP, positioned in BACKGROUND so it's behind the bar fill -->
-					<Layer level="BACKGROUND" textureSubLevel="-1">
-						<Texture parentKey="RestedOverlay" hidden="true" file="Interface\Buttons\WHITE8X8">
-							<Size x="0" y="30"/>
-							<Anchors>
-								<Anchor point="BOTTOMLEFT" relativeKey="$parent" relativePoint="BOTTOMLEFT" x="0" y="0"/>
-							</Anchors>
-							<!-- Initial color matches Config.lua defaults.colors.rested -->
-							<Color r="0.07" g="0.58" b="0.95" a="0.5"/>
-						</Texture>
-					</Layer>
-					
 					<!-- Quest overlay - complete quests - on top of StatusBar fill -->
 					<Layer level="ARTWORK" textureSubLevel="1">
 						<Texture parentKey="QuestOverlayComplete" hidden="true" file="Interface\Buttons\WHITE8X8">
-							<Size x="0" y="30"/>
+							<Size x="60" y="0"/>
 							<Anchors>
 								<Anchor point="BOTTOMLEFT" x="0" y="0"/>
 							</Anchors>
@@ -65,7 +64,7 @@
 					<!-- Quest overlay - incomplete quests -->
 					<Layer level="ARTWORK" textureSubLevel="2">
 						<Texture parentKey="QuestOverlayIncomplete" hidden="true" file="Interface\Buttons\WHITE8X8">
-							<Size x="0" y="30"/>
+							<Size x="60" y="0"/>
 							<Anchors>
 								<Anchor point="BOTTOMLEFT" x="0" y="0"/>
 							</Anchors>
@@ -80,38 +79,38 @@
 			<Frame parentKey="OverlayFrameTextContainer" frameStrata="MEDIUM" setAllPoints="true">
 				<Layers>
 					<Layer level="ARTWORK" textureSubLevel="5">
-						<!-- Level text - left side -->
-						<FontString parentKey="LevelText" inherits="TextStatusBarTextLarge" hidden="true">
+						<!-- Level text - top of bar -->
+						<FontString parentKey="LevelText" inherits="GameFontNormal" hidden="true">
 							<Anchors>
-								<Anchor point="LEFT" x="8" y="0"/>
+								<Anchor point="TOP" x="0" y="-10"/>
 							</Anchors>
 							<Color r="1.0" g="1.0" b="1.0"/>
 							<Shadow>
-								<Offset x="2" y="-2"/>
+								<Offset x="1" y="-1"/>
 								<Color r="0" g="0" b="0" a="0.8"/>
 							</Shadow>
 						</FontString>
 
-						<!-- XP text - center -->
-						<FontString parentKey="XPText" inherits="TextStatusBarTextLarge" hidden="true">
+						<!-- Percent text - center of bar -->
+						<FontString parentKey="PercentText" inherits="GameFontNormalLarge" hidden="true">
 							<Anchors>
 								<Anchor point="CENTER" x="0" y="0"/>
 							</Anchors>
 							<Color r="1.0" g="1.0" b="1.0"/>
 							<Shadow>
-								<Offset x="2" y="-2"/>
+								<Offset x="1" y="-1"/>
 								<Color r="0" g="0" b="0" a="0.8"/>
 							</Shadow>
 						</FontString>
 
-						<!-- Percent text - right side -->
-						<FontString parentKey="PercentText" inherits="TextStatusBarTextLarge" hidden="true">
+						<!-- XP/hour text - bottom of bar -->
+						<FontString parentKey="XPPerHourText" inherits="GameFontNormalSmall" hidden="true">
 							<Anchors>
-								<Anchor point="RIGHT" x="-8" y="0"/>
+								<Anchor point="BOTTOM" x="0" y="10"/>
 							</Anchors>
 							<Color r="1.0" g="1.0" b="1.0"/>
 							<Shadow>
-								<Offset x="2" y="-2"/>
+								<Offset x="1" y="-1"/>
 								<Color r="0" g="0" b="0" a="0.8"/>
 							</Shadow>
 						</FontString>
@@ -119,37 +118,45 @@
 				</Layers>
 			</Frame>
 
-			<!-- BELOW-BAR text container (matches BaseMixin expectations) -->
+			<!-- BELOW-BAR text container (to the right of bar for vertical layout) -->
 			<Frame parentKey="BelowBarTextContainer" frameStrata="MEDIUM">
-				<Size x="565" y="30"/>
+				<Size x="200" y="300"/>
 				<Anchors>
-					<Anchor point="TOPLEFT" relativePoint="BOTTOMLEFT" x="0" y="-2"/>
+					<Anchor point="TOPLEFT" relativePoint="TOPRIGHT" x="5" y="0"/>
 				</Anchors>
 				<Layers>
 					<Layer level="ARTWORK">
-						<!-- Rate text (XP/hour + time to level) - below bar on left -->
-						<FontString parentKey="RateText" inherits="GameFontNormal" hidden="true">
+						<!-- Rate text (XP/hour + time to level) - right of bar at top -->
+						<!-- <FontString parentKey="RateText" inherits="GameFontNormalSmall" hidden="true">
 							<Anchors>
 								<Anchor point="TOPLEFT" x="0" y="0"/>
 							</Anchors>
 							<Color r="0.8" g="0.8" b="0.8"/>
-						</FontString>
+						</FontString> -->
 
-						<!-- Session text (session time + level time) - below bar on right -->
-						<FontString parentKey="SessionText" inherits="GameFontNormal" hidden="true">
+						<!-- Session text (session time + level time) - right of bar at bottom -->
+						<!-- <FontString parentKey="SessionText" inherits="GameFontNormalSmall" hidden="true">
 							<Anchors>
-								<Anchor point="TOPRIGHT" x="0" y="0"/>
+								<Anchor point="BOTTOMLEFT" x="0" y="0"/>
 							</Anchors>
 							<Color r="0.8" g="0.8" b="0.8"/>
-						</FontString>
+						</FontString> -->
 						
-						<!-- Quest summary text (quests + rested) - below bar center -->
-						<FontString parentKey="QuestSummaryText" inherits="GameFontNormal" hidden="true">
+						<!-- Quest summary text (quests + rested) - right of bar center -->
+						<!-- <FontString parentKey="QuestSummaryText" inherits="GameFontNormalSmall" hidden="true">
 							<Anchors>
-								<Anchor point="TOP" x="0" y="-12"/>
+								<Anchor point="LEFT" x="0" y="0"/>
 							</Anchors>
 							<Color r="0.8" g="0.8" b="0.8"/>
-						</FontString>
+						</FontString> -->
+						
+						<!-- XP text - right of bar near center -->
+						<!-- <FontString parentKey="XPText" inherits="GameFontNormalSmall" hidden="true">
+							<Anchors>
+								<Anchor point="LEFT" x="0" y="30"/>
+							</Anchors>
+							<Color r="0.8" g="0.8" b="0.8"/>
+						</FontString> -->
 					</Layer>
 				</Layers>
 			</Frame>

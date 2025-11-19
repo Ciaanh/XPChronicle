@@ -1258,7 +1258,7 @@ function XPBarEnhancedOptionsMixin:Refresh()
                     if dropdown.SetDefaultText then
                         dropdown:SetDefaultText(labelText)
                     elseif dropdown.Button then
-                        -- Old-style cycling button dropdown (legacy)
+                        -- Old-style cycling button dropdown (classic)
                         dropdown.Button:SetText(labelText)
                     end
                 end
@@ -1375,7 +1375,7 @@ function Options:OnOptionChanged(key)
     if key == "barStyle" then
         -- Update bar style via XPBar
         if Addon.XPBar and Addon.XPBar.SetBarStyle then
-            local value = Addon.db and Addon.db.barStyle or "legacy"
+            local value = Addon.db and Addon.db.barStyle or "classic"
             Addon.XPBar:SetBarStyle(value, true) -- skipSave=true since it's already saved
         end
         
@@ -1402,7 +1402,7 @@ function Options:OnOptionChanged(key)
     elseif key == "showQuestXP" or key == "showQuestPercent" or key == "questOverlaysEnabled"
         or key == "showCompleteQuestOverlay" or key == "showIncompleteQuestOverlay" then
         -- Update quest-related display (overlays and text)
-        -- Broadcast to all bars (V1 + V2 observers)
+        -- Broadcast to all bars (V1 +  observers)
         if Addon.XPBar and Addon.XPBar.Update then
             Addon.XPBar:Update()
         end

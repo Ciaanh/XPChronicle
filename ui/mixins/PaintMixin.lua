@@ -34,7 +34,7 @@ end
 ---@param overlayName string|nil Overlay name (default: "RestedOverlay")
 function XPBarPaintMixin:UpdateRestedOverlayColor(overlayName)
 	overlayName = overlayName or "RestedOverlay"
-	-- Try main frame first, then StatusBar (for flatbar_v2 compatibility)
+	-- Try main frame first, then StatusBar (for flatbar compatibility)
 	local overlay = self[overlayName] or (self.StatusBar and self.StatusBar[overlayName])
 
 	if not overlay then
@@ -153,13 +153,13 @@ function XPBarPaintMixin:BuildVisuals()
 		self:UpdateTextVisibility(nil)
 	end
 
-	-- V2 Architecture: Initialize user colors immediately after XML elements are aliased
+	--  Architecture: Initialize user colors immediately after XML elements are aliased
 	-- This ensures user-configured colors override XML defaults
 	self:InitializeColors()
 end
 
 --- Initialize all colors from user configuration
---- V2 Architecture: Called once during BuildVisuals to override XML defaults
+---  Architecture: Called once during BuildVisuals to override XML defaults
 function XPBarPaintMixin:InitializeColors()
 	if not XPBarColors then
 		return

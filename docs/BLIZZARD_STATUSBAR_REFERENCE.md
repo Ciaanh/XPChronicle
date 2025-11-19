@@ -729,7 +729,7 @@ end
 
 **Blizzard's Approach**: Anchored texture at end of fill bar
 
-**Our Opportunity**: Add optional spark to flat/legacy bars
+**Our Opportunity**: Add optional spark to flat/classic bars
 
 ```lua
 -- In bar style XML
@@ -870,7 +870,7 @@ end
 **Goal**: Simplify to **interface only**, remove logic
 
 ```lua
--- XP Bar Enhanced - V2 Animation Base Mixin (OPTIMIZED)
+-- XP Bar Enhanced -  Animation Base Mixin (OPTIMIZED)
 -- Minimal interface for animation system
 
 local AddonName, Addon = ...
@@ -1078,7 +1078,7 @@ end
 **Goal**: Move to **ContextBuilder**, simplify to math utilities only
 
 ```lua
--- XP Bar Enhanced - V2 Animation Utilities (OPTIMIZED)
+-- XP Bar Enhanced -  Animation Utilities (OPTIMIZED)
 -- Pure math utilities for animation system
 
 local AddonName, Addon = ...
@@ -1224,7 +1224,7 @@ Addon.AnimationUtils = AnimationUtils
 - `AnimationBase.lua` - Remove ~130 lines
 - `CircularBarStyle.lua` - Remove implementations
 - `FlatBarStyle.lua` - Remove implementations
-- `LegacyBarStyle.lua` - Remove implementations
+- `ClassicBarStyle.lua` - Remove implementations
 - `VerticalBarStyle.lua` - Remove implementations
 
 ---
@@ -1253,7 +1253,7 @@ Addon.AnimationUtils = AnimationUtils
 ### Phase 6: Blizzard-Inspired Features (NEW - Week 4)
 
 **Optional Enhancements**:
-1. Add spark visual (endcap) to flat/legacy bars
+1. Add spark visual (endcap) to flat/classic bars
 2. Centralize text formatting using `AbbreviateLargeNumbers()`
 3. Add `zeroText` config option
 4. Add value validation in RenderBarFrame
