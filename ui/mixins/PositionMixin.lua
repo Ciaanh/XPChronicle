@@ -59,8 +59,8 @@ function PositionMixin:ApplyStaticPosition()
 	local container = _G.MainStatusTrackingBarContainer
 	if container then
 		self:ClearAllPoints()
-		self:SetPoint("TOPLEFT", container, "TOPLEFT", 0, -50) -- to edit when development is done to remove -50 offset
-		self:SetPoint("TOPRIGHT", container, "TOPRIGHT", 0, -50)
+		self:SetPoint("TOPLEFT", container, "TOPLEFT", 0, 0) -- to edit when development is done to remove -50 offset
+		self:SetPoint("TOPRIGHT", container, "TOPRIGHT", 0, 0)
 		return
 	end
 
