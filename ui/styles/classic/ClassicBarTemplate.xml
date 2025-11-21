@@ -40,7 +40,7 @@
                 <BarColor r="1" g="1" b="1"/>
                 <Layers>
                     <!-- Rested XP overlay (solid texture for customization) previously Interface\Buttons\WHITE8X8-->
-                    <Layer level="OVERLAY" textureSubLevel="1">
+                    <Layer level="BACKGROUND" textureSubLevel="0">
                         <Texture parentKey="RestedOverlay" hidden="true" file="Interface\AddOns\XPBarEnhanced\assets\xp-bar">
                             <Size x="0" y="11"/>
                             <Anchors>
@@ -151,7 +151,7 @@
             <Frame parentKey="BelowBarTextContainer" frameStrata="MEDIUM">
                 <Size x="565" y="30"/>
                 <Anchors>
-                    <Anchor point="TOPLEFT" relativePoint="BOTTOMLEFT" x="0" y="-2"/>
+                    <Anchor point="TOPLEFT" relativePoint="BOTTOMLEFT" x="0" y="-4"/>
                 </Anchors>
                 <Layers>
                     <Layer level="ARTWORK">
@@ -174,7 +174,7 @@
                         <!-- Quest summary text (quests + rested) - below bar center -->
                         <FontString parentKey="QuestSummaryText" inherits="GameFontNormal" hidden="true">
                             <Anchors>
-                                <Anchor point="TOP" x="0" y="-12"/>
+                                <Anchor point="TOP" x="0" y="30"/>
                             </Anchors>
                             <Color r="0.8" g="0.8" b="0.8"/>
                         </FontString>
