@@ -71,6 +71,9 @@ L["KEY_ALT"] = "Alt"
 -- OPTIONS PANEL
 -- ============================================================================
 -- Current options in OptionsMetadata
+L["OPT_SHOW_RESTED_OVERLAY"] = "Show rested overlay"
+L["OPT_SHOW_RESTED_OVERLAY_DESC"] = "Show an overlay for rested XP on the XP bar when rested XP is available."
+
 L["OPT_QUEST_XP"] = "Quest XP display"
 L["OPT_QUEST_XP_DESC"] = "Display quest XP overlays and tooltip breakdown."
 L["OPT_SHOW_COMPLETE_OVERLAY"] = "Show completed quest overlay"

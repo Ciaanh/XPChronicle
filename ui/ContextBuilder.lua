@@ -351,202 +351,132 @@ end
 -- CONTEXT BUILDING FUNCTIONS
 -------------------------------------------------------------------
 
---- Build context for XP change events
---- Returns immutable context with all XP-related state
---- Uses inheritance: core context + event data + static config reference
----@param event string Event name (e.g., "PLAYER_XP_UPDATE")
----@param ... any Event arguments
----@return table context Immutable context object
+--- Build a complete context for any XP-related event
+--- Ensures all context keys are present to avoid missing data across listeners
+--- @param event string Event name (e.g., "PLAYER_XP_UPDATE", "PLAYER_LEVEL_UP", "TOOLTIP", "UPDATE_EXHAUSTION", "QUEST_LOG_UPDATE")
+--- @param ... any Event arguments (e.g., newLevel for PLAYER_LEVEL_UP)
+--- @return table context Immutable context object with a Get() accessor
+function ContextBuilder.BuildContext(event, ...)
+    local args = {...}
+    local coreState = ContextBuilder.GetCoreState()
+    local coreContext = ContextBuilder.BuildCoreContext(coreState)
+
+    -- Compute XP change for consistent results
+    local xpGained, lastXP = ContextBuilder.ComputeXPGained(coreState.currentXP, coreState.xpMax)
+    local sessionStart, sessionXP, sessionDuration, xpPerHour = ContextBuilder.UpdateSessionWithGain(xpGained)
+
+    -- Default union-of-all-fields event context (pre-populated)
+    local eventContext = {
+        -- Event metadata
+        event = event,
+        timestamp = time(),
+        source = tostring(event or "UNKNOWN"),
+
+        -- XP tracking
+        xpBefore = lastXP or 0,
+        xpAfter = coreState.currentXP,
+        xpGained = xpGained or 0,
+        remainingXP = coreState.xpMax - coreState.currentXP,
+
+        -- Session
+        sessionStart = sessionStart or time(),
+        sessionXP = sessionXP or 0,
+        sessionDuration = sessionDuration or 0,
+        sessionSeconds = sessionDuration or 0,
+        xpPerHour = xpPerHour or 0,
+
+        -- Derived timing
+        timeToLevel = ContextBuilder.CalculateTimeToLevel(coreState.currentXP, coreState.xpMax, xpPerHour),
+
+        -- Level fields (some events won't use these)
+        oldLevel = coreState.level - 1,
+        newLevel = coreState.level,
+
+        -- Behavior flags (defaults)
+        hasGainedXP = (xpGained and xpGained > 0) or false,
+        hasLeveledUp = false,
+        shouldAnimate = (xpGained and xpGained > 0) or false,
+        shouldFlash = (xpGained and xpGained > 0) or false,
+        restedChanged = false,
+        questsChanged = false
+    }
+
+    -- Apply special handling per event to preserve previous semantics
+    if event == "PLAYER_XP_UPDATE" then
+        eventContext.source = "PLAYER_XP_UPDATE"
+        -- xpBefore/after were already set above
+        -- default flags (gain/animate/flash) remain
+        eventContext.hasLeveledUp = false
+    elseif event == "PLAYER_LEVEL_UP" then
+        eventContext.source = "PLAYER_LEVEL_UP"
+        local newLevel = args[1] or coreState.level
+        eventContext.newLevel = newLevel
+        eventContext.oldLevel = (newLevel or coreState.level) - 1
+
+        -- Keep xpBefore as 0 per previous behaviour (level-up resets xp)
+        eventContext.xpBefore = 0
+        eventContext.xpAfter = coreState.currentXP
+        -- Level-up always animates
+        eventContext.hasLeveledUp = true
+        eventContext.shouldAnimate = true
+        eventContext.hasGainedXP = (coreState.currentXP and coreState.currentXP > 0) or false
+        eventContext.shouldFlash = eventContext.hasGainedXP
+        -- Reset last XP to avoid incorrect gains next snapshot
+        ContextBuilder._lastXP = coreState.currentXP
+        ContextBuilder._lastMaxXP = coreState.xpMax
+    elseif event == "UPDATE_EXHAUSTION" or event == "PLAYER_UPDATE_RESTING" then
+        eventContext.source = "RESTED_UPDATE"
+        -- Rest changes do not affect XP numbers
+        eventContext.hasGainedXP = false
+        eventContext.hasLeveledUp = false
+        eventContext.shouldAnimate = false
+        eventContext.shouldFlash = false
+        eventContext.restedChanged = true
+    elseif event == "QUEST_LOG_UPDATE" then
+        eventContext.source = "QUEST_UPDATE"
+        eventContext.hasGainedXP = false
+        eventContext.hasLeveledUp = false
+        eventContext.shouldAnimate = false
+        eventContext.shouldFlash = false
+        eventContext.questsChanged = true
+    elseif event == "TOOLTIP" then
+        eventContext.source = "TOOLTIP_CONTEXT"
+        -- Tooltip is read-only, just present the computed values
+        eventContext.hasGainedXP = false
+        eventContext.hasLeveledUp = false
+        eventContext.shouldAnimate = false
+        eventContext.shouldFlash = false
+    else
+        -- For other events not explicitly handled, keep a conservative default:
+        eventContext.source = eventContext.source or "UNKNOWN"
+    end
+
+    if XPBarDebugLog then 
+        XPBarDebugLog:Log("ContextBuilder", "BuildContext - event:", event, "xpGained:", xpGained, "hasGainedXP:", eventContext.hasGainedXP, "hasLeveledUp:", eventContext.hasLeveledUp)
+    end
+
+    return ContextBuilder.MakeImmutable(eventContext, coreContext)
+end
+
+-- Replace the specific builders with delegating wrappers for compatibility
 function ContextBuilder.BuildXPChangeContext(event, ...)
-	local coreState = ContextBuilder.GetCoreState()
-	local coreContext = ContextBuilder.BuildCoreContext(coreState)
-
-	-- Calculate XP change
-	local xpGained, lastXP = ContextBuilder.ComputeXPGained(coreState.currentXP, coreState.xpMax)
-	local sessionStart, sessionXP, sessionDuration, xpPerHour = ContextBuilder.UpdateSessionWithGain(xpGained)
-
-	-- Event-specific context (only 6 new fields)
-	local eventContext = {
-		-- Event metadata (3 fields)
-		event = event,
-		timestamp = time(),
-		source = "PLAYER_XP_UPDATE",
-		-- XP change tracking (3 fields)
-		xpBefore = lastXP,
-		xpAfter = coreState.currentXP,
-		xpGained = xpGained,
-		-- Derived values
-		remainingXP = coreState.xpMax - coreState.currentXP,
-		sessionDuration = sessionDuration,
-		sessionSeconds = sessionDuration,
-		xpPerHour = xpPerHour,
-		timeToLevel = ContextBuilder.CalculateTimeToLevel(coreState.currentXP, coreState.xpMax, xpPerHour),
-		-- Event behavior flags
-		hasGainedXP = (xpGained and xpGained > 0),
-		hasLeveledUp = false,
-		shouldAnimate = (xpGained and xpGained > 0),
-		shouldFlash = (xpGained and xpGained > 0),
-		restedChanged = false,
-		questsChanged = false
-	}
-	
-	if XPBarDebugLog then 
-		XPBarDebugLog:Log("ContextBuilder", "BuildXPChangeContext - event:", event, "xpGained:", xpGained, "shouldAnimate:", eventContext.shouldAnimate)
-	end
-
-	-- Create immutable context with flattened structure
-	return ContextBuilder.MakeImmutable(eventContext, coreContext)
+    return ContextBuilder.BuildContext(event, ...)
 end
 
---- Build context for level-up events
----@param event string Event name (e.g., "PLAYER_LEVEL_UP")
----@param newLevel number New player level
----@return table context Immutable context object
 function ContextBuilder.BuildLevelUpContext(event, newLevel)
-	local coreState = ContextBuilder.GetCoreState()
-	local coreContext = ContextBuilder.BuildCoreContext(coreState)
-
-	-- Override level in core context to show the NEW level
-	coreContext.level = newLevel or coreState.level
-
-	-- Get session stats from Session service (before reset)
-	local AddonGlobal = _G["XPBarEnhanced"]
-	local sessionStart = time()
-	local sessionXP = 0
-	if AddonGlobal and AddonGlobal.Session then
-		local session = AddonGlobal.Session:GetCurrent()
-		if session then
-			if session.sessionStart then
-				sessionStart = session.sessionStart
-			end
-			if session.gainedXP then
-				sessionXP = session.gainedXP
-			end
-		end
-	end
-
-	local sessionDuration = time() - sessionStart
-	local xpPerHour = ContextBuilder.CalculateXPPerHour(sessionStart, sessionXP, 0, 0)
-	local timeToLevel = ContextBuilder.CalculateTimeToLevel(coreState.currentXP, coreState.xpMax, xpPerHour)
-
-	-- Reset XP tracking for new level (Session service handles its own reset)
-	ContextBuilder._lastXP = coreState.currentXP
-	ContextBuilder._lastMaxXP = coreState.xpMax
-
-	-- Event-specific context (only 5 new fields)
-	local eventContext = {
-		-- Event metadata (3 fields)
-		event = event,
-		timestamp = time(),
-		source = "PLAYER_LEVEL_UP",
-		-- Level-up semantics
-		oldLevel = (newLevel or coreState.level) - 1,
-		newLevel = newLevel or coreState.level,
-		-- XP tracking fields (for consistency with XPChangeContext)
-		xpBefore = 0, -- Level-up resets XP from old max to 0
-		xpAfter = coreState.currentXP, -- Current XP after level-up
-		remainingXP = coreState.xpMax - coreState.currentXP,
-		-- Session stats (preserved from before reset)
-		sessionDuration = sessionDuration,
-		sessionSeconds = sessionDuration,
-		xpPerHour = xpPerHour,
-		timeToLevel = timeToLevel,
-		-- Event behavior flags
-		-- Level-up DOES gain XP: from 0 to currentXP at new level (wraparound XP)
-		hasGainedXP = (coreState.currentXP and coreState.currentXP > 0),
-		hasLeveledUp = true,
-		shouldAnimate = true,
-		shouldFlash = (coreState.currentXP and coreState.currentXP > 0),
-		restedChanged = false,
-		questsChanged = false
-	}
-
-	-- Create immutable context with flattened structure
-	return ContextBuilder.MakeImmutable(eventContext, coreContext)
+    return ContextBuilder.BuildContext(event, newLevel)
 end
 
---- Build context for rested state change
----@param event string Event name (e.g., "UPDATE_EXHAUSTION", "PLAYER_UPDATE_RESTING")
----@return table context Immutable context object
 function ContextBuilder.BuildRestedContext(event, ...)
-	local coreState = ContextBuilder.GetCoreState()
-	local coreContext = ContextBuilder.BuildCoreContext(coreState)
-
-	-- Event-specific context (only 4 new fields)
-	local eventContext = {
-		-- Event metadata (3 fields)
-		event = event,
-		timestamp = time(),
-		source = "RESTED_UPDATE",
-		-- Derived values
-		remainingXP = coreState.xpMax - coreState.currentXP,
-		-- Event behavior flags
-		hasGainedXP = false,
-		hasLeveledUp = false,
-		shouldAnimate = false, -- No bar animation for rested change
-		shouldFlash = false,
-		restedChanged = true,
-		questsChanged = false
-	}
-
-	-- Create immutable context with flattened structure
-	return ContextBuilder.MakeImmutable(eventContext, coreContext)
+    return ContextBuilder.BuildContext(event, ...)
 end
 
---- Build context for quest overlay updates
----@param event string Event name (e.g., "QUEST_LOG_UPDATE")
----@return table context Immutable context object
 function ContextBuilder.BuildQuestContext(event, ...)
-	local coreState = ContextBuilder.GetCoreState()
-	local coreContext = ContextBuilder.BuildCoreContext(coreState)
-
-	-- Event-specific context (only 4 new fields)
-	local eventContext = {
-		-- Event metadata (3 fields)
-		event = event,
-		timestamp = time(),
-		source = "QUEST_UPDATE",
-		-- Derived values
-		remainingXP = coreState.xpMax - coreState.currentXP,
-		-- Event behavior flags
-		hasGainedXP = false,
-		hasLeveledUp = false,
-		shouldAnimate = false, -- No bar animation for quest overlay change
-		shouldFlash = false,
-		restedChanged = false,
-		questsChanged = true
-	}
-
-	-- Create immutable context with flattened structure
-	return ContextBuilder.MakeImmutable(eventContext, coreContext)
+    return ContextBuilder.BuildContext(event, ...)
 end
 
---- Build context for tooltip display
----@return table context Immutable context object
 function ContextBuilder.BuildTooltipContext()
-	local coreState = ContextBuilder.GetCoreState()
-	local coreContext = ContextBuilder.BuildCoreContext(coreState)
-
-	-- Calculate current session stats for tooltip display
-	local xpGained, lastXP = ContextBuilder.ComputeXPGained(coreState.currentXP, coreState.xpMax)
-	local sessionStart, sessionXP, sessionDuration, xpPerHour = ContextBuilder.UpdateSessionWithGain(xpGained)
-
-	-- Event-specific context (only 6 new fields)
-	local eventContext = {
-		-- Event metadata (3 fields)
-		event = "TOOLTIP",
-		timestamp = time(),
-		source = "TOOLTIP_CONTEXT",
-		-- Derived values
-		remainingXP = coreState.xpMax - coreState.currentXP,
-		sessionDuration = sessionDuration,
-		sessionSeconds = sessionDuration,
-		xpPerHour = xpPerHour,
-		timeToLevel = ContextBuilder.CalculateTimeToLevel(coreState.currentXP, coreState.xpMax, xpPerHour)
-	}
-
-	-- Create immutable context with flattened structure
-	return ContextBuilder.MakeImmutable(eventContext, coreContext)
+    return ContextBuilder.BuildContext("TOOLTIP")
 end
 
 -------------------------------------------------------------------

@@ -30,6 +30,8 @@ local defaults = {
     showBarAtMaxLevel = true,
     showLevelText = true,
     showXPText = true,
+    -- Overlays settings
+    wRestedOverlay = true,
     -- Quest overlay settings
     showCompleteQuestOverlay = true,
     showIncompleteQuestOverlay = false,
@@ -139,6 +141,12 @@ local optionDetails = {
         label = Addon.L["OPT_BAR_LOCKED"],
         description = Addon.L["OPT_BAR_LOCKED_DESC"],
         commandKeys = {"lock", "locked"}
+    },
+    showRestedOverlay = {
+        key = "showRestedOverlay",
+        label = Addon.L["OPT_SHOW_RESTED_OVERLAY"],
+        description = Addon.L["OPT_SHOW_RESTED_OVERLAY_DESC"],
+        commandKeys = {"rested", "rest", "restoverlay"}
     },
     showQuestXP = {
         key = "showQuestXP",
@@ -261,6 +269,7 @@ local optionOrder = {
     "barStyle",
     "hideBlizzardBar",
     "barLocked",
+    "showRestedOverlay",
     "showQuestXP",
     "showCompleteQuestOverlay",
     "showIncompleteQuestOverlay",
@@ -632,7 +641,8 @@ function Config:ApplyOptionSideEffects(key)
         "showXPPerHourText",
         "showLevelTimeText",
         "showSessionTimeText",
-        "showTimeToLevelText"
+        "showTimeToLevelText",
+        "showRestedOverlay"
     }
 
     local needsBarRefresh = false

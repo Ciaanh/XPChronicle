@@ -826,6 +826,11 @@ function XPBarEnhancedOptionsMixin:OnLoad()
             container.BarSettingsHeader.Title:SetText("Bar Settings")
         end
 
+                -- Quest Features section
+        if container.OverlayFeaturesHeader and container.OverlayFeaturesHeader.Title then
+            container.OverlayFeaturesHeader.Title:SetText("Display Features")
+        end
+
         -- Quest Features section
         if container.QuestFeaturesHeader and container.QuestFeaturesHeader.Title then
             container.QuestFeaturesHeader.Title:SetText("Quest Features")

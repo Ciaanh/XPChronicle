@@ -60,7 +60,7 @@ function DebugLog:Log(category, message, ...)
     logCount = math.min(logCount + 1, MAX_LOG_ENTRIES)
     
     -- Also print to console for immediate visibility
-    print(entry)
+    --print(entry)
 end
 
 --- Get all log entries in chronological order
