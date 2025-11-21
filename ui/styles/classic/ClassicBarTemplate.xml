@@ -19,7 +19,7 @@
                 </Anchors>
                 <Layers>
                     <Layer level="BACKGROUND">
-                        <Texture parentKey="Background" file="Interface\AddOns\XPBarEnhanced\assets\classic-background">
+                        <Texture parentKey="Background" file="Interface\AddOns\XPBarEnhanced\assets\legacy-background">
                             <Anchors>
                                 <Anchor point="TOPLEFT"/>
                                 <Anchor point="BOTTOMRIGHT"/>
@@ -190,7 +190,7 @@
                 </Anchors>
                 <Layers>
                     <Layer level="ARTWORK">
-                        <Texture parentKey="Texture" file="Interface\AddOns\XPBarEnhanced\assets\classic-border">
+                        <Texture parentKey="Texture" file="Interface\AddOns\XPBarEnhanced\assets\legacy-border">
                             <Anchors>
                                 <Anchor point="TOPLEFT"/>
                                 <Anchor point="BOTTOMRIGHT"/>
