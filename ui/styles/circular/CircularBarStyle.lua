@@ -193,8 +193,15 @@ end
 -- @param hasRestedXP boolean: Whether player has rested XP available
 function CircularBarStyleTemplate:SetArcProgress(progress, context, overlayAlpha)
     if XPBarDebugLog then XPBarDebugLog:Log("CircularBar", "SetArcProgress called with progress", tostring(progress), "showQuestXP:", tostring(context and context.showQuestXP), "completeQuestXP:", tostring((context and context.completeQuestXP) or self.cachedCompleteQuestXP)) end
-    -- Calculate current XP segments (1 segment = 1%)
-    local currentXPSegments = math.floor(progress * 100 + 0.5)
+
+    -- Use a local variable for total segments (makes code independent of hard-coded '100')
+    local totalSegments = RING_SEGMENTS or 100
+    -- Clamp progress between 0 and 1
+    progress = math.max(0, math.min(progress or 0, 1))
+
+    -- Calculate current XP segments (round to nearest segment)
+    local currentXPSegments = math.floor(progress * totalSegments + 0.5)
+    currentXPSegments = math.max(0, math.min(currentXPSegments, totalSegments))
 
     -- Get current XP and max for ratio calculations
     local currentXP = UnitXP("player")
@@ -231,11 +238,11 @@ function CircularBarStyleTemplate:SetArcProgress(progress, context, overlayAlpha
     local hasRestedXP = (context and context.hasRestedXP) or self.cachedHasRestedXP or (restedXP and restedXP > 0)
 
     -- Initialize all segments as empty
-    for i = 1, RING_SEGMENTS do
+    for i = 1, totalSegments do
         self.segmentTypes[i] = SEGMENT_TYPE.EMPTY
     end
 
-    -- Set current XP segments
+    -- Set current XP segments (clamped)
     for i = 1, currentXPSegments do
         self.segmentTypes[i] = SEGMENT_TYPE.CURRENT_XP
     end
@@ -247,51 +254,53 @@ function CircularBarStyleTemplate:SetArcProgress(progress, context, overlayAlpha
     if showQuestXP and showComplete and completeQuestXP > 0 then
         local completeXPClamped = math.min(completeQuestXP, remainingXP)
         local completeRatio = completeXPClamped / maxXP
-        local questCompleteSegments = math.floor(completeRatio * 100 + 0.5)
+        local questCompleteSegments = math.floor(completeRatio * totalSegments + 0.5)
+        questCompleteSegments = math.max(0, math.min(questCompleteSegments, totalSegments - currentXPSegments))
 
         -- Quest complete starts after current XP
-        for i = currentXPSegments + 1, math.min(currentXPSegments + questCompleteSegments, RING_SEGMENTS) do
+        for i = currentXPSegments + 1, math.min(currentXPSegments + questCompleteSegments, totalSegments) do
             self.segmentTypes[i] = SEGMENT_TYPE.QUEST_COMPLETE
         end
 
-        -- Reduce remaining XP
         remainingXP = math.max(0, remainingXP - completeXPClamped)
-    else
     end
 
-    -- Calculate quest incomplete overlay segments (if enabled)
+    -- Quest incomplete overlay segments (if enabled)
     if showQuestXP and showIncomplete and incompleteQuestXP > 0 then
         local incompleteXPClamped = math.min(incompleteQuestXP, remainingXP)
         local incompleteRatio = incompleteXPClamped / maxXP
-        local questIncompleteSegments = math.floor(incompleteRatio * 100 + 0.5)
+        local questIncompleteSegments = math.floor(incompleteRatio * totalSegments + 0.5)
+        questIncompleteSegments = math.max(0, math.min(questIncompleteSegments, totalSegments - currentXPSegments))
 
-        -- Quest incomplete starts after quest complete
+        -- Calculate startSegment by counting previous overlays
         local startSegment = currentXPSegments + 1
         if showComplete and completeQuestXP > 0 then
             local completeXPClamped = math.min(completeQuestXP, maxXP - currentXP)
-            local completeSegments = math.floor((completeXPClamped / maxXP) * 100 + 0.5)
-            startSegment = currentXPSegments + completeSegments + 1
+            local completeSegments = math.floor((completeXPClamped / maxXP) * totalSegments + 0.5)
+            completeSegments = math.max(0, math.min(completeSegments, totalSegments - currentXPSegments))
+            startSegment = startSegment + completeSegments
         end
 
-        for i = startSegment, math.min(startSegment + questIncompleteSegments - 1, RING_SEGMENTS) do
+        for i = startSegment, math.min(startSegment + questIncompleteSegments - 1, totalSegments) do
             self.segmentTypes[i] = SEGMENT_TYPE.QUEST_INCOMPLETE
         end
 
-        -- Reduce remaining XP
         remainingXP = math.max(0, remainingXP - incompleteXPClamped)
     end
 
-    -- Calculate rested overlay segments (if rested XP exists)
+    -- Rested overlay segments (if available)
     if restedXP > 0 and remainingXP > 0 then
         local restedXPClamped = math.min(restedXP, remainingXP)
         local restedRatio = restedXPClamped / maxXP
-        local restedSegments = math.floor(restedRatio * 100 + 0.5)
+        local restedSegments = math.floor(restedRatio * totalSegments + 0.5)
+        restedSegments = math.max(0, math.min(restedSegments, totalSegments - currentXPSegments))
 
-        -- Calculate start position after current XP + quest overlays
+        -- Calculate start position by accounting for overlays already applied
         local startSegment = currentXPSegments + 1
         if showQuestXP and showComplete and completeQuestXP > 0 then
             local completeXPClamped = math.min(completeQuestXP, maxXP - currentXP)
-            local completeSegments = math.floor((completeXPClamped / maxXP) * 100 + 0.5)
+            local completeSegments = math.floor((completeXPClamped / maxXP) * totalSegments + 0.5)
+            completeSegments = math.max(0, math.min(completeSegments, totalSegments - currentXPSegments))
             startSegment = startSegment + completeSegments
         end
         if showQuestXP and showIncomplete and incompleteQuestXP > 0 then
@@ -300,18 +309,16 @@ function CircularBarStyleTemplate:SetArcProgress(progress, context, overlayAlpha
                 totalRemaining = totalRemaining - math.min(completeQuestXP, totalRemaining)
             end
             local incompleteXPClamped = math.min(incompleteQuestXP, totalRemaining)
-            local incompleteSegments = math.floor((incompleteXPClamped / maxXP) * 100 + 0.5)
+            local incompleteSegments = math.floor((incompleteXPClamped / maxXP) * totalSegments + 0.5)
+            incompleteSegments = math.max(0, math.min(incompleteSegments, totalSegments - currentXPSegments))
             startSegment = startSegment + incompleteSegments
         end
 
-        -- Rested segments
-        for i = startSegment, math.min(startSegment + restedSegments - 1, RING_SEGMENTS) do
-            -- Only set if not already set by quest overlays
+        for i = startSegment, math.min(startSegment + restedSegments - 1, totalSegments) do
             if self.segmentTypes[i] == SEGMENT_TYPE.EMPTY then
                 self.segmentTypes[i] = SEGMENT_TYPE.RESTED
             end
         end
-    else
     end
 
     -- Now apply colors to all segments based on their type
@@ -457,6 +464,12 @@ function CircularBarStyleTemplate:RenderBar(context)
         error("RenderBar requires an explicit immutable context")
     end
 
+    -- Detect level changes and clear caches to avoid stale overlays after level up
+    if self._lastLevel and self._lastLevel ~= context.level then
+        self:ClearCachedOverlays()
+    end
+    self._lastLevel = context.level
+
     -- Calculate target ratio (use currentXP as canonical field)
     local targetRatio = 0
     if context.xpMax and context.xpMax > 0 then
@@ -537,11 +550,16 @@ function CircularBarStyleTemplate:UpdateRestedOverlay(context)
         return
     end
 
-    -- Store rested data for SetArcProgress to use
-    if context.showRestedOverlay == false then
+    -- Determine DB fallback if a context flag is not provided
+    local Addon = XPBarEnhanced
+    local db = (Addon and Addon.Database) and Addon.Database:GetDB()
+
+    -- If UI option explicitly disables rested overlay, clear cached values
+    if context.showRestedOverlay == false or (context.showRestedOverlay == nil and db and db.showRestedOverlay == false) then
         self.cachedRestedXP = 0
         self.cachedHasRestedXP = false
     else
+        -- Store rested data for SetArcProgress to use
         self.cachedRestedXP = context.restedXP or 0
         self.cachedHasRestedXP = context.hasRestedXP or false
     end
@@ -551,40 +569,39 @@ function CircularBarStyleTemplate:UpdateRestedOverlay(context)
     self:SetArcProgress(currentRatio, context)
 end
 
---- Override UpdateQuestCompleteOverlay to store quest complete data for segment coloring
 function CircularBarStyleTemplate:UpdateQuestCompleteOverlay(context)
     if not context then
         return
     end
 
-    -- Store quest complete data for SetArcProgress to use
-    if context.showQuestXP == false then
-        -- If quest XP is disabled in context, clear cached values
+    local Addon = XPBarEnhanced
+    local db = (Addon and Addon.Database) and Addon.Database:GetDB()
+
+    -- Clear cached values when quest XP toggled off (context or DB fallback)
+    if context.showQuestXP == false or (context.showQuestXP == nil and db and db.showQuestXP == false) then
         self.cachedCompleteQuestXP = 0
     else
         self.cachedCompleteQuestXP = context.completeQuestXP or 0
     end
 
-    -- Force a redraw to ensure segments respond immediately when toggling showQuestXP
     local currentRatio = self._currentRatio or self.lastProgress or 0
     self:SetArcProgress(currentRatio, context)
 end
 
---- Override UpdateQuestIncompleteOverlay to store quest incomplete data for segment coloring
 function CircularBarStyleTemplate:UpdateQuestIncompleteOverlay(context)
     if not context then
         return
     end
 
-    -- Store quest incomplete data for SetArcProgress to use
-    if context.showQuestXP == false then
-        -- If quest XP is disabled in context, clear cached values
+    local Addon = XPBarEnhanced
+    local db = (Addon and Addon.Database) and Addon.Database:GetDB()
+
+    if context.showQuestXP == false or (context.showQuestXP == nil and db and db.showQuestXP == false) then
         self.cachedIncompleteQuestXP = 0
     else
         self.cachedIncompleteQuestXP = context.incompleteQuestXP or 0
     end
 
-    -- Force a redraw to ensure segments respond immediately when toggling showQuestXP
     local currentRatio = self._currentRatio or self.lastProgress or 0
     self:SetArcProgress(currentRatio, context)
 end
@@ -686,6 +703,9 @@ function CircularBarStyleTemplate:OnHide()
     end
     self.isAnimating = false
 
+    -- Clear cached overlays to avoid showing stale overlays when re-shown
+    self:ClearCachedOverlays()
+
     -- Call base cleanup
     if XPBarMixinBase and XPBarMixinBase.OnHide then
         XPBarMixinBase.OnHide(self)
@@ -729,4 +749,16 @@ function XPBarEnhanced_CreateCircularBarFrame()
     _G.CircularBar = frame -- Global reference
 
     return frame
+end
+
+-------------------------------------------------------------------
+-- CACHE UTILITIES
+-------------------------------------------------------------------
+
+function CircularBarStyleTemplate:ClearCachedOverlays()
+    -- Reset cached overlay values to avoid persistent stale UI state
+    self.cachedRestedXP = 0
+    self.cachedHasRestedXP = false
+    self.cachedCompleteQuestXP = 0
+    self.cachedIncompleteQuestXP = 0
 end
