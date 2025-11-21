@@ -34,8 +34,8 @@ local CIRCULAR_BAR_STYLE = {
     RING_RADIUS_PX = 97, -- Distance from center to segment center (placement radius)
     SEGMENT_WIDTH_PX = 5, -- Width of each segment in pixels
     SEGMENT_HEIGHT_PX = 15, -- Height of each segment in pixels
-    SEGMENT_TEXTURE_PATH = "Interface\\Buttons\\WHITE8X8"
-    --SEGMENT_TEXTURE_PATH = "Interface\\AddOns\\XPBarEnhanced\\assets\\xp-bar" -- Texture for each segment
+    SEGMENT_TEXTURE_PATH_SOLID = "Interface\\Buttons\\WHITE8X8", -- Solid texture for segments
+    SEGMENT_TEXTURE_PATH = "Interface\\AddOns\\XPBarEnhanced\\assets\\xp-bar" -- Texture for each segment
 }
 
 -------------------------------------------------------------------
@@ -56,21 +56,11 @@ function CircularBarStyleTemplate:OnLoad()
     self.targetProgress = 0
     self.isAnimating = false
 
-    -- Initialize cached overlay data
-    self.cachedRestedXP = 0
-    self.cachedCompleteQuestXP = 0
-    self.cachedIncompleteQuestXP = 0
-    self.cachedHasRestedXP = false
-
     -- Create ring segments (initialized with background color)
     self:CreateRingSegments()
 
     -- Call base OnLoad (initializes animation system and calls Refresh)
-    -- Base OnLoad will handle the initial RenderBar call via Refresh()
     if XPBarMixinBase and XPBarMixinBase.OnLoad then
-        if XPBarDebugLog then
-            XPBarDebugLog:Log("CircularBar", "Calling base OnLoad")
-        end
         XPBarMixinBase.OnLoad(self)
     end
 end
@@ -86,14 +76,12 @@ function CircularBarStyleTemplate:CreateRingSegments()
         local segment = self:CreateTexture(nil, "ARTWORK")
         segment:SetTexture(CIRCULAR_BAR_STYLE.SEGMENT_TEXTURE_PATH)
         segment:SetSize(CIRCULAR_BAR_STYLE.SEGMENT_WIDTH_PX, CIRCULAR_BAR_STYLE.SEGMENT_HEIGHT_PX)
-        -- Initialize with background color to show ring structure
         segment:SetVertexColor(color.r, color.g, color.b, color.a)
         segment:Show()
         self.segments[i] = segment
         self.segmentTypes[i] = SEGMENT_TYPE.EMPTY
     end
 
-    -- Position all segments in a circle
     self:PositionSegments()
 end
 
@@ -136,9 +124,6 @@ end
 -- @param iterationData table: Per-frame iteration data with currentRatio
 -- @param eventContext table: Immutable event context
 function CircularBarStyleTemplate:AnimateBarPosition(iterationData, eventContext)
-    if XPBarDebugLog then
-        XPBarDebugLog:Log("CircularBar", "AnimateBarPosition called", iterationData.currentRatio)
-    end
     -- Update the arc progress with current ratio
     -- Pass hasRestedXP from eventContext to ensure correct coloring
     -- Pass complete event context into SetArcProgress to ensure the style
@@ -157,14 +142,8 @@ function CircularBarStyleTemplate:AnimateBarEffect(iterationData, eventContext)
     end
 
     local flashData = iterationData.flashData
-    if XPBarDebugLog then
-        XPBarDebugLog:Log("CircularBar", "AnimateBarEffect called", tostring(flashData))
-    end
     local flashActive = flashData and flashData.active and flashData.currentAlpha > 0
     if flashActive then
-        -- Show glow with animated alpha
-        self.GainFlash:SetAlpha(flashData.currentAlpha)
-        self.GainFlash:Show()
         -- Apply quest overlay dimming for circular segments by reapplying
         -- segment colors with overlayAlpha = iterationData.questOverlayAlpha
         -- if iterationData and iterationData.questOverlayAlpha then
@@ -175,11 +154,10 @@ function CircularBarStyleTemplate:AnimateBarEffect(iterationData, eventContext)
         -- Track that we've seen a flash so that we can restore on completion even
         -- if iterationData.questOverlayAlpha is not provided on the final frame
         --self._hadFlash = true
+        -- Show glow with animated alpha
+        self.GainFlash:SetAlpha(flashData.currentAlpha)
+        self.GainFlash:Show()
     else
-        if XPBarDebugLog then
-            XPBarDebugLog:Log("CircularBar", "Hide glow")
-        end
-        self.GainFlash:Hide()
         -- Ensure segments are at normal alpha when flash ends.
         -- Some styles use iterationData.questOverlayAlpha; circular may not
         -- receive a non-nil value in iterationData. Track the transition from
@@ -190,6 +168,7 @@ function CircularBarStyleTemplate:AnimateBarEffect(iterationData, eventContext)
         --     self:SetArcProgress(currentRatio, eventContext, 1.0)
         --     self._hadFlash = nil
         -- end
+        self.GainFlash:Hide()
     end
 end
 
@@ -207,16 +186,6 @@ end
 -- @param progress number: Progress ratio (0-1)
 -- @param hasRestedXP boolean: Whether player has rested XP available
 function CircularBarStyleTemplate:SetArcProgress(progress, context, overlayAlpha)
-    if XPBarDebugLog then
-        XPBarDebugLog:Log(
-            "CircularBar",
-            "SetArcProgress called with progress",
-            tostring(progress),
-            "context.hasFlags:",
-            tostring(context and (context.showQuestXP ~= nil))
-        )
-    end
-
     -- Require a valid context (do not rebuild or fallback to DB)
     if not context then
         error("SetArcProgress requires an explicit immutable context")
@@ -274,7 +243,7 @@ end
 
 --- Apply colors to segments based on their type
 -- @param hasRestedXP boolean: Whether player has rested XP available
-function CircularBarStyleTemplate:UpdateSegmentColors( hasRestedXP, overlayAlpha)
+function CircularBarStyleTemplate:UpdateSegmentColors(hasRestedXP, overlayAlpha)
     local XPBarColors = _G.XPBarColors
     local colorNormal = XPBarColors:GetUserColor(Color.XpBar)
     local colorRested = XPBarColors:GetUserColor(Color.Rested)
@@ -290,7 +259,6 @@ function CircularBarStyleTemplate:UpdateSegmentColors( hasRestedXP, overlayAlpha
 
     -- Determine progress (prefer current ratio from animation, fall back to lastProgress)
     local totalSegments = RING_SEGMENTS
-
 
     for i = 1, totalSegments do
         local segment = self.segments[i]
@@ -341,8 +309,6 @@ function CircularBarStyleTemplate:UpdateSegmentColors( hasRestedXP, overlayAlpha
                 -- EMPTY remains default
             end
 
-
-            print("CircularBar", "Segment", i, "Type", self.segmentTypes[i], "Color", color.r, color.g, color.b, color.a)
             -- Apply appearance: SetColorTexture for RGB only, SetAlpha separately
             segment:SetVertexColor(color.r, color.g, color.b, color.a)
             segment:Show()
@@ -355,37 +321,20 @@ end
 -------------------------------------------------------------------
 
 function CircularBarStyleTemplate:Refresh()
-    if XPBarDebugLog then
-        XPBarDebugLog:Log("CircularBar", "Refresh override called")
-    end
-
     -- Build context
     if not XPBarContextBuilder then
-        if XPBarDebugLog then
-            XPBarDebugLog:Log("CircularBar", "ERROR: XPBarContextBuilder not found")
-        end
         return
     end
 
     local context = XPBarContextBuilder.BuildXPChangeContext("MANUAL_REFRESH")
 
     if not context then
-        if XPBarDebugLog then
-            XPBarDebugLog:Log("CircularBar", "ERROR: Context building failed")
-        end
         return
     end
 
     -- Call TriggerBarRefresh ( method name)
     if self.TriggerBarRefresh then
-        if XPBarDebugLog then
-            XPBarDebugLog:Log("CircularBar", "Calling TriggerBarRefresh")
-        end
         self:TriggerBarRefresh(context)
-    else
-        if XPBarDebugLog then
-            XPBarDebugLog:Log("CircularBar", "ERROR: TriggerBarRefresh not found")
-        end
     end
 end
 
@@ -427,17 +376,10 @@ end
 --- Pure rendering method - orchestration handled by BaseMixin:TriggerBarRefresh
 ---@param context table Immutable context with all state and flags
 function CircularBarStyleTemplate:RenderBar(context)
-    if XPBarDebugLog then
-        XPBarDebugLog:Log("CircularBar", "RenderBar called")
-    end
     if not context then
         error("RenderBar requires an explicit immutable context")
     end
 
-    -- Detect level changes and clear caches to avoid stale overlays after level up
-    if self._lastLevel and self._lastLevel ~= context.level then
-        self:ClearCachedOverlays()
-    end
     self._lastLevel = context.level
 
     -- Calculate target ratio (use currentXP as canonical field)
@@ -471,16 +413,7 @@ function CircularBarStyleTemplate:RenderBar(context)
         self:UpdateExhaustionTick(context)
     end
 
-    -- Defensive: if quest XP is disabled, ensure cached values are cleared
-    if context and context.showQuestXP == false then
-        self.cachedCompleteQuestXP = 0
-        self.cachedIncompleteQuestXP = 0
-    end
-
     -- Render at final position (no animation decision - BaseMixin handles that)
-    if XPBarDebugLog then
-        XPBarDebugLog:Log("CircularBar", "RenderBar calling RenderBarFrame with ratio:", targetRatio)
-    end
     self:RenderBarFrame(targetRatio, context)
 
     -- Update text (always update, matches Classic/Vertical pattern)
@@ -494,9 +427,6 @@ end
 ---@param currentRatio number Current animation progress (0-1), or final ratio for instant
 ---@param context table Immutable context with all state and flags
 function CircularBarStyleTemplate:RenderBarFrame(currentRatio, context)
-    if XPBarDebugLog then
-        XPBarDebugLog:Log("CircularBar", "RenderBarFrame called with ratio:", currentRatio)
-    end
     -- 1. MAIN BAR (at current animation position)
     -- Pass full context so SetArcProgress can prefer context values and avoid stale cached data
     self:SetArcProgress(currentRatio, context)
@@ -524,22 +454,7 @@ function CircularBarStyleTemplate:UpdateRestedOverlay(context)
         return
     end
 
-    -- Determine DB fallback if a context flag is not provided
-    local Addon = XPBarEnhanced
-    local db = (Addon and Addon.Database) and Addon.Database:GetDB()
-
-    -- If UI option explicitly disables rested overlay, clear cached values
-    if context.showRestedOverlay == false or (context.showRestedOverlay == nil and db and db.showRestedOverlay == false) then
-        self.cachedRestedXP = 0
-        self.cachedHasRestedXP = false
-    else
-        -- Store rested data for SetArcProgress to use
-        self.cachedRestedXP = context.restedXP or 0
-        self.cachedHasRestedXP = context.hasRestedXP or false
-    end
-
-    -- Force a redraw so rested overlay changes are reflected immediately
-    local currentRatio = self._currentRatio or self.lastProgress or 0
+    local currentRatio = (context.currentXP or 0) / context.xpMax
     self:SetArcProgress(currentRatio, context)
 end
 
@@ -548,17 +463,7 @@ function CircularBarStyleTemplate:UpdateQuestCompleteOverlay(context)
         return
     end
 
-    local Addon = XPBarEnhanced
-    local db = (Addon and Addon.Database) and Addon.Database:GetDB()
-
-    -- Clear cached values when quest XP toggled off (context or DB fallback)
-    if context.showQuestXP == false or (context.showQuestXP == nil and db and db.showQuestXP == false) then
-        self.cachedCompleteQuestXP = 0
-    else
-        self.cachedCompleteQuestXP = context.completeQuestXP or 0
-    end
-
-    local currentRatio = self._currentRatio or self.lastProgress or 0
+    local currentRatio = (context.currentXP or 0) / context.xpMax
     self:SetArcProgress(currentRatio, context)
 end
 
@@ -567,16 +472,7 @@ function CircularBarStyleTemplate:UpdateQuestIncompleteOverlay(context)
         return
     end
 
-    local Addon = XPBarEnhanced
-    local db = (Addon and Addon.Database) and Addon.Database:GetDB()
-
-    if context.showQuestXP == false or (context.showQuestXP == nil and db and db.showQuestXP == false) then
-        self.cachedIncompleteQuestXP = 0
-    else
-        self.cachedIncompleteQuestXP = context.incompleteQuestXP or 0
-    end
-
-    local currentRatio = self._currentRatio or self.lastProgress or 0
+    local currentRatio = (context.currentXP or 0) / context.xpMax
     self:SetArcProgress(currentRatio, context)
 end
 
@@ -677,9 +573,6 @@ function CircularBarStyleTemplate:OnHide()
     end
     self.isAnimating = false
 
-    -- Clear cached overlays to avoid showing stale overlays when re-shown
-    self:ClearCachedOverlays()
-
     -- Call base cleanup
     if XPBarMixinBase and XPBarMixinBase.OnHide then
         XPBarMixinBase.OnHide(self)
@@ -687,16 +580,8 @@ function CircularBarStyleTemplate:OnHide()
 end
 
 -------------------------------------------------------------------
--- CACHE & OVERLAY HELPERS (must be defined before style registration)
+-- OVERLAY HELPERS (must be defined before style registration)
 -------------------------------------------------------------------
-
-function CircularBarStyleTemplate:ClearCachedOverlays()
-    -- Reset cached overlay values to avoid persistent stale UI state
-    self.cachedRestedXP = 0
-    self.cachedHasRestedXP = false
-    self.cachedCompleteQuestXP = 0
-    self.cachedIncompleteQuestXP = 0
-end
 
 --- Compute overlay segment ranges purely from provided context (no DB fallback, no persistent cache)
 -- @param context table: Immutable context with xp/current/rested/quest values and show flags
@@ -771,12 +656,6 @@ function CircularBarStyleTemplate:ComputeOverlaySegments(progress, context, tota
         count = math.max(0, math.min(count, maxAvailable))
         result.restedCount = count
         result.restedStart = currentXPSegments + 1 + result.completeCount + result.incompleteCount
-    end
-
-    for k, v in pairs(result) do
-        if XPBarDebugLog then
-            --print("CircularBar", "Overlay segment:", k, v)
-        end
     end
 
     return result

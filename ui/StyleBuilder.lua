@@ -183,11 +183,6 @@ function StyleBuilder:CreateFrameForStyle(styleKey, config, templateName)
 	-- Store config
 	frame.__xpbar_config = config or mixin.__xpbar_config or {}
 
-	-- Initialize
-	if frame.OnLoad then
-		frame:OnLoad()
-	end
-
 	return frame
 end
 
