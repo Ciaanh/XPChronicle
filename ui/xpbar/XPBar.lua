@@ -771,8 +771,8 @@ function XPBar:BroadcastUpdate(context)
 	end
 	
 	-- Build context once if not provided
-	if not context and XPBarContextBuilder and XPBarContextBuilder.BuildXPChangeContext then
-		context = XPBarContextBuilder.BuildXPChangeContext("BROADCAST_UPDATE")
+	if not context and XPBarContextBuilder and XPBarContextBuilder.BuildContext then
+		context = XPBarContextBuilder.BuildContext("BROADCAST_UPDATE")
 	end
 	
 	for id, bar in pairs(self.observers) do

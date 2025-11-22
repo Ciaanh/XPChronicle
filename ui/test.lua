@@ -77,8 +77,8 @@ local function CreateTestBar(config)
 	frame:Show()
 
 	-- Force initial visuals if context builder exists
-	if frame.UpdateVisuals and XPBarContextBuilder and XPBarContextBuilder.BuildXPChangeContext then
-		local ctx = XPBarContextBuilder:BuildXPChangeContext()
+	if frame.UpdateVisuals and XPBarContextBuilder and XPBarContextBuilder.BuildContext then
+		local ctx = XPBarContextBuilder:BuildContext()
 		frame:UpdateVisuals(ctx)
 	end
 
@@ -129,7 +129,7 @@ local function PrintContext()
 			type(Addon.db.showIncompleteQuestOverlay)))
 	end
 
-	local build = XPBarContextBuilder.BuildXPChangeContext or XPBarContextBuilder.BuildContext or XPBarContextBuilder.Build
+	local build = XPBarContextBuilder.BuildContext or XPBarContextBuilder.BuildContext or XPBarContextBuilder.Build
 	if not build then
 		logError("ContextBuilder API not found")
 		return
@@ -192,7 +192,7 @@ local function TriggerFlash(amount)
 	-- Try  animation methods (used by all  bars)
 	if targetFrame.TriggerXPChanged and XPBarContextBuilder then
 		-- Build a fake XP gain context
-		local baseCtx = XPBarContextBuilder.BuildXPChangeContext("TEST_FLASH")
+		local baseCtx = XPBarContextBuilder.BuildContext("TEST_FLASH")
 		if baseCtx then
 			-- Context is immutable, so create a new table with modified values
 			local testXPGain = amount or 1000
@@ -259,8 +259,8 @@ local function TriggerCircularFlash(amount)
 	end
 
 	-- Create a fake XP gain context and trigger it on the circular bar
-	if CircularBar.TriggerXPChanged and XPBarContextBuilder and XPBarContextBuilder.BuildXPChangeContext then
-		local baseCtx = XPBarContextBuilder.BuildXPChangeContext("TEST_FLASH")
+	if CircularBar.TriggerXPChanged and XPBarContextBuilder and XPBarContextBuilder.BuildContext then
+		local baseCtx = XPBarContextBuilder.BuildContext("TEST_FLASH")
 		if baseCtx then
 			local testXPGain = amount or 1000
 			local xpAfter = math.min((baseCtx.xpBefore or 0) + testXPGain, baseCtx.xpMax or 1)
@@ -309,7 +309,7 @@ local function ToggleQuestXPForCircular(toggle)
 	end
 	-- Print post-update context and circular cached values
 	if CircularBar and CircularBar.FullUpdate then
-		local ctx = XPBarContextBuilder and XPBarContextBuilder.BuildXPChangeContext and XPBarContextBuilder.BuildXPChangeContext("MANUAL_REFRESH")
+		local ctx = XPBarContextBuilder and XPBarContextBuilder.BuildContext and XPBarContextBuilder.BuildContext("MANUAL_REFRESH")
 		if ctx then
 			pcall(CircularBar.FullUpdate, CircularBar, ctx)
 		end
@@ -323,7 +323,7 @@ local function SimulateLevelUpOnCircular(newLevel)
 		logError("ContextBuilder not available")
 		return
 	end
-	local ctx = XPBarContextBuilder.BuildLevelUpContext("PLAYER_LEVEL_UP", newLevel)
+	local ctx = XPBarContextBuilder.BuildContext("PLAYER_LEVEL_UP", newLevel)
 	if not ctx then
 		logError("Could not build level up context")
 		return
@@ -375,8 +375,8 @@ local function CreateClassicTestBar(config)
 	frame:Show()
 
 	-- Force initial visuals if context builder exists
-	if frame.UpdateVisuals and XPBarContextBuilder and XPBarContextBuilder.BuildXPChangeContext then
-		local ctx = XPBarContextBuilder:BuildXPChangeContext()
+	if frame.UpdateVisuals and XPBarContextBuilder and XPBarContextBuilder.BuildContext then
+		local ctx = XPBarContextBuilder:BuildContext()
 		frame:UpdateVisuals(ctx)
 	end
 
@@ -454,8 +454,8 @@ local function CreateVerticalTestBar(config)
 	frame:Show()
 
 	-- Force initial visuals if context builder exists
-	if frame.UpdateVisuals and XPBarContextBuilder and XPBarContextBuilder.BuildXPChangeContext then
-		local ctx = XPBarContextBuilder:BuildXPChangeContext()
+	if frame.UpdateVisuals and XPBarContextBuilder and XPBarContextBuilder.BuildContext then
+		local ctx = XPBarContextBuilder:BuildContext()
 		frame:UpdateVisuals(ctx)
 	end
 

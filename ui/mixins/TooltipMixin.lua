@@ -30,10 +30,25 @@ local function GetGlobalDB()
 end
 
 function TooltipMixin:FormatNumber(n)
-	if not n then
-		return "0"
-	end
-	return BreakUpLargeNumbers(tonumber(n) or 0)
+    if not n then
+        return "0"
+    end
+    return BreakUpLargeNumbers(tonumber(n) or 0)
+end
+
+-- Add a compact formatter for k/M style abbreviations
+function TooltipMixin:FormatAbbrevNumber(n)
+    if not n then
+        return "0"
+    end
+    local num = tonumber(n) or 0
+    if num >= 1000000 then
+        return string.format("%.1fM", num / 1000000)
+    elseif num >= 1000 then
+        return string.format("%.1fk", num / 1000)
+    else
+        return tostring(num)
+    end
 end
 
 function TooltipMixin:FormatTime(seconds)
@@ -107,9 +122,9 @@ end
 -------------------------------------------------------------------
 
 -- Add XP / percent lines to content.lines
-function TooltipMixin:AddXPSection(content, ctx, cfg)
-	local currentXP = tonumber(ctx.currentXP) or 0
-	local maxXP = tonumber(ctx.xpMax) or 1
+function TooltipMixin:AddXPSection(content, context, cfg)
+	local currentXP = tonumber(context.currentXP) or 0
+	local maxXP = tonumber(context.xpMax) or 1
 	local xpPercent = 0
 	if maxXP > 0 then
 		xpPercent = (currentXP / maxXP) * 100
@@ -119,7 +134,7 @@ function TooltipMixin:AddXPSection(content, ctx, cfg)
 	local leftR, leftG, leftB = 0.7, 0.7, 0.7
 	local rightR, rightG, rightB = 1, 1, 1
 	if XPBarColors and Color and XPBarColors.GetUserColor then
-		local hasRestedXP = ctx and (ctx.hasRestedXP or (ctx.restedXP and ctx.restedXP > 0))
+		local hasRestedXP = context and (context.hasRestedXP or (context.restedXP and context.restedXP > 0))
 		local key = hasRestedXP and Color.XpBarRested or Color.XpBar
 		local c = (XPBarColors and XPBarColors.GetUserColor) and XPBarColors:GetUserColor(key) or nil
 		if c then
@@ -163,13 +178,13 @@ function TooltipMixin:AddXPSection(content, ctx, cfg)
 end
 
 -- Rested
-function TooltipMixin:AddRestedSection(content, ctx, cfg)
-	local restedXP = tonumber(ctx.restedXP) or 0
+function TooltipMixin:AddRestedSection(content, context, cfg)
+	local restedXP = tonumber(context.restedXP) or 0
 	if restedXP <= 0 then
 		return
 	end
 
-	local maxXP = tonumber(ctx.xpMax) or 1
+	local maxXP = tonumber(context.xpMax) or 1
 	local restedPercent = 0
 	if maxXP > 0 then
 		restedPercent = (restedXP / maxXP) * 100
@@ -200,141 +215,119 @@ function TooltipMixin:AddRestedSection(content, ctx, cfg)
 	)
 end
 
--- Quest section: totals for complete/incomplete and optionally per-quest lines
-function TooltipMixin:AddQuestSection(content, ctx, cfg)
-	-- If global or bar config disables quest tooltip, skip
-	local global = GetGlobalDB()
-	if (cfg and cfg.showQuestXP == false) or (global.showQuestXP == false) then
-		return
-	end
+-- Quest section: totals for complete/incomplete (context-only, no counts, no per-quest listing)
+function TooltipMixin:AddQuestSection(content, context, cfg)
+    -- If global or bar config disables quest tooltip, skip
+    local global = GetGlobalDB()
+    if (cfg and cfg.showQuestXP == false) or (global.showQuestXP == false) then
+        return
+    end
 
-	-- attempt to use QuestXPService if available; otherwise use context fields
-	local totalComplete = ctx.questCompleteXP or 0
-	local totalIncomplete = ctx.questIncompleteXP or 0
-	local completeCount = ctx.questCompleteCount or 0
-	local incompleteCount = ctx.questIncompleteCount or 0
-	local perQuest = ctx.quests -- optional list of {title, xp, isComplete}
+    -- Use only immutable context properties required by the spec
+    local totalComplete = tonumber(context.completeQuestXP) or 0
+    local totalIncomplete = tonumber(context.incompleteQuestXP) or 0
 
-	if QuestXPService and type(QuestXPService.GetRecentQuests) == "function" and (not perQuest) then
-		-- try to fetch a current snapshot if service exists (call directly when available)
-		local q = QuestXPService:GetRecentQuests()
-		if q then
-			perQuest = q
-		end
-	end
+    -- If there is no quest data to show, skip
+    if totalComplete == 0 and totalIncomplete == 0 then
+        return
+    end
 
-	-- If there is no quest data to show, skip
-	if totalComplete == 0 and totalIncomplete == 0 and (not perQuest or #perQuest == 0) then
-		return
-	end
+    -- header / spacing
+    table.insert(content.lines, " ")
 
-	-- header / spacing
-	table.insert(content.lines, " ")
+    local leftR, leftG, leftB = 0.7, 0.7, 0.7
+    local xpMax = tonumber(context.xpMax) or 0
 
-	local leftR, leftG, leftB = 0.7, 0.7, 0.7
+    -- Determine user preference for abbreviated numbers using the context-first helper
+    local useAbbrev = (Addon and Addon.ConfigHelper and Addon.ConfigHelper.GetAbbreviateNumbers and Addon.ConfigHelper.GetAbbreviateNumbers(context)) or false
 
-	if totalComplete and totalComplete > 0 then
-		local cR, cG, cB = 0, 1, 0
-		if XPBarColors and Color and XPBarColors.GetUserColor then
-			local c = (XPBarColors and XPBarColors.GetUserColor) and XPBarColors:GetUserColor(Color.QuestComplete) or nil
-			if c then
-				cR, cG, cB = c.r or cR, c.g or cG, c.b or cB
-			end
-		end
-		table.insert(
-			content.lines,
-			{
-				left = L["TT_QUESTS_COMPLETE"] or "Quest XP (Complete):",
-				right = self:FormatNumber(totalComplete) .. (completeCount and (" (" .. tostring(completeCount) .. ")") or ""),
-				leftR = leftR,
-				leftG = leftG,
-				leftB = leftB,
-				rightR = cR,
-				rightG = cG,
-				rightB = cB
-			}
-		)
-	end
+    -- Prepare best available abbreviation formatter from workspace helpers
+    local abbrevFn
+    if Addon and Addon.Utils and Addon.Utils.ShortNumber then
+        abbrevFn = Addon.Utils.ShortNumber
+    elseif Addon and Addon.XPBar and Addon.XPBar.AbbreviateNumber then
+        abbrevFn = function(v) return Addon.XPBar:AbbreviateNumber(v) end
+    else
+        abbrevFn = function(v) return BreakUpLargeNumbers(tonumber(v) or 0) end
+    end
 
-	if totalIncomplete and totalIncomplete > 0 then
-		local cR, cG, cB = 1, 0.8, 0
-		if XPBarColors and Color and XPBarColors.GetUserColor then
-			local c = (XPBarColors and XPBarColors.GetUserColor) and XPBarColors:GetUserColor(Color.QuestIncomplete) or nil
-			if c then
-				cR, cG, cB = c.r or cR, c.g or cG, c.b or cB
-			end
-		end
-		table.insert(
-			content.lines,
-			{
-				left = L["TT_QUESTS_INCOMPLETE"] or "Quest XP (Incomplete):",
-				right = self:FormatNumber(totalIncomplete) .. (incompleteCount and (" (" .. tostring(incompleteCount) .. ")") or ""),
-				leftR = leftR,
-				leftG = leftG,
-				leftB = leftB,
-				rightR = cR,
-				rightG = cG,
-				rightB = cB
-			}
-		)
-	end
+    if totalComplete and totalComplete > 0 then
+        local cR, cG, cB = 0, 1, 0
+        if XPBarColors and Color and XPBarColors.GetUserColor then
+            local c = (XPBarColors and XPBarColors.GetUserColor) and XPBarColors:GetUserColor(Color.QuestComplete) or nil
+            if c then
+                cR, cG, cB = c.r or cR, c.g or cG, c.b or cB
+            end
+        end
 
-	-- optionally list per-quest breakdown if requested by config
-	local showPerQuest = (cfg and cfg.showQuestList) or GetGlobalDB().showQuestList
-	if perQuest and showPerQuest then
-		for _, q in ipairs(perQuest) do
-			if q and (q.xp and q.title) then
-				local rightText = self:FormatNumber(q.xp)
-				if cfg and cfg.showQuestPercent then
-					local maxXP = ctx.xpMax or 1
-					if maxXP > 0 then
-						local pct = (q.xp / maxXP) * 100
-						rightText = string.format("%s (%.1f%%)", rightText, pct)
-					end
-				end
-				local leftColorR, leftColorG, leftColorB = 0.7, 0.7, 0.7
-				local rightColorR, rightColorG, rightColorB = 1, 1, 1
-				if q.isComplete then
-					if XPBarColors and Color and XPBarColors.GetUserColor then
-						local c = (XPBarColors and XPBarColors.GetUserColor) and XPBarColors:GetUserColor(Color.QuestComplete) or nil
-						if c then
-							rightColorR, rightColorG, rightColorB = c.r or rightColorR, c.g or rightColorG, c.b or rightColorB
-						end
-					else
-						rightColorR, rightColorG, rightColorB = 0, 1, 0
-					end
-				else
-					if XPBarColors and Color and XPBarColors.GetUserColor then
-						local c = (XPBarColors and XPBarColors.GetUserColor) and XPBarColors:GetUserColor(Color.QuestIncomplete) or nil
-						if c then
-							rightColorR, rightColorG, rightColorB = c.r or rightColorR, c.g or rightColorG, c.b or rightColorB
-						end
-					else
-						rightColorR, rightColorG, rightColorB = 1, 1, 0
-					end
-				end
-				table.insert(
-					content.lines,
-					{
-						left = q.title,
-						right = rightText,
-						leftR = leftColorR,
-						leftG = leftColorG,
-						leftB = leftColorB,
-						rightR = rightColorR,
-						rightG = rightColorG,
-						rightB = rightColorB
-					}
-				)
-			end
-		end
-	end
+        local amountText
+        if useAbbrev then
+            amountText = abbrevFn(totalComplete)
+        else
+            amountText = self:FormatNumber(totalComplete)
+        end
+
+        if xpMax and xpMax > 0 then
+            local pct = (totalComplete / xpMax) * 100
+            amountText = string.format("%s (%.1f%%)", amountText, pct)
+        end
+
+        table.insert(
+            content.lines,
+            {
+                left = L["TT_QUESTS_COMPLETE"] or "Quest XP (Complete):",
+                right = amountText,
+                leftR = leftR,
+                leftG = leftG,
+                leftB = leftB,
+                rightR = cR,
+                rightG = cG,
+                rightB = cB
+            }
+        )
+    end
+
+    if totalIncomplete and totalIncomplete > 0 then
+        local cR, cG, cB = 1, 0.8, 0
+        if XPBarColors and Color and XPBarColors.GetUserColor then
+            local c = (XPBarColors and XPBarColors.GetUserColor) and XPBarColors:GetUserColor(Color.QuestIncomplete) or nil
+            if c then
+                cR, cG, cB = c.r or cR, c.g or cG, c.b or cB
+            end
+        end
+
+        local amountText
+        if useAbbrev then
+            amountText = abbrevFn(totalIncomplete)
+        else
+            amountText = self:FormatNumber(totalIncomplete)
+        end
+
+        if xpMax and xpMax > 0 then
+            local pct = (totalIncomplete / xpMax) * 100
+            amountText = string.format("%s (%.1f%%)", amountText, pct)
+        end
+
+        table.insert(
+            content.lines,
+            {
+                left = L["TT_QUESTS_INCOMPLETE"] or "Quest XP (Incomplete):",
+                right = amountText,
+                leftR = leftR,
+                leftG = leftG,
+                leftB = leftB,
+                rightR = cR,
+                rightG = cG,
+                rightB = cB
+            }
+        )
+    end
 end
 
 -- Session section: multiple rules/thresholds like classic implementation
-function TooltipMixin:AddSessionSection(content, ctx, cfg)
-	local sessionXP = ctx.sessionXP or 0
-	local sessionStart = ctx.sessionStart or nil
+function TooltipMixin:AddSessionSection(content, context, cfg)
+	local sessionXP = context.sessionXP or 0
+	local sessionStart = context.sessionStart or nil
 
 	-- check explicit per-bar or global enable/disable
 	local global = GetGlobalDB()
@@ -382,11 +375,11 @@ function TooltipMixin:AddSessionSection(content, ctx, cfg)
 	)
 
 	-- XP/hour: calculate either from context or via helper, fallback safe
-	local xpPerHour = ctx.xpPerHour
+	local xpPerHour = context.xpPerHour
 	if (not xpPerHour) and sessionStart and sessionXP then
 		if XPBarContextBuilder and type(XPBarContextBuilder.CalculateXPPerHour) == "function" then
 			-- Call directly; rely on existence checks rather than pcall
-			local val = XPBarContextBuilder:CalculateXPPerHour(sessionStart, sessionXP, 0, ctx.currentXP or 0)
+			local val = XPBarContextBuilder:CalculateXPPerHour(sessionStart, sessionXP, 0, context.currentXP or 0)
 			if tonumber(val) then
 				xpPerHour = tonumber(val)
 			end
@@ -413,10 +406,10 @@ function TooltipMixin:AddSessionSection(content, ctx, cfg)
 			}
 		)
 		-- time-to-level if available
-		local timeToLevel = ctx.timeToLevel
+		local timeToLevel = context.timeToLevel
 		if (not timeToLevel) and xpPerHour and xpPerHour > 0 then
-			local currentXP = tonumber(ctx.currentXP) or 0
-			local maxXP = tonumber(ctx.xpMax) or 1
+			local currentXP = tonumber(context.currentXP) or 0
+			local maxXP = tonumber(context.xpMax) or 1
 			local remaining = maxXP - currentXP
 			if remaining > 0 then
 				timeToLevel = math.floor((remaining / xpPerHour) * 3600)
@@ -441,7 +434,7 @@ function TooltipMixin:AddSessionSection(content, ctx, cfg)
 end
 
 -- final hints section (classic displayed help/hints)
-function TooltipMixin:AddHintSection(content, ctx, cfg)
+function TooltipMixin:AddHintSection(content, context, cfg)
 	local global = GetGlobalDB()
 	if (cfg and cfg.showHints == false) or (global.showHints == false) then
 		return
@@ -449,7 +442,7 @@ function TooltipMixin:AddHintSection(content, ctx, cfg)
 
 	-- Generate hint text based on bar capabilities
 	local hintText = self:GetHintText()
-	
+
 	if hintText and hintText ~= "" then
 		table.insert(content.lines, " ")
 		table.insert(content.lines, hintText)
@@ -460,28 +453,28 @@ end
 -- Returns appropriate hint based on position mode and interaction config
 function TooltipMixin:GetHintText()
 	local L = XPBarEnhanced and XPBarEnhanced.L or {}
-	
+
 	-- Check position mode
 	local isDraggable = false
 	if self.GetPositionMode then
 		local positionMode = self:GetPositionMode()
 		isDraggable = (positionMode == "DRAGGABLE")
 	end
-	
+
 	-- Build hint parts
 	local hints = {}
-	
+
 	-- Drag hint (if draggable)
 	if isDraggable then
 		table.insert(hints, L["TT_HINT_DRAG"] or "Shift+Drag to move")
 	end
-	
+
 	-- Alt+Click to open options
 	table.insert(hints, L["TT_HINT_ALT_OPTIONS"] or "Alt+Click for options")
-	
+
 	-- Ctrl+Click to toggle stats
 	table.insert(hints, L["TT_HINT_CTRL_STATS"] or "Ctrl+Click to toggle stats")
-	
+
 	-- Join with line breaks
 	return table.concat(hints, "\n")
 end
@@ -497,7 +490,7 @@ function TooltipMixin:OnEnter()
 	if not self:IsMouseOver() then
 		return
 	end
-	
+
 	local config = self.__xpbar_config or {}
 	local tooltipConfig = config.tooltip or {}
 	local global = GetGlobalDB()
@@ -511,35 +504,28 @@ function TooltipMixin:OnEnter()
 	end
 
 	-- Build the context (try centralized builder, fall back to services/context on self)
-	local ctx = nil
-	-- Prefer a centralized context builder exposed via self:GetContext (call directly if available)
-	if type(self.GetContext) == "function" then
-		ctx = self:GetContext()
-	else
-		-- gracefully fallback: try to build simple context from self fields or services
-		ctx = ctx or {}
-		ctx.currentXP = (self and self.currentXP) or ctx.currentXP or 0
-		ctx.xpMax = (self and self.xpMax) or ctx.xpMax or 1
-		ctx.level = (self and self.level) or ctx.level or 1
-		-- attempt to populate session/quest from services if available
-		if SessionService and type(SessionService.GetSession) == "function" then
-			local s = SessionService:GetSession()
-			if s then
-				ctx.sessionXP = ctx.sessionXP or s.gainedXP
-				ctx.sessionStart = ctx.sessionStart or s.startTime
-			end
-		end
-		if QuestXPService and type(QuestXPService.GetQuestTotals) == "function" then
-			local q = QuestXPService:GetQuestTotals()
-			if q then
-				ctx.questCompleteXP = ctx.questCompleteXP or q.completeXP
-				ctx.questIncompleteXP = ctx.questIncompleteXP or q.incompleteXP
-				ctx.questCompleteCount = ctx.questCompleteCount or q.completeCount
-				ctx.questIncompleteCount = ctx.questIncompleteCount or q.incompleteCount
-				ctx.quests = ctx.quests or q.quests
-			end
-		end
-	end
+	local context = XPBarContextBuilder:BuildContext("TOOLTIP")
+	-- context.currentXP = (self and self.currentXP) or context.currentXP or 0
+	-- context.xpMax = (self and self.xpMax) or context.xpMax or 1
+	-- context.level = (self and self.level) or context.level or 1
+	-- -- attempt to populate session/quest from services if available
+	-- if SessionService and type(SessionService.GetSession) == "function" then
+	-- 	local s = SessionService:GetSession()
+	-- 	if s then
+	-- 		context.sessionXP = context.sessionXP or s.gainedXP
+	-- 		context.sessionStart = context.sessionStart or s.startTime
+	-- 	end
+	-- end
+	-- if QuestXPService and type(QuestXPService.GetQuestTotals) == "function" then
+	-- 	local q = QuestXPService:GetQuestTotals()
+	-- 	if q then
+	-- 		context.questCompleteXP = context.questCompleteXP or q.completeXP
+	-- 		context.questIncompleteXP = context.questIncompleteXP or q.incompleteXP
+	-- 		context.questCompleteCount = context.questCompleteCount or q.completeCount
+	-- 		context.questIncompleteCount = context.questIncompleteCount or q.incompleteCount
+	-- 		context.quests = context.quests or q.quests
+	-- 	end
+	-- end
 
 	-- If there's an explicit per-bar toggle to disable tooltip content, return
 	if tooltipConfig.enabled == false then
@@ -547,16 +533,16 @@ function TooltipMixin:OnEnter()
 	end
 
 	-- Build content using unified API that preserves section parity
-	local content = {title = string.format(L["TT_LEVEL_FMT"] or "Level %d", tonumber(ctx.level) or 1), lines = {}}
+	local content = {title = string.format(L["TT_LEVEL_FMT"] or "Level %d", tonumber(context.level) or 1), lines = {}}
 
 	-- XP / remaining
-	self:AddXPSection(content, ctx, tooltipConfig)
+	self:AddXPSection(content, context, tooltipConfig)
 
 	-- Rested
-	self:AddRestedSection(content, ctx, tooltipConfig)
+	self:AddRestedSection(content, context, tooltipConfig)
 
 	-- Resting status
-	if ctx.isResting then
+	if context.isResting then
 		table.insert(content.lines, " ")
 		table.insert(
 			content.lines,
@@ -574,13 +560,13 @@ function TooltipMixin:OnEnter()
 	end
 
 	-- Quest section
-	self:AddQuestSection(content, ctx, tooltipConfig)
+	self:AddQuestSection(content, context, tooltipConfig)
 
 	-- Session stats
-	self:AddSessionSection(content, ctx, tooltipConfig)
+	self:AddSessionSection(content, context, tooltipConfig)
 
 	-- Hints
-	self:AddHintSection(content, ctx, tooltipConfig)
+	self:AddHintSection(content, context, tooltipConfig)
 
 	-- If no content lines and user opted not to show an empty tooltip, return
 	if not content.lines or #content.lines == 0 then
@@ -633,52 +619,37 @@ end
 --- Get tooltip content (can be overridden by styles or config)
 ---@return table|nil content Tooltip content structure
 function TooltipMixin:GetTooltipContent()
-	-- Try to obtain a centralized context first (call directly if available)
-	local ctx = nil
-	if type(self.GetContext) == "function" then
-		ctx = self:GetContext()
-	end
-	if ctx and type(ctx) == "table" then
-		-- build content like classic did (use helper builders)
-		local content = {title = string.format(L["TT_LEVEL_FMT"] or "Level %d", tonumber(c.level) or 1), lines = {}}
-		self:AddXPSection(content, c, self.__xpbar_config and self.__xpbar_config.tooltip)
-		self:AddRestedSection(content, c, self.__xpbar_config and self.__xpbar_config.tooltip)
-		if c.isResting then
-			table.insert(content.lines, " ")
-			table.insert(
-				content.lines,
-				{
-					left = L["TT_STATUS"] or "Status:",
-					right = L["TT_RESTING"] or "Resting",
-					leftR = 0.7,
-					leftG = 0.7,
-					leftB = 0.7,
-					rightR = 0,
-					rightG = 1,
-					rightB = 0
-				}
-			)
-		end
-		self:AddQuestSection(content, c, self.__xpbar_config and self.__xpbar_config.tooltip)
-		self:AddSessionSection(content, c, self.__xpbar_config and self.__xpbar_config.tooltip)
-		self:AddHintSection(content, c, self.__xpbar_config and self.__xpbar_config.tooltip)
-		return content
-	end
+    -- Try to obtain a centralized context first (call directly if available)
+    local context = XPBarContextBuilder:BuildContext("TOOLTIP")
+    if context and type(context) == "table" then
+        -- build content like classic did (use helper builders)
+        local content = {title = string.format(L["TT_LEVEL_FMT"] or "Level %d", tonumber(context.level) or 1), lines = {}}
+        self:AddXPSection(content, context, self.__xpbar_config and self.__xpbar_config.tooltip)
+        self:AddRestedSection(content, context, self.__xpbar_config and self.__xpbar_config.tooltip)
+        if context.isResting then
+            table.insert(content.lines, " ")
+            table.insert(
+                content.lines,
+                {
+                    left = L["TT_STATUS"] or "Status:",
+                    right = L["TT_RESTING"] or "Resting",
+                    leftR = 0.7,
+                    leftG = 0.7,
+                    leftB = 0.7,
+                    rightR = 0,
+                    rightG = 1,
+                    rightB = 0
+                }
+            )
+        end
+        self:AddQuestSection(content, context, self.__xpbar_config and self.__xpbar_config.tooltip)
+        self:AddSessionSection(content, context, self.__xpbar_config and self.__xpbar_config.tooltip)
+        self:AddHintSection(content, context, self.__xpbar_config and self.__xpbar_config.tooltip)
+        return content
+    end
 
-	-- fallback: nil to let OnEnter attempt its own fallback
-	return nil
-end
-
---- Retrieve a centralized context for this bar using XPBarContextBuilder when available.
---- Returns a table with fields used for tooltip construction, or nil.
-function TooltipMixin:GetContext()
-	-- Prefer centralized context builder if available
-	if XPBarContextBuilder and XPBarContextBuilder.BuildTooltipContext then
-		return XPBarContextBuilder:BuildTooltipContext()
-	end
-
-	-- if builder missing, do not error here — return nil to allow fallbacks
-	return nil
+    -- fallback: nil to let OnEnter attempt its own fallback
+    return nil
 end
 
 return TooltipMixin

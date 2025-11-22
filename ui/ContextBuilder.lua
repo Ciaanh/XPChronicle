@@ -458,27 +458,6 @@ function ContextBuilder.BuildContext(event, ...)
     return ContextBuilder.MakeImmutable(eventContext, coreContext)
 end
 
--- Replace the specific builders with delegating wrappers for compatibility
-function ContextBuilder.BuildXPChangeContext(event, ...)
-    return ContextBuilder.BuildContext(event, ...)
-end
-
-function ContextBuilder.BuildLevelUpContext(event, newLevel)
-    return ContextBuilder.BuildContext(event, newLevel)
-end
-
-function ContextBuilder.BuildRestedContext(event, ...)
-    return ContextBuilder.BuildContext(event, ...)
-end
-
-function ContextBuilder.BuildQuestContext(event, ...)
-    return ContextBuilder.BuildContext(event, ...)
-end
-
-function ContextBuilder.BuildTooltipContext()
-    return ContextBuilder.BuildContext("TOOLTIP")
-end
-
 -------------------------------------------------------------------
 -- SESSION CALCULATION METHODS
 -------------------------------------------------------------------

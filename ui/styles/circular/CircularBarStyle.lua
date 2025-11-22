@@ -326,7 +326,7 @@ function CircularBarStyleTemplate:Refresh()
         return
     end
 
-    local context = XPBarContextBuilder.BuildXPChangeContext("MANUAL_REFRESH")
+    local context = XPBarContextBuilder.BuildContext("MANUAL_REFRESH")
 
     if not context then
         return
@@ -348,11 +348,6 @@ function CircularBarStyleTemplate:FullUpdate(context)
         return
     end
     self._isUpdating = true
-
-    -- Use provided context or build fresh one
-    if not context then
-        context = XPBarContextBuilder.BuildXPChangeContext("FULL_UPDATE")
-    end
 
     -- Trigger bar refresh through orchestration layer
     -- RenderBar will update overlays, so we don't do it here (no duplication)
