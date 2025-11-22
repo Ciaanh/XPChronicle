@@ -15,7 +15,7 @@ This document outlines a structured, staged migration plan to change the archite
 
 - Files & modules in scope:
   - Core: `XPBarEnhanced.lua` (global init & events)
-  - Session service: (new file under `core/Session.lua` or similar)
+  - Session service: (use file under `core/Session.lua`)
   - Context builder: `ui/ContextBuilder.lua` (to ingest session data via API)
   - New canonical styles: `ui/styles/*` (Flat, Classic, Circular, Vertical, etc.)
   - Legacy styles to archive: `ui/xpbar/*` under `ui/xpbar/styles` (FlatXPBarMixin, ClassicXPBarMixin, etc.)

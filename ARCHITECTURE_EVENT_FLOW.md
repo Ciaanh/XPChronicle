@@ -1,4 +1,4 @@
-# XPChronicle / XPBarEnhanced - Architecture & Event Flow
+# XPBarEnhanced - Architecture & Event Flow
 
 This document describes the current architecture of the XPBarEnhanced addon and provides a detailed, step-by-step event flow (with files and functions) for the main AddOn lifecycle events and visual update flows. The aim is to make it easier to remove duplicate code, simplify the structure, and prepare a safe release.
 
