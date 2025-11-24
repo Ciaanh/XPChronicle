@@ -6,11 +6,6 @@ This document describes the current architecture of the XPBarEnhanced addon and 
 
 ## Summary
 
-- The addon currently has several overlapping systems for event handling and animation: a centralized controller (`ui/xpbar/XPBar.lua`) that handles XP events and broadcasts to registered observers; a top-level AddOn event dispatcher (`XPBarEnhanced.lua`) which also delegates core events; and per-frame mixin-based event registration (via `ui/mixins/BaseMixin.lua` and `ui/xpbar/XPBarMixinBase.lua`).
-- Duplicate event registration (especially `PLAYER_XP_UPDATE`) occurs at multiple places and can cause double updates/animations.
-- Two animation drivers exist: `Addon.AnimationManager` (animation manager) and a legacy `Addon._AnimationDriver` which is still used by `ui/xpbar/XPBarMixinBase.lua`.
-- There are two base mixins in the codebase with overlapping responsibilities: `XPBarMixinBase` (global, `ui/mixins/BaseMixin.lua`) and `XPBarMixinBase` (local to `ui/xpbar/XPBarMixinBase.lua`). This leads to duplicate implementations and confusion about which one style mixins actually use.
-- The goal for the upcoming release is to standardize the event flow on a single approach (the observer pattern + centralized controller) and use a single, unified animation manager.
 
 ---
 
@@ -19,12 +14,12 @@ This document describes the current architecture of the XPBarEnhanced addon and 
 - Core AddOn manager: `XPBarEnhanced.lua`
   - Registers top-level events and maps them to `eventHandlers`.
   - Handles `ADDON_LOADED`, `PLAYER_LOGIN`, and other core events.
-  - Delegates to `Addon.XPBar` (controller) and `Addon.Session` etc.
+  - Delegates to `Addon.BarManager` (canonical UI manager/controller) and `Addon.Session` etc. Legacy `Addon.XPBar` calls are kept only in `core/XPBarShim.lua` for compatibility.
 
 - XP controller: `ui/xpbar/XPBar.lua` (module `XPBar`)
   - Centralized controller for XP display.
   - Registers an XP event frame (`RegisterXPEvents`) to handle `PLAYER_XP_UPDATE`, `PLAYER_LEVEL_UP`, `UPDATE_EXHAUSTION` etc.
-  - Provides `RegisterObserver/UnregisterObserver` and `BroadcastUpdate(context)` for observers (views).
+  - Provides `BroadcastUpdate(context)` for compatibility; the canonical pub/sub mechanism is `Addon.EventBus` with event names from `core/EventNames.lua` (e.g., `Addon.EventBus:Emit(Addon.EventNames.XPBAR_BROADCAST_UPDATE, ctx)` and `Addon.EventBus:Register(Addon.EventNames.XPBAR_BROADCAST_UPDATE, id, handler)`).
   - Manages quest event caching (`RegisterQuestEvents`) and periodic updates (via `C_Timer.NewTicker`).
   - Maintains `currentView` compatibility for legacy single-view behavior while broadcasting updates to observers.
 
@@ -46,13 +41,24 @@ This document describes the current architecture of the XPBarEnhanced addon and 
   - Each style is implemented as a mixin (e.g., `FlatXPBarMixin`, `ClassicXPBarMixin`, `CircularXPBarMixin`). They inherit from a base mixin and animation/visual mixins.
 
 - Test harness & dev helpers: `ui/test.lua`
+  - Bar Manager: `ui/BarManager.lua` — new manager that creates/initializes the selected style frame, handles showing/hiding style frames, and applies `hideBlizzardBar` visibility logic by default. It exposes `SetStyle` and `GetCurrentStyle` and is intended to be the canonical place for style lifecycle management.
   - Provides Slash commands and test frame generation for debugging (create/destroy test frames, simulate flashes, etc.).
 
+
+## Event Names & EventBus (Canonical)
+
+- `core/EventNames.lua` exposes canonical event names for the addon and is available at `Addon.EventNames`.
+- Use `Addon.EventBus` for publish/subscribe event handling and `Addon.EventNames` for string constants. Examples:
+  - `Addon.EventBus:Emit(Addon.EventNames.XPBAR_BROADCAST_UPDATE, context)` — broadcast update for XPBar views
+  - `Addon.EventBus:Register(Addon.EventNames.CONFIG_UPDATED, id, configHandler)` — subscribe to fine-grained config changes
+  - `Addon.EventBus:Emit(Addon.EventNames.QUESTS_CACHE_INVALIDATED, ctx)` — quest cache invalidation
+
+Using `EventNames` avoids duplicate string literals in code and documentation and ensures there's one source of truth for domain events.
 ---
 
 ## Event Registration Map (who registers which events)
 
-- `XPBarEnhanced.lua` (global event frame, lines ~150..250): registers events: `ADDON_LOADED`, `PLAYER_LOGIN`, `PLAYER_ENTERING_WORLD`, `PLAYER_XP_UPDATE`, `PLAYER_LEVEL_UP`, `UPDATE_EXHAUSTION`, `PLAYER_UPDATE_RESTING`, `TIME_PLAYED_MSG`, and many others. It maps them to `eventHandlers.*`.
+-- `XPBarEnhanced.lua` (global event frame, lines ~150..250): **now limited** to lifecycle events such as `ADDON_LOADED`, `PLAYER_LOGIN`, `PLAYER_ENTERING_WORLD` and `PLAYER_LOGOUT` and maps them to `eventHandlers.*`. Module-specific events (e.g., XP events) are registered by the module that owns them (for example, `XPBar:RegisterXPEvents()` handles `PLAYER_XP_UPDATE`, `PLAYER_LEVEL_UP`, and `UPDATE_EXHAUSTION`).
 
 - `XPBar:RegisterXPEvents()` (ui/xpbar/XPBar.lua: ~975..1006): creates `self.xpEventFrame` and registers `PLAYER_XP_UPDATE`, `PLAYER_LEVEL_UP`, `UPDATE_EXHAUSTION`, `PLAYER_ENTERING_WORLD` for controller-centric handling (calls `XPBar:HandleXPUpdate`, `XPBar:OnLevelUp`, etc.).
 
@@ -90,7 +96,7 @@ Below, each event is broken down with the call sequence and the specific files/f
 1. WoW fires `PLAYER_LOGIN`.
 2. `XPBarEnhanced.lua` event handler `OnPlayerLogin` executes:
    - `Addon.Session:Initialize()`
-   - `Addon.XPBar:Initialize()` ---> See `XPBar:Initialize()` below
+  - `Addon.BarManager:Initialize()` ---> See `BarManager:Initialize()` below
    - `Addon.Stats:Initialize()`
    - `Addon.Options:Initialize()`
 
@@ -100,7 +106,7 @@ Below, each event is broken down with the call sequence and the specific files/f
      - Calls `StartPeriodicUpdates()` (interval text updates for XP rate / session text)
      - Calls `RegisterQuestEvents()` to create `questEventFrame` and register `QUEST_*` events
      - Loads saved `Addon.db.barStyle` and calls `SetBarStyle(style, true)` to show the correct style container
-     - Calls `Update()` (which calls `currentView.FullUpdate()` and `BroadcastUpdate()`)
+    - Calls `Update()` (which calls `currentView.FullUpdate()` and emits via `EventBus` using `Addon.EventNames.XPBAR_BROADCAST_UPDATE` for broadcast updates)
 
    - Each style container's `OnLoad()` runs during XML/Factory creation (if created by the template or by style builder):
      - `FlatXPBarContainerMixin:OnLoad` – container init + `FlatXPBarMixin:OnLoad()` calls `self:InitializeState()` and `self:RegisterCommonEvents()` (or `XPBarMixinBase:RegisterCommonEvents`).
@@ -113,7 +119,7 @@ Below, each event is broken down with the call sequence and the specific files/f
 **Two pathways**:
 
 A) Global AddOn pathway (`XPBarEnhanced.lua`):
-   - `eventHandlers:OnPlayerEnteringWorld(isInitialLogin, isReloadingUI)` → `Addon.Session:OnEnteringWorld()`, `Addon.XPBar:OnEnteringWorld(...)` which calls `XPBar:InvalidateQuestCache()` and `XPBar:Update()` if initial login.
+  - `eventHandlers:OnPlayerEnteringWorld(isInitialLogin, isReloadingUI)` → `Addon.Session:OnEnteringWorld()`, `Addon.BarManager:OnEnteringWorld(...)` or `Addon.EventBus` emit (the controller's `OnEnteringWorld` used to be in the legacy XPBar) which invalidates quest cache and triggers updates as necessary.
 
 B) `XPBar` XP event frame pathway (`XPBar:RegisterXPEvents`):
    - `xpEventFrame.OnEvent` sees `PLAYER_ENTERING_WORLD` → sets `Addon._lastKnownXP` and `Addon._lastKnownLevel` to `UnitXP('player')` and `UnitLevel('player')` so the immediate next XP gain animation has a proper `xpBefore` snapshot.
@@ -127,10 +133,10 @@ This event is **registered/handled** in multiple locations. Sequence summary:
 1. Blizzard triggers `PLAYER_XP_UPDATE`.
 
 2. Global AddOn event frame (`XPBarEnhanced.lua`) `eventHandlers.OnPlayerXPUpdate()` runs:
-   - `Addon.Session:OnXPUpdate()`  (Update session; persistent tracking)
-   - `Addon.XPBar:OnXPUpdate()` → `XPBar:OnXPUpdate` calls `XPBar:Update()` → `XPBar:Update()`:
-     - If `XPBar.currentView` exists, call `currentView:FullUpdate()` (classic single-view compatibility path)
-     - `XPBar:BroadcastUpdate()` — builds context via `XPBarContextBuilder.BuildXPChangeContext("BROADCAST_UPDATE")` and calls `bar:FullUpdate(context)` for every registered observer (including containers created by style builder); observers receive the shared immutable context.
+  - `Addon.Session:OnXPUpdate()` (Update session; persistent tracking)
+  - The controller's `OnXPUpdate` (now handled by `Addon.BarManager`/XPBarController) calls `Update()` and then broadcasts via `Addon.EventBus:Emit(Addon.EventNames.XPBAR_BROADCAST_UPDATE, ctx)` for views to update:
+    - If `XPBar.currentView` exists, call `currentView:FullUpdate()` (classic single-view compatibility path)
+    - `XPBar:BroadcastUpdate()` builds context via `XPBarContextBuilder.BuildXPChangeContext("BROADCAST_UPDATE")` and emits it via `Addon.EventBus:Emit(Addon.EventNames.XPBAR_BROADCAST_UPDATE, context)` so subscribers can `FullUpdate(context)`.
 
 3. Controller XP event frame (`XPBar.xpEventFrame`) `OnEvent` — defined in `XPBar:RegisterXPEvents()` — sees `PLAYER_XP_UPDATE` and calls `XPBar:HandleXPUpdate()` (central animation path):
    - `XPBar:HandleXPUpdate()` builds a per-gain immutable context using `Addon._lastKnownXP`, `UnitXP('player')`, `UnitXPMax`, `GetXPExhaustion`, and `UnitLevel`; then sets a `context` object with fields: `xpBefore`, `xpAfter`, `xpMax`, `xpGained`, `isLevelUp`, `isRested`, `isFullyRested`, etc.
@@ -154,7 +160,7 @@ Key side effects:
 
 2. Addon event frame (`XPBarEnhanced.lua`) `eventHandlers.OnPlayerLevelUp(level)` is called:
    - `Addon.Session:OnLevelUp(level)`
-   - `Addon.XPBar:OnLevelUp(level)` → `XPBar:OnLevelUp()` which invalidates quest cache and calls `self:Update()` (same as `OnXPUpdate` update-path).
+  - `Addon.BarManager`/`XPBarController` `OnLevelUp(level)` → invalidates quest cache and triggers `self:Update()` (same as `OnXPUpdate` update-path).
 
 3. Controller `xpEventFrame` sees `PLAYER_LEVEL_UP` and triggers `XPBar:OnLevelUp(level)` as well.
 
@@ -192,7 +198,7 @@ Recommendation: Use controller-only quest event handling for global updates and 
 - During `OnLoad()` of each style container:
   - It hides the container until `XPBar` controller calls `SetBarStyle` to show it.
   - Mixins call `InitializeState()` or `InitializeAnimation` and `RegisterCommonEvents()`.
-  - `BaseMixin.OnLoad()` registers the frame with `Addon.XPBar:RegisterObserver` (observed by BroadcastUpdate).
+  - `BaseMixin.OnLoad()` subscribes to the `EventBus` with `Addon.EventBus:Register(Addon.EventNames.XPBAR_BROADCAST_UPDATE, observerId, handler)`. Legacy `Addon.XPBar:RegisterObserver` calls are deprecated — the `core/XPBarShim.lua` continues to provide a compatibility surface that proxies to `EventBus` and `BarManager`.
   - Styles call `FullUpdate` or `Refresh()` to initialize visuals.
 - `OnShow()` and `OnHide()` manage timers, event registration, and `UnsubscribeFromEvents` or `CleanupTimers`.
 
@@ -211,7 +217,7 @@ Recommendation: Use controller-only quest event handling for global updates and 
 ## Duplication hotspots and recommended cleanup steps
 
 1. Duplicate `PLAYER_XP_UPDATE` handling
-   - Remove `PLAYER_XP_UPDATE` from the global per-view registration (i.e., ensure `ui/mixins/BaseMixin:RegisterCommonEvents()` does not register it). Use the controller `XPBar:RegisterXPEvents()` + central `XPBar:HandleXPUpdate()` + `BroadcastUpdate(context)` path instead.
+  - Remove `PLAYER_XP_UPDATE` from the global per-view registration (i.e., ensure `ui/mixins/BaseMixin:RegisterCommonEvents()` does not register it). Use the controller `XPBar:RegisterXPEvents()` + central `XPBar:HandleXPUpdate()` + `Addon.EventBus:Emit(Addon.EventNames.XPBAR_BROADCAST_UPDATE, context)` for broadcast updates, or prefer per-style `PLAYER_XP_UPDATE` with `EventBus` to publish the update.
    - Keep `Addon.eventFrame` top-level mapping if it is needed for session-level operations, but ensure `XPBar:OnXPUpdate()` doesn't trigger the same animation path (or remove `XPBar:OnXPUpdate()` and handle Update only via handle xp event; or make `OnXPUpdate()` simply call `BroadcastUpdate` and `HandleXPUpdate()` once). Prefer `XPBar:HandleXPUpdate()` as the single path for building immutable animation contexts and playing animations; use `BroadcastUpdate` for non-animated broadcast updates (full updates).
 
 2. Base mixin duplication (`ui/mixins/BaseMixin.lua` vs `ui/xpbar/XPBarMixinBase.lua`)
@@ -272,16 +278,16 @@ Step 6: Re-run test harness (manual) and verify the following:
 
 ## Appendix: Quick reference (files & key functions)
 
-- `XPBarEnhanced.lua` — top-level event mapping / `eventHandlers` calls to `Addon.XPBar.*`
+-- `XPBarEnhanced.lua` — top-level event mapping / `eventHandlers` now call `Addon.BarManager` and/or publish to `Addon.EventBus` rather than directly calling `Addon.XPBar.*`.
   - `eventHandlers:OnAddonLoaded()`
-  - `eventHandlers:OnPlayerLogin()` -> `Addon.XPBar:Initialize()`
-  - `eventHandlers:OnPlayerXPUpdate()` -> `Addon.XPBar:OnXPUpdate()` (calls `Update()`)
+  - `eventHandlers:OnPlayerLogin()` -> `Addon.BarManager:Initialize()`
+  - `eventHandlers:OnPlayerXPUpdate()` -> `Addon.BarManager` or `Addon.EventBus` handlers — `OnXPUpdate()` is handled by `BarManager`/controller and the update is broadcast with `Addon.EventBus:Emit(Addon.EventNames.XPBAR_BROADCAST_UPDATE, context)`.
 
 - `ui/xpbar/XPBar.lua` — main controller
   - `XPBar:RegisterXPEvents()` - creates `xpEventFrame`: listens for `PLAYER_XP_UPDATE`, `PLAYER_LEVEL_UP`, `UPDATE_EXHAUSTION`, `PLAYER_ENTERING_WORLD` and runs `HandleXPUpdate` and related handlers
   - `XPBar:HandleXPUpdate()` - central animation path (builds immutable `context` and calls `activeView.Animator...`)
-  - `XPBar:BroadcastUpdate(context)` - builds context and calls `bar:FullUpdate(context)` on registered observers
-  - `XPBar:RegisterObserver()`/`UnregisterObserver()` - observer pattern
+  - `XPBar:BroadcastUpdate(context)` - builds context and emits it via `Addon.EventBus:Emit(Addon.EventNames.XPBAR_BROADCAST_UPDATE, context)` so subscribers receive the context and `FullUpdate(context)` call can be made.
+  - `Addon.EventBus` is the preferred mechanism for subscribing/publishing updates (`Addon.EventBus:Register(Addon.EventNames.XPBAR_BROADCAST_UPDATE, id, handler)` / `Addon.EventBus:Unregister(Addon.EventNames.XPBAR_BROADCAST_UPDATE, id)`).
   - `XPBar:RegisterQuestEvents()` - quest events and scheduled updates (0.5s delay)
 
 - `ui/ContextBuilder.lua` — context builder
@@ -294,7 +300,7 @@ Step 6: Re-run test harness (manual) and verify the following:
 
 - `ui/xpbar/XPBarMixinBase.lua` — second specialized base mixin
   - `RegisterCommonEvents()` does not register `PLAYER_XP_UPDATE` (LEGACY comment)
-  - `HandleEvent` updates UI state and defers to `Addon.XPBar` for `PLAYER_XP_UPDATE` if needed
+  - `HandleEvent` updates UI state and now defers to either `Addon.BarManager`'s centralized handler or observes `Addon.EventBus` broadcasts to react to `PLAYER_XP_UPDATE`. Legacy calls to `Addon.XPBar` are no longer used by internal code.
   - `AnimateXPChange(context)` for the central animated path
   - Contains a legacy `_AnimationDriver` implementation (see `InitializeAnimationState()`)
 

@@ -45,6 +45,17 @@ Detailed Steps & Actions
 
 - Phase 0 — Preparation & Tests
 
+## Event Names & EventBus
+
+- Canonical event names for the add-on are centralized in `core/EventNames.lua` (exposed at `Addon.EventNames`). Avoid spreading literal string usages across the codebase and documentation; rely on `EventNames` constants.
+- For publish/subscribe behaviors, prefer `Addon.EventBus` (`Addon.EventBus:Register(Addon.EventNames.XPBAR_BROADCAST_UPDATE, id, handler)` / `Addon.EventBus:Unregister(...)`) and emit via `Addon.EventBus:Emit(Addon.EventNames.XPBAR_BROADCAST_UPDATE, ctx)`. Keep `XPBar:BroadcastUpdate(context)` only as a compatibility shim that calls the corresponding EventBus emit.
+- The most commonly used event names are:
+  - `Addon.EventNames.XPBAR_BROADCAST_UPDATE` — Xpbar broadcast update for full updates and config changes
+  - `Addon.EventNames.CONFIG_UPDATED` — configuration changed; contains keys for fine-grained updates
+  - `Addon.EventNames.COLORS_UPDATED` — color palette updated for visuals
+  - `Addon.EventNames.QUESTS_CACHE_INVALIDATED` — quest cache invalidation event
+
+
 - 0.1 Create a `devMode` flag in `Addon.db` with default `false`, used to gate dev/test harness and verbose logs. Update `XPBarEnhanced.toc` or relevant files to only include `ui/test.lua` when `devMode` is true.
 - 0.2 Add a set of automated/command test utilities (in `ui/test.lua` or a separate `tests/` folder) to simulate the following events and to test the event flow: `PLAYER_XP_UPDATE`, `PLAYER_LEVEL_UP`, `PLAYER_ENTERING_WORLD`, quest events, `TIME_PLAYED_MSG`.
 - 0.3 Add instrumentation/DEBUG logging (via `Addon.Logger` but only under `devMode`) to trace flow and ensure events are only delivered via single, intended handler.
@@ -94,7 +105,7 @@ Detailed Steps & Actions
 - 4.1 Remove legacy XP event registration and `HandleXPUpdate` animation dispatch. The new pattern uses per-style event registration and the `Session` service for session data, so `XPBar:RegisterXPEvents()` should stop creating the xpEventFrame for `PLAYER_XP_UPDATE`.
 - 4.2 Keep these functions in `XPBar.lua` (if still needed):
   - `SetBarStyle()` — to support `Addon.db.barStyle` for compatibility and for toggling container visibility if desired.
-  - `RegisterObserver()`/`UnregisterObserver()` and `BroadcastUpdate(context)` — for global option/colour updates are still useful to inform all scenes to update on config change.
+  - `Addon.EventBus` subscription & emits: prefer `Addon.EventBus:Register(Addon.EventNames.XPBAR_BROADCAST_UPDATE, id, handler)` / `Addon.EventBus:Unregister(Addon.EventNames.XPBAR_BROADCAST_UPDATE, id)` and `Addon.EventBus:Emit(Addon.EventNames.XPBAR_BROADCAST_UPDATE, ctx)` for global option/colour updates. Keep `XPBar:BroadcastUpdate(context)` only as a small shim that emits via the EventBus.
   - `RegisterQuestEvents()` — optionally remain to provide quest caching & `Update()` across views, or shift quest events to per-style (both approaches are possible; prefer per-style for visuals and central for invalidating caches).
 - 4.3 Remove/Archive all references to `XPBar.HandleXPUpdate()` and `xpEventFrame` in `XPBar.lua`. If the code references them in many places, leave compatibility wrappers that call new per-style methods.
 - 4.4 Add textual warnings to `XPBar.lua` that this is legacy code and should not be altered but may be cleaned further once migration completes.
@@ -105,7 +116,7 @@ Detailed Steps & Actions
 - 5.2 Manual checks:
   - Use the debug commands in `ui/test.lua` (gated by `devMode`) to create test bars for each `ui/styles` bar and trigger `PLAYER_XP_UPDATE` and `Flash` tests.
   - Ensure session data in contexts is accurate and matches expected numbers after simulated gains.
-- 5.3 Integrations: check `Addon.Stats` and `Addon.Config` for any reliance on `XPBar` central `HandleXPUpdate`; if so, change them to listen for `ContextBuilder` or subscribe to `Addon.Session` (or better: to the `BroadcastUpdate` that will be used when appropriate).
+  - 5.3 Integrations: check `Addon.Stats` and `Addon.Config` for any reliance on `XPBar` central `HandleXPUpdate`; if so, change them to listen for `ContextBuilder` or subscribe to `Addon.Session` (or better: subscribe to `Addon.EventBus` utilizing `Addon.EventNames.XPBAR_BROADCAST_UPDATE` or other canonical EventNames that represent the domain events).
 - 5.4 Prepare migration release notes and deprecation messages (for add-on users & other developers) and note that `ui/xpbar` style mixins are archived.
 
 - Phase 6 — Rollback & Compatibility
@@ -118,7 +129,7 @@ Detailed File/Function Actions (developer notes)
 
 - `XPBarEnhanced.lua` - keep global initialization and event mapping.
   - Keep `ADDON_LOADED`, `PLAYER_LOGIN`, and `PLAYER_ENTERING_WORLD` handlers.
-  - Ensure `OnPlayerLogin` still delegates to `Addon.XPBar:Initialize()` and `Addon.Session:Initialize()` but no longer triggers xp updates manually; it should only set initial states and ensure new styles are loaded.
+  - Ensure `OnPlayerLogin` still delegates to `Addon.BarManager:Initialize()` and `Addon.Session:Initialize()` but no longer triggers xp updates manually; it should only set initial states and ensure new styles are loaded.
 
 - `core/Session.lua` (new or modified existing Session)
   - Responsibilities: register events for session management and keep snapshot values persistently if useful.
@@ -188,7 +199,7 @@ Automated Regression Tests (where possible)
 - [ ] Update `UI` `BaseMixin` to be canonical event registration entry point for per-style events;
 - [ ] Update `ui/styles/*` to register `PLAYER_XP_UPDATE` and other player events directly and to use `ContextBuilder` + `AnimationManager` to drive UI.
 - [ ] Migrate minor differences from `ui/xpbar/styles` to `ui/styles` and port any missing features.
-- [ ] Update `XPBar.lua` to remove xpEventFrame; keep `BroadcastUpdate`, `SetBarStyle` and `compat` shims only.
+ - [ ] Update `XPBar.lua` to remove xpEventFrame; keep `XPBar:BroadcastUpdate` as a compatibility shim that emits via `Addon.EventBus:Emit(Addon.EventNames.XPBAR_BROADCAST_UPDATE, ctx)`, `SetBarStyle` and `compat` shims only.
 - [ ] Remove 'dev' test loader from `XPBarEnhanced.toc` and ensure test harness can be enabled via `devMode`.
 - [ ] QA & integration testing across styles.
 - [ ] Release with `legacyMode` default `false`, but allow opt-in `legacyMode` to battle-test.
