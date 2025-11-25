@@ -30,40 +30,52 @@ local function GetGlobalDB()
 end
 
 function TooltipMixin:FormatNumber(n)
-    if not n then
-        return "0"
-    end
-    return BreakUpLargeNumbers(tonumber(n) or 0)
+	if not n then
+		return "0"
+	end
+	if Addon and Addon.TextFormatter and Addon.TextFormatter.FormatNumber then
+		return Addon.TextFormatter:FormatNumber(tonumber(n) or 0, false)
+	end
+	return BreakUpLargeNumbers(tonumber(n) or 0)
 end
 
 -- Add a compact formatter for k/M style abbreviations
 function TooltipMixin:FormatAbbrevNumber(n)
-    if not n then
-        return "0"
-    end
-    local num = tonumber(n) or 0
-    if num >= 1000000 then
-        return string.format("%.1fM", num / 1000000)
-    elseif num >= 1000 then
-        return string.format("%.1fk", num / 1000)
-    else
-        return tostring(num)
-    end
+	if not n then
+		return "0"
+	end
+	if Addon and Addon.TextFormatter and Addon.TextFormatter.AbbreviateNumber then
+		return Addon.TextFormatter:AbbreviateNumber(tonumber(n) or 0)
+	end
+	local num = tonumber(n) or 0
+	if num >= 1000000 then
+		return string.format("%.1fM", num / 1000000)
+	elseif num >= 1000 then
+		return string.format("%.1fk", num / 1000)
+	else
+		return tostring(num)
+	end
 end
 
 function TooltipMixin:FormatTime(seconds)
-	-- keep existing behavior
+	-- Prefer canonical formatter when available for consistent output
 	if not seconds or seconds <= 0 then
-		return L["TT_CALCULATING"] or "Calculating..."
+		return L["TT_CALCULATING"]
 	end
 	local hours = math.floor(seconds / 3600)
-	local minutes = math.floor((seconds % 3600) / 60)
 	if hours >= 99 then
-		return L["TT_OVER_99_HOURS"] or ">99h"
-	elseif hours > 0 then
-		return string.format("%dh %dm", hours, minutes)
+		return L["TT_OVER_99_HOURS"]
+	end
+	if Addon and Addon.TextFormatter and Addon.TextFormatter.FormatTime then
+		-- Use short format (true) to keep tooltip compact
+		return Addon.TextFormatter:FormatTime(seconds, true)
 	else
-		return string.format("%dm", minutes)
+		local minutes = math.floor((seconds % 3600) / 60)
+		if hours > 0 then
+			return string.format("%dh %dm", hours, minutes)
+		else
+			return string.format("%dm", minutes)
+		end
 	end
 end
 
@@ -145,9 +157,9 @@ function TooltipMixin:AddXPSection(content, context, cfg)
 	table.insert(
 		content.lines,
 		{
-			left = L["TT_CURRENT"] or "Current:",
+			left = (L["TT_CURRENT"]) .. ":",
 			right = string.format(
-				L["TT_CURRENT_FMT"] or "%s / %s (%.1f%%)",
+				L["TT_CURRENT_FMT"],
 				self:FormatNumber(currentXP),
 				self:FormatNumber(maxXP),
 				xpPercent
@@ -165,7 +177,7 @@ function TooltipMixin:AddXPSection(content, context, cfg)
 	table.insert(
 		content.lines,
 		{
-			left = L["TT_REMAINING"] or "Remaining:",
+			left = (L["TT_REMAINING"]) .. ":",
 			right = self:FormatNumber(remainingXP),
 			leftR = leftR,
 			leftG = leftG,
@@ -203,8 +215,8 @@ function TooltipMixin:AddRestedSection(content, context, cfg)
 	table.insert(
 		content.lines,
 		{
-			left = L["TT_RESTED"] or "Rested:",
-			right = string.format(L["TT_RESTED_FMT"] or "%s (%.1f%%)", self:FormatNumber(restedXP), restedPercent),
+			left = (L["TT_RESTED"]) .. ":",
+			right = string.format(L["TT_RESTED_FMT"], self:FormatNumber(restedXP), restedPercent),
 			leftR = leftR,
 			leftG = leftG,
 			leftB = leftB,
@@ -217,111 +229,118 @@ end
 
 -- Quest section: totals for complete/incomplete (context-only, no counts, no per-quest listing)
 function TooltipMixin:AddQuestSection(content, context, cfg)
-    -- If global or bar config disables quest tooltip, skip
-    local global = GetGlobalDB()
-    if (cfg and cfg.showQuestXP == false) or (global.showQuestXP == false) then
-        return
-    end
+	-- If global or bar config disables quest tooltip, skip
+	local global = GetGlobalDB()
+	if (cfg and cfg.showQuestXP == false) or (global.showQuestXP == false) then
+		return
+	end
 
-    -- Use only immutable context properties required by the spec
-    local totalComplete = tonumber(context.completeQuestXP) or 0
-    local totalIncomplete = tonumber(context.incompleteQuestXP) or 0
+	-- Use only immutable context properties required by the spec
+	local totalComplete = tonumber(context.completeQuestXP) or 0
+	local totalIncomplete = tonumber(context.incompleteQuestXP) or 0
 
-    -- If there is no quest data to show, skip
-    if totalComplete == 0 and totalIncomplete == 0 then
-        return
-    end
+	-- If there is no quest data to show, skip
+	if totalComplete == 0 and totalIncomplete == 0 then
+		return
+	end
 
-    -- header / spacing
-    table.insert(content.lines, " ")
+	-- header / spacing
+	table.insert(content.lines, " ")
 
-    local leftR, leftG, leftB = 0.7, 0.7, 0.7
-    local xpMax = tonumber(context.xpMax) or 0
+	local leftR, leftG, leftB = 0.7, 0.7, 0.7
+	local xpMax = tonumber(context.xpMax) or 0
 
-    -- Determine user preference for abbreviated numbers using the context-first helper
-    local useAbbrev = (Addon and Addon.ConfigHelper and Addon.ConfigHelper.GetAbbreviateNumbers and Addon.ConfigHelper.GetAbbreviateNumbers(context)) or false
+	-- Determine user preference for abbreviated numbers using the context-first helper
+	local useAbbrev =
+		(Addon and Addon.ConfigHelper and Addon.ConfigHelper.GetAbbreviateNumbers and
+		Addon.ConfigHelper.GetAbbreviateNumbers(context)) or
+		false
 
-    -- Prepare best available abbreviation formatter from workspace helpers
-    local abbrevFn
-    if Addon and Addon.Utils and Addon.Utils.ShortNumber then
-        abbrevFn = Addon.Utils.ShortNumber
-    elseif Addon and Addon.XPBar and Addon.XPBar.AbbreviateNumber then
-        abbrevFn = function(v) return Addon.XPBar:AbbreviateNumber(v) end
-    else
-        abbrevFn = function(v) return BreakUpLargeNumbers(tonumber(v) or 0) end
-    end
+	-- Prepare best available abbreviation formatter from workspace helpers
+	local abbrevFn
+	if Addon and Addon.Utils and Addon.Utils.ShortNumber then
+		abbrevFn = Addon.Utils.ShortNumber
+	elseif Addon and Addon.TextFormatter and Addon.TextFormatter.AbbreviateNumber then
+		abbrevFn = function(v)
+			return Addon.TextFormatter:AbbreviateNumber(v)
+		end
+	else
+		abbrevFn = function(v)
+			return BreakUpLargeNumbers(tonumber(v) or 0)
+		end
+	end
 
-    if totalComplete and totalComplete > 0 then
-        local cR, cG, cB = 0, 1, 0
-        if XPBarColors and Color and XPBarColors.GetUserColor then
-            local c = (XPBarColors and XPBarColors.GetUserColor) and XPBarColors:GetUserColor(Color.QuestComplete) or nil
-            if c then
-                cR, cG, cB = c.r or cR, c.g or cG, c.b or cB
-            end
-        end
+	if totalComplete and totalComplete > 0 then
+		local cR, cG, cB = 0, 1, 0
+		if XPBarColors and Color and XPBarColors.GetUserColor then
+			local c = (XPBarColors and XPBarColors.GetUserColor) and XPBarColors:GetUserColor(Color.QuestComplete) or nil
+			if c then
+				cR, cG, cB = c.r or cR, c.g or cG, c.b or cB
+			end
+		end
 
-        local amountText
-        if useAbbrev then
-            amountText = abbrevFn(totalComplete)
-        else
-            amountText = self:FormatNumber(totalComplete)
-        end
+		local amountText
+		if useAbbrev then
+			amountText = abbrevFn(totalComplete)
+		else
+			amountText = self:FormatNumber(totalComplete)
+		end
 
-        if xpMax and xpMax > 0 then
-            local pct = (totalComplete / xpMax) * 100
-            amountText = string.format("%s (%.1f%%)", amountText, pct)
-        end
+		if xpMax and xpMax > 0 then
+			local pct = (totalComplete / xpMax) * 100
+			amountText = string.format("%s (%.1f%%)", amountText, pct)
+		end
 
-        table.insert(
-            content.lines,
-            {
-                left = L["TT_QUESTS_COMPLETE"] or "Quest XP (Complete):",
-                right = amountText,
-                leftR = leftR,
-                leftG = leftG,
-                leftB = leftB,
-                rightR = cR,
-                rightG = cG,
-                rightB = cB
-            }
-        )
-    end
+		table.insert(
+			content.lines,
+			{
+				left = L["TT_QUEST_XP_COMPLETE"],
+				right = amountText,
+				leftR = leftR,
+				leftG = leftG,
+				leftB = leftB,
+				rightR = cR,
+				rightG = cG,
+				rightB = cB
+			}
+		)
+	end
 
-    if totalIncomplete and totalIncomplete > 0 then
-        local cR, cG, cB = 1, 0.8, 0
-        if XPBarColors and Color and XPBarColors.GetUserColor then
-            local c = (XPBarColors and XPBarColors.GetUserColor) and XPBarColors:GetUserColor(Color.QuestIncomplete) or nil
-            if c then
-                cR, cG, cB = c.r or cR, c.g or cG, c.b or cB
-            end
-        end
+	if totalIncomplete and totalIncomplete > 0 then
+		local cR, cG, cB = 1, 0.8, 0
+		if XPBarColors and Color and XPBarColors.GetUserColor then
+			local c = (XPBarColors and XPBarColors.GetUserColor) and XPBarColors:GetUserColor(Color.QuestIncomplete) or nil
+			if c then
+				cR, cG, cB = c.r or cR, c.g or cG, c.b or cB
+			end
+		end
 
-        local amountText
-        if useAbbrev then
-            amountText = abbrevFn(totalIncomplete)
-        else
-            amountText = self:FormatNumber(totalIncomplete)
-        end
+		local amountText
+		if useAbbrev then
+			amountText = abbrevFn(totalIncomplete)
+		else
+			amountText = self:FormatNumber(totalIncomplete)
+		end
 
-        if xpMax and xpMax > 0 then
-            local pct = (totalIncomplete / xpMax) * 100
-            amountText = string.format("%s (%.1f%%)", amountText, pct)
-        end
+		if xpMax and xpMax > 0 then
+			local pct = (totalIncomplete / xpMax) * 100
+			amountText = string.format("%s (%.1f%%)", amountText, pct)
+		end
 
-        table.insert(
-            content.lines,
-            {
-                left = L["TT_QUESTS_INCOMPLETE"] or "Quest XP (Incomplete):",
-                right = amountText,
-                leftR = leftR,
-                leftG = leftG,
-                leftB = leftB,
-                rightR = cR,
-                rightG = cG,
-                rightB = cB
-            }
-        )
-    end
+		table.insert(
+			content.lines,
+			{
+				left = L["TT_QUEST_XP_INCOMPLETE"],
+				right = amountText,
+				leftR = leftR,
+				leftG = leftG,
+				leftB = leftB,
+				rightR = cR,
+				rightG = cG,
+				rightB = cB
+			}
+		)
+	end
 end
 
 -- Session section: multiple rules/thresholds like classic implementation
@@ -363,7 +382,7 @@ function TooltipMixin:AddSessionSection(content, context, cfg)
 	table.insert(
 		content.lines,
 		{
-			left = L["TT_SESSION_XP"] or "Session XP:",
+			left = (L["TT_SESSION_XP"] or L["TT_SESSION"]) .. ":",
 			right = self:FormatNumber(sessionXP),
 			leftR = leftR,
 			leftG = leftG,
@@ -395,7 +414,7 @@ function TooltipMixin:AddSessionSection(content, context, cfg)
 		table.insert(
 			content.lines,
 			{
-				left = L["TT_XP_PER_HOUR"] or "XP/Hour:",
+				left = (L["TT_XP_PER_HOUR"]) .. ":",
 				right = self:FormatNumber(math.floor(xpPerHour)),
 				leftR = leftR,
 				leftG = leftG,
@@ -419,7 +438,7 @@ function TooltipMixin:AddSessionSection(content, context, cfg)
 			table.insert(
 				content.lines,
 				{
-					left = L["TT_TIME_TO_LEVEL"] or "Time to Level:",
+					left = (L["TT_TIME_TO_LEVEL"]) .. ":",
 					right = self:FormatTime(timeToLevel),
 					leftR = leftR,
 					leftG = leftG,
@@ -466,14 +485,14 @@ function TooltipMixin:GetHintText()
 
 	-- Drag hint (if draggable)
 	if isDraggable then
-		table.insert(hints, L["TT_HINT_DRAG"] or "Shift+Drag to move")
+		table.insert(hints, L["TT_HINT_DRAG"])
 	end
 
 	-- Alt+Click to open options
-	table.insert(hints, L["TT_HINT_ALT_OPTIONS"] or "Alt+Click for options")
+	table.insert(hints, L["TT_HINT_ALT_OPTIONS"])
 
 	-- Ctrl+Click to toggle stats
-	table.insert(hints, L["TT_HINT_CTRL_STATS"] or "Ctrl+Click to toggle stats")
+	table.insert(hints, L["TT_HINT_CTRL_STATS"])
 
 	-- Join with line breaks
 	return table.concat(hints, "\n")
@@ -533,7 +552,7 @@ function TooltipMixin:OnEnter()
 	end
 
 	-- Build content using unified API that preserves section parity
-	local content = {title = string.format(L["TT_LEVEL_FMT"] or "Level %d", tonumber(context.level) or 1), lines = {}}
+	local content = {title = string.format(L["TT_LEVEL_FMT"], tonumber(context.level) or 1), lines = {}}
 
 	-- XP / remaining
 	self:AddXPSection(content, context, tooltipConfig)
@@ -547,8 +566,8 @@ function TooltipMixin:OnEnter()
 		table.insert(
 			content.lines,
 			{
-				left = L["TT_STATUS"] or "Status:",
-				right = L["TT_RESTING"] or "Resting",
+				left = (L["TT_STATUS"]) .. ":",
+				right = L["TT_RESTING"],
 				leftR = 0.7,
 				leftG = 0.7,
 				leftB = 0.7,
@@ -619,37 +638,37 @@ end
 --- Get tooltip content (can be overridden by styles or config)
 ---@return table|nil content Tooltip content structure
 function TooltipMixin:GetTooltipContent()
-    -- Try to obtain a centralized context first (call directly if available)
-    local context = XPBarContextBuilder:BuildContext("TOOLTIP")
-    if context and type(context) == "table" then
-        -- build content like classic did (use helper builders)
-        local content = {title = string.format(L["TT_LEVEL_FMT"] or "Level %d", tonumber(context.level) or 1), lines = {}}
-        self:AddXPSection(content, context, self.__xpbar_config and self.__xpbar_config.tooltip)
-        self:AddRestedSection(content, context, self.__xpbar_config and self.__xpbar_config.tooltip)
-        if context.isResting then
-            table.insert(content.lines, " ")
-            table.insert(
-                content.lines,
-                {
-                    left = L["TT_STATUS"] or "Status:",
-                    right = L["TT_RESTING"] or "Resting",
-                    leftR = 0.7,
-                    leftG = 0.7,
-                    leftB = 0.7,
-                    rightR = 0,
-                    rightG = 1,
-                    rightB = 0
-                }
-            )
-        end
-        self:AddQuestSection(content, context, self.__xpbar_config and self.__xpbar_config.tooltip)
-        self:AddSessionSection(content, context, self.__xpbar_config and self.__xpbar_config.tooltip)
-        self:AddHintSection(content, context, self.__xpbar_config and self.__xpbar_config.tooltip)
-        return content
-    end
+	-- Try to obtain a centralized context first (call directly if available)
+	local context = XPBarContextBuilder:BuildContext("TOOLTIP")
+	if context and type(context) == "table" then
+		-- build content like classic did (use helper builders)
+		local content = {title = string.format(L["TT_LEVEL_FMT"], tonumber(context.level) or 1), lines = {}}
+		self:AddXPSection(content, context, self.__xpbar_config and self.__xpbar_config.tooltip)
+		self:AddRestedSection(content, context, self.__xpbar_config and self.__xpbar_config.tooltip)
+		if context.isResting then
+			table.insert(content.lines, " ")
+			table.insert(
+				content.lines,
+				{
+					left = (L["TT_STATUS"]) .. ":",
+					right = L["TT_RESTING"],
+					leftR = 0.7,
+					leftG = 0.7,
+					leftB = 0.7,
+					rightR = 0,
+					rightG = 1,
+					rightB = 0
+				}
+			)
+		end
+		self:AddQuestSection(content, context, self.__xpbar_config and self.__xpbar_config.tooltip)
+		self:AddSessionSection(content, context, self.__xpbar_config and self.__xpbar_config.tooltip)
+		self:AddHintSection(content, context, self.__xpbar_config and self.__xpbar_config.tooltip)
+		return content
+	end
 
-    -- fallback: nil to let OnEnter attempt its own fallback
-    return nil
+	-- fallback: nil to let OnEnter attempt its own fallback
+	return nil
 end
 
 return TooltipMixin

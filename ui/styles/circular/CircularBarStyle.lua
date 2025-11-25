@@ -496,15 +496,16 @@ function CircularBarStyleTemplate:UpdateLevelText(context)
 end
 
 function CircularBarStyleTemplate:UpdatePercentText(context)
-    if not self.PercentText or not context then
+    local Addon = XPBarEnhanced
+    
+    if not self.PercentText or not context or not Addon.TextFormatter then
         return
     end
 
-    -- v1 shows simple percentage like "45.2%" without quest XP additions
+    -- shows simple percentage like "45.2%" without quest XP additions
     local maxv = context.xpMax or 1
     local current = context.currentXP or 0
-
-    if XPBarTextFormatter then
+    if Addon.TextFormatter then
         local Addon = XPBarEnhanced
         local decimals = 1
         if Addon and Addon.Database then
@@ -521,12 +522,13 @@ function CircularBarStyleTemplate:UpdatePercentText(context)
 end
 
 function CircularBarStyleTemplate:UpdateRateText(context)
-    if not self.RateText or not XPBarTextFormatter then
+    local Addon = XPBarEnhanced
+
+    if not self.RateText or not Addon.TextFormatter then
         return
     end
 
-    -- v1 only shows time to level (not XP/hour)
-    local Addon = XPBarEnhanced
+    -- only shows time to level (not XP/hour)
     local showTimeToLevel = true
 
     if Addon and Addon.Database then
@@ -548,7 +550,7 @@ function CircularBarStyleTemplate:UpdateRateText(context)
     end
 
     if timeToLevel > 0 then
-        self.RateText:SetText(XPBarTextFormatter:GetTimeToLevelText(timeToLevel))
+        self.RateText:SetText(Addon.TextFormatter:GetTimeToLevelText(timeToLevel))
     else
         self.RateText:SetText("")
     end

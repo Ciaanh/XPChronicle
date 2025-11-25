@@ -272,7 +272,7 @@ Step 6: Re-run test harness (manual) and verify the following:
 
 - Add `Addon.db.legacyMode = true/false` (default `false`). When `true`, the AddOn keeps the legacy single-view behavior and per-view `PLAYER_XP_UPDATE` registration for one release cycle to prevent breaking user setups. When `false`, prefer the observer/broadcast/centralized animation manager.
 - Provide an upgrade path to migrate saved `Addon.db.barStyle` and `Addon.db.barPosition` saved variables to the new system if the container naming changes.
-- Keep the `XPBarTextFormatter` compatibility table for a release so third-party code relying on it won't break.
+
 
 ---
 

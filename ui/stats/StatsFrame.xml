@@ -1,6 +1,8 @@
 <Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/
 ..\..\Blizzard_SharedXML\UI.xsd">
 
+	<Script file="Stats.lua"/>
+
     <!-- Book-Style Stats Frame with Two-Page Layout -->
     <Frame name="XPBarEnhancedStatsFrame" parent="UIParent" inherits="BasicFrameTemplateWithInset" hidden="true" mixin="XPBarEnhancedStatsMixin" frameStrata="DIALOG" toplevel="true" enableMouse="true" movable="true" clampedToScreen="true">
         <Size x="700" y="500"/>

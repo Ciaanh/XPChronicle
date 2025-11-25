@@ -42,6 +42,36 @@ end
 
 function Session:Initialize()
     self:GetCurrent()
+    -- Set up event listeners to keep session state updated
+    self:SetupEventFrame()
+end
+
+-- Initialize event frame for session-relevant events
+function Session:SetupEventFrame()
+    if self.eventFrame then
+        return
+    end
+
+    local frame = CreateFrame("Frame")
+    frame:RegisterEvent("PLAYER_XP_UPDATE")
+    frame:RegisterEvent("PLAYER_LEVEL_UP")
+    frame:RegisterEvent("TIME_PLAYED_MSG")
+    frame:SetScript(
+        "OnEvent",
+        function(_, event, ...)
+            if event == "PLAYER_XP_UPDATE" then
+                Session:OnXPUpdate()
+            elseif event == "PLAYER_LEVEL_UP" then
+                local level = ...
+                Session:OnLevelUp(level)
+            elseif event == "TIME_PLAYED_MSG" then
+                local totalTime, levelTime = ...
+                Session:OnTimePlayed(totalTime, levelTime)
+            end
+        end
+    )
+
+    self.eventFrame = frame
 end
 
 function Session:OnEnteringWorld(isInitialLogin, isReloadingUI)

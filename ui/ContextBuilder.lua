@@ -93,10 +93,14 @@ function ContextBuilder.GetQuestXP()
 	local completeQuestXP = 0
 	local incompleteQuestXP = 0
 
-	if XPBarEnhanced and XPBarEnhanced.XPBar then
-		local total, complete, incomplete = XPBarEnhanced.XPBar:GetQuestXP()
+	-- Prefer the new central QuestXPService if present; otherwise use XPBar shim
+	if XPBarEnhanced and XPBarEnhanced.QuestXPService and XPBarEnhanced.QuestXPService.GetQuestXP then
+		local total, complete, incomplete = XPBarEnhanced.QuestXPService:GetQuestXP()
 		completeQuestXP = complete or 0
 		incompleteQuestXP = incomplete or 0
+	else
+		completeQuestXP = 0
+		incompleteQuestXP = 0
 	end
 
 	return completeQuestXP, incompleteQuestXP

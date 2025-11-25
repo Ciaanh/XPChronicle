@@ -7,6 +7,14 @@ XPBarEnhanced = XPBarEnhanced or {}
 local Addon = XPBarEnhanced
 Addon.L = LibStub("AceLocale-3.0"):GetLocale(ADDON_NAME, true)
 
+Addon.EventNames = {
+    XPBAR_BROADCAST_UPDATE = "XPBAR:BROADCAST_UPDATE",
+    CONFIG_UPDATED = "CONFIG:UPDATED",
+    COLORS_UPDATED = "COLORS:UPDATED",
+    QUESTS_CACHE_INVALIDATED = "QUESTS:CACHE_INVALIDATED",
+    XPBAR_ANIMATION_CONTEXT = "XPBAR:ANIMATION_CONTEXT"
+}
+
 -- Core modules
 Addon.Config = Addon.Config or {}
 Addon.Database = Addon.Database or {}
@@ -63,7 +71,7 @@ function eventHandlers:OnAddonLoaded(name)
 
     -- Print loaded message
     if Addon.Utils and Addon.Utils.Print and Addon.L then
-        Addon.Utils.Print(Addon.L["ADDON_LOADED"] or "Loaded!")
+        Addon.Utils.Print(Addon.L["ADDON_LOADED"])
     end
 end
 
@@ -73,15 +81,16 @@ function eventHandlers:OnPlayerLogin()
         Addon.Session:Initialize()
     end
 
-    -- Initialize XP bar (simplified module)
-    if Addon.XPBar and Addon.XPBar.Initialize then
-        Addon.XPBar:Initialize()
-    end
-
     -- Initialize features
     local stats = Addon.Stats
     if stats and stats.Initialize then
         stats:Initialize()
+    end
+
+    -- Initialize XP bar manager / legacy XPBar shim.
+    -- Prefer calling the UI BarManager directly if present, fallback to the legacy XPBar shim.
+    if Addon.BarManager and Addon.BarManager.Initialize then
+        Addon.BarManager:Initialize()
     end
 
     local options = Addon.Options
@@ -96,42 +105,50 @@ function eventHandlers:OnPlayerEnteringWorld(isInitialLogin, isReloadingUI)
         Addon.Session:OnEnteringWorld(isInitialLogin, isReloadingUI)
     end
 
-    -- XP Bar handling (simplified module)
-    if Addon.XPBar and Addon.XPBar.OnEnteringWorld then
-        Addon.XPBar:OnEnteringWorld(isInitialLogin, isReloadingUI)
+    -- Invalidate quest cache and notify observers of entering world
+    if Addon.QuestXPService and Addon.QuestXPService.InvalidateQuestCache then
+        Addon.QuestXPService:InvalidateQuestCache()
+    end
+    local ctx =
+        XPBarContextBuilder and XPBarContextBuilder.BuildContext and
+        XPBarContextBuilder.BuildContext("PLAYER_ENTERING_WORLD", isInitialLogin, isReloadingUI) or
+        nil
+    if Addon.EventBus and Addon.EventBus.Emit then
+        Addon.EventBus:Emit(Addon.EventNames.XPBAR_BROADCAST_UPDATE, ctx)
+    elseif Addon.BarManager and Addon.BarManager.OnEnteringWorld then
+        Addon.BarManager:OnEnteringWorld(isInitialLogin, isReloadingUI)
     end
 end
 
 function eventHandlers:OnPlayerXPUpdate()
-    -- Session tracking
-    if Addon.Session and Addon.Session.OnXPUpdate then
-        Addon.Session:OnXPUpdate()
-    end
-
-    -- Update XP bar (simplified module)
-    if Addon.XPBar and Addon.XPBar.OnXPUpdate then
-        Addon.XPBar:OnXPUpdate()
-    end
-
-    -- Update stats
-    local stats = Addon.Stats
-    if stats and stats.OnXPUpdate then
-        stats:OnXPUpdate()
-    end
+    -- Deprecated: this top-level event handler is intentionally no longer
+    -- registered. XP update events are handled by dedicated modules:
+    -- - `XPBar:RegisterXPEvents()` handles animation and view updates;
+    -- - `Session:SetupEventFrame()` handles session tracking;
+    -- - `Stats:RegisterEventHandlers()` handles stats updates.
+    -- We keep this function as a no-op for backward compatibility in case
+    -- external code still attempts to call it directly.
 end
 
 function eventHandlers:OnPlayerLevelUp(level)
-    -- Session level tracking
+    -- Deprecated: handled by Session, XPBar and Stats modules individually.
+    -- Keep for backward compatibility only (no-op if events are handled elsewhere).
     if Addon.Session and Addon.Session.OnLevelUp then
         Addon.Session:OnLevelUp(level)
     end
-
-    -- XP bar animation (simplified module)
-    if Addon.XPBar and Addon.XPBar.OnLevelUp then
-        Addon.XPBar:OnLevelUp(level)
+    -- Invalidate quest cache and broadcast update via EventBus; fallback to shim
+    if Addon.QuestXPService and Addon.QuestXPService.InvalidateQuestCache then
+        Addon.QuestXPService:InvalidateQuestCache()
     end
-
-    -- Stats update
+    local ctx =
+        XPBarContextBuilder and XPBarContextBuilder.BuildContext and
+        XPBarContextBuilder.BuildContext("PLAYER_LEVEL_UP", level) or
+        nil
+    if Addon.EventBus and Addon.EventBus.Emit then
+        Addon.EventBus:Emit(Addon.EventNames.XPBAR_BROADCAST_UPDATE, ctx)
+    elseif Addon.BarManager and Addon.BarManager.OnLevelUp then
+        Addon.BarManager:OnLevelUp(level)
+    end
     local stats = Addon.Stats
     if stats and stats.OnLevelUp then
         stats:OnLevelUp(level)
@@ -139,24 +156,36 @@ function eventHandlers:OnPlayerLevelUp(level)
 end
 
 function eventHandlers:OnUpdateExhaustion()
-    if Addon.XPBar and Addon.XPBar.OnRestedChanged then
-        Addon.XPBar:OnRestedChanged()
+    -- Prefer broadcasting via EventBus; fall back to shim if necessary
+    local ctx =
+        XPBarContextBuilder and XPBarContextBuilder.BuildContext and
+        XPBarContextBuilder.BuildContext("UPDATE_EXHAUSTION") or
+        nil
+    if Addon.EventBus and Addon.EventBus.Emit then
+        Addon.EventBus:Emit(Addon.EventNames.XPBAR_BROADCAST_UPDATE, ctx)
+    elseif Addon.BarManager and Addon.BarManager.OnRestedChanged then
+        Addon.BarManager:OnRestedChanged()
     end
 end
 
 function eventHandlers:OnPlayerUpdateResting()
-    if Addon.XPBar and Addon.XPBar.OnRestedChanged then
-        Addon.XPBar:OnRestedChanged()
+    -- Prefer broadcasting via EventBus; fall back to shim if necessary
+    local ctx =
+        XPBarContextBuilder and XPBarContextBuilder.BuildContext and
+        XPBarContextBuilder.BuildContext("PLAYER_UPDATE_RESTING") or
+        nil
+    if Addon.EventBus and Addon.EventBus.Emit then
+        Addon.EventBus:Emit(Addon.EventNames.XPBAR_BROADCAST_UPDATE, ctx)
+    elseif Addon.BarManager and Addon.BarManager.OnRestedChanged then
+        Addon.BarManager:OnRestedChanged()
     end
 end
 
 function eventHandlers:OnTimePlayedMsg(totalTime, levelTime)
-    -- Session time tracking
+    -- Deprecated: module-owned (Session/Stats). Kept for compatibility only.
     if Addon.Session and Addon.Session.OnTimePlayed then
         Addon.Session:OnTimePlayed(totalTime, levelTime)
     end
-
-    -- Stats update
     local stats = Addon.Stats
     if stats and stats.OnTimePlayed then
         stats:OnTimePlayed(totalTime, levelTime)
@@ -178,21 +207,25 @@ function eventHandlers:OnDisableXPGain()
 end
 
 function eventHandlers:OnPlayerLogout()
-    if Addon.XPBar and Addon.XPBar.Shutdown then
-        Addon.XPBar:Shutdown()
+    -- Broadcast shutdown to observers and graceful shutdown of sub-systems
+    local ctx =
+        XPBarContextBuilder and XPBarContextBuilder.BuildContext and XPBarContextBuilder.BuildContext("SHUTDOWN") or nil
+    if Addon.EventBus and Addon.EventBus.Emit then
+        Addon.EventBus:Emit(Addon.EventNames.XPBAR_BROADCAST_UPDATE, ctx)
+    elseif Addon.BarManager and Addon.BarManager.Shutdown then
+        Addon.BarManager:Shutdown()
     end
 end
 
 -- Event name to handler mapping
+-- Only register AddOn-level lifecycle events here. Events specific to XP
+-- (PLAYER_XP_UPDATE, PLAYER_LEVEL_UP, UPDATE_EXHAUSTION, PLAYER_UPDATE_RESTING,
+-- TIME_PLAYED_MSG) should be registered by the controller or respective modules
+-- (e.g., `XPBar:RegisterXPEvents()` or `Session`), to avoid duplicate handling.
 local eventMap = {
     ADDON_LOADED = "OnAddonLoaded",
     PLAYER_LOGIN = "OnPlayerLogin",
     PLAYER_ENTERING_WORLD = "OnPlayerEnteringWorld",
-    PLAYER_XP_UPDATE = "OnPlayerXPUpdate",
-    PLAYER_LEVEL_UP = "OnPlayerLevelUp",
-    UPDATE_EXHAUSTION = "OnUpdateExhaustion",
-    PLAYER_UPDATE_RESTING = "OnPlayerUpdateResting",
-    TIME_PLAYED_MSG = "OnTimePlayedMsg",
     ENABLE_XP_GAIN = "OnEnableXPGain",
     DISABLE_XP_GAIN = "OnDisableXPGain",
     PLAYER_LOGOUT = "OnPlayerLogout"
@@ -303,40 +336,15 @@ local function handleStyle(style)
     end
 
     if style == "none" or style == "classic" or style == "flat" or style == "vertical" or style == "circular" then
-        -- Use simplified XPBar module
-        if Addon.XPBar and Addon.XPBar.SetBarStyle then
-            Addon.XPBar:SetBarStyle(style)
+        -- Use BarManager directly when available, otherwise fallback to simplified XPBar shim
+        if Addon.BarManager and Addon.BarManager.SetStyle then
+            Addon.BarManager:SetStyle(style)
             print("|cFF00FF00XP Bar Enhanced:|r Bar style set to: " .. style)
         else
-            print("|cFFFF0000XP Bar Enhanced:|r XP Bar module not available")
+            print("|cFFFF0000XP Bar Enhanced:|r XP Bar module or BarManager not available")
         end
     else
         print("|cFFFF0000XP Bar Enhanced:|r Invalid style. Use: none, classic, flat, vertical, circular")
-    end
-end
-
-local function handleAnimate(arg)
-    local bar = Addon and Addon.XPBar and Addon.XPBar:GetActiveView()
-    if not (bar and bar.AnimateArcFill) then
-        -- Try to get the global CircularXPBar instance
-        bar = _G.CircularXPBar and _G.CircularXPBar.Bar
-    end
-    if bar and bar.AnimateArcFill then
-        -- Show the container and bar if hidden
-        if bar:GetParent() and not bar:GetParent():IsShown() then
-            bar:GetParent():Show()
-        end
-        if not bar:IsShown() then
-            bar:Show()
-        end
-        bar.lastProgress = 0.2
-        bar.targetProgress = 0.8
-        bar:AnimateArcFill()
-        if Addon.Utils and Addon.Utils.Print then
-            Addon.Utils.Print("XPBar animation test triggered.")
-        end
-    else
-        print("XPBarEnhanced: Could not find circular bar for animation test.")
     end
 end
 
@@ -358,8 +366,6 @@ local function handleSlashCommand(message)
         handleResetColors()
     elseif command == "style" or command == "barstyle" or command == "mode" then
         handleStyle(arg)
-    elseif command == "animate" then
-        handleAnimate(arg)
     else
         printUnknown(command)
     end
@@ -370,80 +376,6 @@ SLASH_XPBARENHANCED1 = "/xpbe"
 SLASH_XPBARENHANCED2 = "/xpbarenhanced"
 SLASH_XPBARENHANCED3 = "/xpbar"
 SlashCmdList["XPBARENHANCED"] = handleSlashCommand
-
--- Ensure test commands are always declared here (centralized)
-SLASH_XPTEST1 = "/xptest"
-SlashCmdList["XPTEST"] = function(msg)
-    local cmd = (msg and msg:match("^(%S+)")) or "help"
-    cmd = cmd and cmd:lower()
-
-    if cmd == "help" then
-        print("|cff00ff00XPBarEnhanced  Test:|r")
-        print(" /xptest create   - create Flat Bar  test bar (requires dev mode)")
-        print(" /xptest destroy  - destroy Flat Bar  test bar (requires dev mode)")
-        print(" /xptest classic   - create Classic Bar  test bar (requires dev mode)")
-        print(" /xptest classicdestroy - destroy Classic Bar  test bar (requires dev mode)")
-        print(" /xptest vertical - create Vertical Bar  test bar (requires dev mode)")
-        print(" /xptest verticaldestroy - destroy Vertical Bar  test bar (requires dev mode)")
-        print(" /xptest context  - print current context")
-        print(" /xptest flash    - trigger xp gain flash (if available)")
-        print(" /xptest help     - this help")
-        return
-    end
-
-    -- Prefer centralized test API on Addon if present
-    if Addon and Addon.Tests and type(Addon.Tests) == "table" then
-        if cmd == "create" and Addon.Tests.CreateTestBar then
-            Addon.Tests.CreateTestBar()
-            return
-        elseif cmd == "destroy" and Addon.Tests.DestroyTestBar then
-            Addon.Tests.DestroyTestBar()
-            return
-        elseif cmd == "classic" and Addon.Tests.CreateClassicTestBar then
-            Addon.Tests.CreateClassicTestBar()
-            return
-        elseif cmd == "classicdestroy" and Addon.Tests.DestroyClassicTestBar then
-            Addon.Tests.DestroyClassicTestBar()
-            return
-        elseif cmd == "vertical" and Addon.Tests.CreateVerticalTestBar then
-            Addon.Tests.CreateVerticalTestBar()
-            return
-        elseif cmd == "verticaldestroy" and Addon.Tests.DestroyVerticalTestBar then
-            Addon.Tests.DestroyVerticalTestBar()
-            return
-        elseif cmd == "circular" and Addon.Tests.CreateCircularTestBar then
-            Addon.Tests.CreateCircularTestBar()
-            return
-        elseif cmd == "circulardestroy" and Addon.Tests.DestroyCircularTestBar then
-            Addon.Tests.DestroyCircularTestBar()
-            return
-        elseif cmd == "context" and Addon.Tests.PrintContext then
-            Addon.Tests.PrintContext()
-            return
-        elseif cmd == "flash" and Addon.Tests.TriggerFlash then
-            Addon.Tests.TriggerFlash()
-            return
-        end
-    end
-    -- Fallback manual handlers when Addon.Tests is not available
-    if cmd == "circular" then
-        -- Create circular  frame programmatically
-        if XPBarEnhanced_CreateCircularBarFrame then
-            XPBarEnhanced_CreateCircularBarFrame()
-            return
-        end
-    elseif cmd == "circulardestroy" then
-        -- Destroy circular  frame if exists
-        if _G.CircularBar and type(_G.CircularBar.Hide) == "function" then
-            _G.CircularBar:Hide()
-            _G.CircularBar = nil
-            return
-        end
-    end
-
-    printUnknown(cmd)
-    return
-end
 
 -------------------------------------------------------------------
 -- Public API (for backward compatibility and external access)

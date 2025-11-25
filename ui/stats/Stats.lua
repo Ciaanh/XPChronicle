@@ -3,6 +3,7 @@
 -- Manages the stats window displaying level and session statistics
 
 local Addon = XPBarEnhanced
+local L = Addon.L or {}
 
 local Stats = {}
 
@@ -321,7 +322,7 @@ function Stats:UpdateLevelStats(statsFrame)
         if restedXP > 0 then
             content.RestedXPValue:SetText(Addon.Utils.ShortNumber(restedXP))
         else
-            content.RestedXPValue:SetText("None")
+            content.RestedXPValue:SetText(L["TT_NONE"])
         end
     end
 
@@ -335,7 +336,7 @@ function Stats:UpdateLevelStats(statsFrame)
                 string.format("%s (%.1f%%)", Addon.Utils.ShortNumber(totalQuestXP), questPercent)
             )
         else
-            content.QuestXPValue:SetText("None")
+            content.QuestXPValue:SetText(L["TT_NONE"])
         end
     end
 
@@ -344,7 +345,7 @@ function Stats:UpdateLevelStats(statsFrame)
         if levelTime > 0 then
             content.LevelTimeValue:SetText(Addon.Utils.FormatDuration(levelTime))
         else
-            content.LevelTimeValue:SetText("N/A")
+            content.LevelTimeValue:SetText(L["TT_NA"])
         end
     end
 
@@ -353,7 +354,7 @@ function Stats:UpdateLevelStats(statsFrame)
         if timeToLevel and timeToLevel > 0 then
             content.TimeToLevelValue:SetText(Addon.Utils.FormatDuration(timeToLevel))
         else
-            content.TimeToLevelValue:SetText("N/A")
+            content.TimeToLevelValue:SetText(L["TT_NA"])
         end
     end
 end
@@ -423,7 +424,7 @@ function Stats:UpdateSessionStats(statsFrame)
         if xpPerHour > 0 then
             content.XPPerHourValue:SetText(Addon.Utils.ShortNumber(xpPerHour))
         else
-            content.XPPerHourValue:SetText("Calculating...")
+            content.XPPerHourValue:SetText(L["TT_CALCULATING"])
         end
     end
 
@@ -439,9 +440,9 @@ end
 
 ---Return quest XP totals (total, complete, incomplete)
 function Stats:GetQuestXP(forceRefresh)
-    -- Try new consolidated path first
-    if Addon.XPBar and Addon.XPBar.GetQuestXP then
-        return Addon.XPBar:GetQuestXP(forceRefresh)
+    -- Prefer the new dedicated QuestXP service, then fall back to XPBar shim
+    if Addon.QuestXPService and Addon.QuestXPService.GetQuestXP then
+        return Addon.QuestXPService:GetQuestXP(forceRefresh)
     end
 
     return 0, 0, 0

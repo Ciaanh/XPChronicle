@@ -44,32 +44,20 @@ core\Config.lua
 core\Database.lua
 core\Session.lua
 core\Compatibility.lua
+core\QuestXPService.lua
+core\TextFormatter.lua
+core\EventBus.lua
+core\ConfigHelper.lua
+core\FrameUtils.lua
+core\PositionStoreMixin.lua
+core\DraggableFrameMixin.lua
+core\OverlayHelper.lua
 
-# UI Common Utilities
-core/ConfigHelper.lua
-core/FrameUtils.lua
-core/PositionStoreMixin.lua
-core/DraggableFrameMixin.lua
-core/OverlayHelper.lua
 
 # UI Features
-ui/options/Options.lua
-
-# XP Bar Module (Consolidated)
-ui/xpbar/XPBar.lua
-
-# XP Bar Views (Separate implementations)
-ui/xpbar/XPBarTooltip.lua
-ui/xpbar/XPBarMixinBase.lua
-
-# Stats Module (Consolidated)
-ui/stats/Stats.lua
-
-Frames.xml
-
-#  Architecture
 ui\ContextBuilder.lua
 ui\StyleBuilder.lua
+ui\BarManager.lua
 
 #  Base and Mixins
 ui\mixins\BaseMixin.lua
@@ -84,10 +72,14 @@ ui\mixins\InteractionMixin.lua
 ui\mixins\TooltipMixin.lua
 ui\mixins\PositionMixin.lua
 
+#  Frames
+ui\options\OptionsPanelTemplates.xml
+ui\options\OptionsPanel.xml
+
+ui\stats\StatsFrame.xml
+
 #  Styles
 ui\styles\flat\FlatBarTemplate.xml
 ui\styles\classic\ClassicBarTemplate.xml
 ui\styles\vertical\VerticalBarTemplate.xml
 ui\styles\circular\CircularBarTemplate.xml
-
-ui\test.lua

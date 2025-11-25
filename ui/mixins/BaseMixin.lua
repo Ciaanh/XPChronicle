@@ -13,6 +13,7 @@ local BaseMixin = XPBarMixinBase
 
 -- Reference to addon for Logger access
 local Addon = XPBarEnhanced
+local EventNames = Addon.EventNames
 
 -------------------------------------------------------------------
 -- PUBLIC API SURFACE
@@ -97,13 +98,30 @@ function BaseMixin:OnLoad()
 		self:ApplyStyle(self.__xpbar_config.style)
 	end
 
-	-- Register as observer for broadcast updates (color changes, etc.)
-	-- This ensures multiple  bars receive updates simultaneously
-	local Addon = XPBarEnhanced
-	if Addon.XPBar and Addon.XPBar.RegisterObserver then
-		-- Use frame name or generate unique ID
-		local observerId = self:GetName() or ("_bar_" .. tostring(self))
-		self.__observer_id = Addon.XPBar:RegisterObserver(self, observerId)
+	-- Register for broadcast updates via EventBus (preferred) or via shim fallback
+	-- Uses a named subscription id so we can unregister later if needed
+	local observerId = self:GetName() or ("_bar_" .. tostring(self))
+	if Addon.EventBus and Addon.EventBus.Register then
+		local handler = function(ctx)
+			if self and self.FullUpdate then
+				pcall(function() self:FullUpdate(ctx) end)
+			end
+		Addon.EventBus:Register(EventNames.XPBAR_BROADCAST_UPDATE, observerId, handler)
+		-- Subscribe to CONFIG_UPDATED (EventNames.CONFIG_UPDATED) to react to fine-grained key changes
+		local configId = observerId .. ":config"
+		local configHandler = function(payload)
+			-- Basic default: full update on config change
+			if self and self.FullUpdate then
+				pcall(function()
+					local ctx = XPBarContextBuilder and XPBarContextBuilder.BuildContext and XPBarContextBuilder.BuildContext("BROADCAST_UPDATE") or nil
+					self:FullUpdate(ctx)
+				end)
+			end
+		end
+		Addon.EventBus:Register(EventNames.CONFIG_UPDATED, configId, configHandler)
+		self.__observer_id = observerId
+		self.__config_observer_id = configId
+	end
 	end
 
 	-- Initial refresh
@@ -133,13 +151,29 @@ function BaseMixin:OnShow()
 	-- Refresh state when shown
 	self:Refresh()
 
-	-- Register as observer if not already registered
+	-- Register subscription if not already registered
 	-- This handles cases where bar is created but not via OnLoad
 	if not self.__observer_id then
-		local Addon = XPBarEnhanced
-		if Addon.XPBar and Addon.XPBar.RegisterObserver then
-			local observerId = self:GetName() or ("_bar_" .. tostring(self))
-			self.__observer_id = Addon.XPBar:RegisterObserver(self, observerId)
+		local observerId = self:GetName() or ("_bar_" .. tostring(self))
+		if Addon.EventBus and Addon.EventBus.Register then
+			local handler = function(ctx)
+				if self and self.FullUpdate then
+					pcall(function() self:FullUpdate(ctx) end)
+				end
+			end
+			Addon.EventBus:Register(EventNames.XPBAR_BROADCAST_UPDATE, observerId, handler)
+			local configId = observerId .. ":config"
+			local configHandler = function(payload)
+				if self and self.FullUpdate then
+					pcall(function()
+						local ctx = XPBarContextBuilder and XPBarContextBuilder.BuildContext and XPBarContextBuilder.BuildContext("BROADCAST_UPDATE") or nil
+						self:FullUpdate(ctx)
+					end)
+				end
+			end
+			Addon.EventBus:Register(EventNames.CONFIG_UPDATED, configId, configHandler)
+			self.__observer_id = observerId
+			self.__config_observer_id = configId
 		end
 	end
 
@@ -222,6 +256,15 @@ function BaseMixin:UnsubscribeFromEvents()
 	self:UnregisterEvent("QUEST_LOG_UPDATE")
 	self:UnregisterEvent("UNIT_QUEST_LOG_CHANGED")
 	self:UnregisterEvent("QUEST_WATCH_UPDATE")
+	-- Unregister any EventBus subscriptions created in OnLoad/OnShow
+	if self.__observer_id and Addon.EventBus and Addon.EventBus.Unregister then
+		Addon.EventBus:Unregister(EventNames.XPBAR_BROADCAST_UPDATE, self.__observer_id)
+		self.__observer_id = nil
+	end
+	if self.__config_observer_id and Addon.EventBus and Addon.EventBus.Unregister then
+		Addon.EventBus:Unregister(EventNames.CONFIG_UPDATED, self.__config_observer_id)
+		self.__config_observer_id = nil
+	end
 end
 
 -------------------------------------------------------------------

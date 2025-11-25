@@ -4,86 +4,99 @@
 local Addon = XPBarEnhanced
 local OverlayHelper = {}
 
+local function colorText(text, colorKey)
+    if not (Addon and Addon.Colors and Addon.Colors.Get) then
+        return tostring(text)
+    end
+    local c = Addon.Colors:Get(colorKey)
+    if not c or not c.r then
+        return tostring(text)
+    end
+    local hex = string.format("|c%02X%02X%02X%02X", math.floor((c.a or 1) * 255), math.floor(c.r * 255), math.floor(c.g * 255), math.floor(c.b * 255))
+    return hex .. tostring(text) .. "|r"
+end
+
 -- Ensure localization table exists to avoid nil indexing
 Addon.L = Addon.L or {}
 local L = Addon.L
 
 -- Returns formatted quest summary text given quest xp values and max xp
 ---Format quest summary text used by various views
-function OverlayHelper:GetQuestSummaryText(completeXP, incompleteXP, totalXP, maxXP, restedXP, opts)
-    opts = opts or {}
-    local decimals = opts.decimals or 1
+function OverlayHelper:GetQuestSummaryText(completeXP, incompleteXP, totalXP, maxXP, restedXP, decimals)
     local db = Addon.db or {}
     local questOverlaysEnabled = db.showQuestXP ~= false
     local showComplete = db.showCompleteQuestOverlay ~= false
     local showIncomplete = db.showIncompleteQuestOverlay == true
 
-    if not maxXP or maxXP <= 0 then return "" end
-    if not questOverlaysEnabled then return "" end
+    if not maxXP or maxXP <= 0 then
+        return ""
+    end
+    if not questOverlaysEnabled then
+        return ""
+    end
 
     local parts = {}
 
-    -- Include quest counts even when XP amounts are zero so users know there are
-    -- completed/incomplete quests that simply award no XP (useful for repeatable
-    -- or reputation-only quests). Pull counts from XPBar module if available.
+    -- Counts
     local completeCount, incompleteCount = 0, 0
-    if Addon.XPBar and type(Addon.XPBar.GetQuestCounts) == "function" then
-        completeCount, incompleteCount = Addon.XPBar:GetQuestCounts()
+    if Addon.QuestXPService and type(Addon.QuestXPService.GetQuestCounts) == "function" then
+        completeCount, incompleteCount = Addon.QuestXPService:GetQuestCounts()
     end
 
+    -- Completed
     if showComplete and ((completeXP and completeXP > 0) or (completeCount and completeCount > 0)) then
         if completeXP and completeXP > 0 then
-            local completePercent = Addon.XPBar and Addon.XPBar:FormatPercent(completeXP, maxXP, decimals) or "0%"
-            local completeText = completePercent
-            if Addon.XPBar and Addon.Colors and Addon.Colors.Key then
-                completeText = Addon.XPBar:ColorText(completePercent, Addon.Colors.Key.QuestComplete)
+            local completePercent = "0%"
+            if Addon.TextFormatter and Addon.TextFormatter.FormatPercent then
+                completePercent = Addon.TextFormatter:FormatPercent(completeXP, maxXP, decimals)
             end
+            local completeText = colorText(completePercent, Addon.Colors.Key.QuestComplete)
             if completeCount and completeCount > 0 then
-                -- Build a localized count string and append it (avoid duplicating the numeric value)
-                local t1 = (type(L["TT_QUEST"]) == "string") and L["TT_QUEST"] or "%d quest"
-                local tN = (type(L["TT_QUESTS"]) == "string") and L["TT_QUESTS"] or "%d quests"
+                local t1 = L["TT_QUEST"]
+                local tN = L["TT_QUESTS"]
                 local countText = (completeCount == 1) and string.format(t1, completeCount) or string.format(tN, completeCount)
                 completeText = string.format("%s - %s", completeText, countText)
             end
-            table.insert(parts, string.format("Completed Quests: %s", completeText))
+            table.insert(parts, string.format(L["TT_QUESTS_COMPLETE"], completeText))
         else
-            -- XP is zero but there are completed quests; show the count only
             if completeCount and completeCount > 0 then
-                local t1 = (type(L["TT_QUEST"]) == "string") and L["TT_QUEST"] or "%d quest"
-                local tN = (type(L["TT_QUESTS"]) == "string") and L["TT_QUESTS"] or "%d quests"
+                local t1 = L["TT_QUEST"]
+                local tN = L["TT_QUESTS"]
                 local countText = (completeCount == 1) and string.format(t1, completeCount) or string.format(tN, completeCount)
-                table.insert(parts, string.format("Completed Quests: %s", countText))
+                table.insert(parts, string.format(L["TT_QUESTS_COMPLETE"], countText))
             end
         end
     end
 
+    -- Rested
     if restedXP and restedXP > 0 and maxXP and maxXP > 0 then
-        local restedPercent = Addon.XPBar and Addon.XPBar:FormatPercent(restedXP, maxXP, 0) or "0%"
-        local restedText = restedPercent
-        if Addon.XPBar and Addon.Colors and Addon.Colors.Key then
-            restedText = Addon.XPBar:ColorText(restedPercent, Addon.Colors.Key.XpBarRested)
+        local restedPercent = "0%"
+        if Addon.TextFormatter and Addon.TextFormatter.FormatPercent then
+            restedPercent = Addon.TextFormatter:FormatPercent(restedXP, maxXP, 0)
         end
-        table.insert(parts, string.format("Rested: %s", restedText))
+        local restedText = colorText(restedPercent, Addon.Colors.Key.XpBarRested)
+        table.insert(parts, string.format("%s: %s", L["TT_RESTED"], restedText))
     end
 
+    -- Incomplete
     if showIncomplete and ((incompleteXP and incompleteXP > 0) or (incompleteCount and incompleteCount > 0)) then
         if incompleteXP and incompleteXP > 0 then
-            local incompletePercent = Addon.XPBar and Addon.XPBar:FormatPercent(incompleteXP, maxXP, decimals) or "0%"
-            local incompleteText = incompletePercent
-            if Addon.XPBar and Addon.Colors and Addon.Colors.Key then
-                incompleteText = Addon.XPBar:ColorText(incompletePercent, Addon.Colors.Key.QuestIncomplete)
+            local incompletePercent = "0%"
+            if Addon.TextFormatter and Addon.TextFormatter.FormatPercent then
+                incompletePercent = Addon.TextFormatter:FormatPercent(incompleteXP, maxXP, decimals)
             end
+            local incompleteText = colorText(incompletePercent, Addon.Colors.Key.QuestIncomplete)
             if incompleteCount and incompleteCount > 0 then
-                local countText = (incompleteCount == 1) and string.format(L["TT_QUEST"] or "%d quest", incompleteCount) or string.format(L["TT_QUESTS"] or "%d quests", incompleteCount)
+                local countText = (incompleteCount == 1) and string.format(L["TT_QUEST"], incompleteCount) or string.format(L["TT_QUESTS"], incompleteCount)
                 incompleteText = string.format("%s - %s", incompleteText, countText)
             end
-            table.insert(parts, string.format("Incomplete Quests: %s", incompleteText))
+            table.insert(parts, string.format(L["TT_QUESTS_INCOMPLETE"], incompleteText))
         else
             if incompleteCount and incompleteCount > 0 then
-                local t1 = (type(L["TT_QUEST"]) == "string") and L["TT_QUEST"] or "%d quest"
-                local tN = (type(L["TT_QUESTS"]) == "string") and L["TT_QUESTS"] or "%d quests"
+                local t1 = L["TT_QUEST"]
+                local tN = L["TT_QUESTS"]
                 local countText = (incompleteCount == 1) and string.format(t1, incompleteCount) or string.format(tN, incompleteCount)
-                table.insert(parts, string.format("Incomplete Quests: %s", countText))
+                table.insert(parts, string.format(L["TT_QUESTS_INCOMPLETE"], countText))
             end
         end
     end

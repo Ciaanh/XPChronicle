@@ -5,6 +5,7 @@
 XPBarTextMixin = {}
 
 local Addon = XPBarEnhanced
+local L = Addon.L or {}
 
 -------------------------------------------------------------------
 -- TEXT VISIBILITY METHODS
@@ -58,8 +59,8 @@ function XPBarTextMixin:UpdateTexts(context)
 	end
 
 	-- Require the central formatter; fail explicitly if missing
-	if not XPBarTextFormatter then
-		error("UpdateTexts requires XPBarTextFormatter to be loaded")
+	if not Addon.TextFormatter then
+		error("UpdateTexts requires Addon.TextFormatter to be loaded")
 	end
 
 	-- Update visibility first (in case config changed)
@@ -89,12 +90,12 @@ function XPBarTextMixin:UpdateLevelText(context)
 		error("UpdateLevelText requires an explicit immutable context")
 	end
 
-	if XPBarTextFormatter then
+	if Addon.TextFormatter then
 		local level = context.level or UnitLevel("player")
-		local levelText = XPBarTextFormatter:GetLevelText(level)
+		local levelText = Addon.TextFormatter:GetLevelText(level)
 		self.LevelText:SetText(levelText)
 	else
-		error("UpdateLevelText requires XPBarTextFormatter to be loaded")
+		error("UpdateLevelText requires Addon.TextFormatter to be loaded")
 	end
 end
 
@@ -113,13 +114,13 @@ function XPBarTextMixin:UpdateXPText(context)
 	local maxv = context.xpMax or 1
 	local current = context.currentXP or 0
 
-	if XPBarTextFormatter then
+	if Addon.TextFormatter then
 		local abbreviate = Addon.ConfigHelper.GetAbbreviateNumbers(context)
 		local showRemaining = Addon.ConfigHelper.GetShowRemainingXP(context)
-		local text = XPBarTextFormatter:GetXPText(current, maxv, abbreviate, showRemaining)
+		local text = Addon.TextFormatter:GetXPText(current, maxv, abbreviate, showRemaining)
 		self.XPText:SetText(text)
 	else
-		error("UpdateXPText requires XPBarTextFormatter to be loaded")
+		error("UpdateXPText requires Addon.TextFormatter to be loaded")
 	end
 end
 
@@ -138,27 +139,29 @@ function XPBarTextMixin:UpdatePercentText(context)
 	local maxv = context.xpMax or 1
 	local current = context.currentXP or 0
 
-	if XPBarTextFormatter then
+	if Addon.TextFormatter then
 		local decimals = context.percentDecimals or 1
 		local showQuestPercent = Addon.ConfigHelper.GetShowQuestPercent(context)
 
 		local questXP = 0
-		if showQuestPercent and Addon.XPBar then
-			local totalXP, completeXP, incompleteXP = Addon.XPBar:GetQuestXP()
-			local showComplete = Addon.ConfigHelper.GetShowCompleteQuestOverlay(context)
-			local showIncomplete = Addon.ConfigHelper.GetShowIncompleteQuestOverlay(context)
-			if showComplete then
-				questXP = questXP + (completeXP or 0)
-			end
-			if showIncomplete then
-				questXP = questXP + (incompleteXP or 0)
+		local showComplete = Addon.ConfigHelper.GetShowCompleteQuestOverlay(context)
+		local showIncomplete = Addon.ConfigHelper.GetShowIncompleteQuestOverlay(context)
+		if showQuestPercent then
+			if Addon.QuestXPService and Addon.QuestXPService.GetQuestXP then
+				local totalXP, completeXP, incompleteXP = Addon.QuestXPService:GetQuestXP()
+				if showComplete then
+					questXP = questXP + (completeXP or 0)
+				end
+				if showIncomplete then
+					questXP = questXP + (incompleteXP or 0)
+				end
 			end
 		end
 
-		local text = XPBarTextFormatter:GetPercentText(current, maxv, decimals, showQuestPercent, questXP)
+		local text = Addon.TextFormatter:GetPercentText(current, maxv, decimals, showQuestPercent, questXP)
 		self.PercentText:SetText(text)
 	else
-		error("UpdatePercentText requires XPBarTextFormatter to be loaded")
+		error("UpdatePercentText requires Addon.TextFormatter to be loaded")
 	end
 end
 
@@ -167,7 +170,7 @@ function XPBarTextMixin:UpdateRateText(context)
 	if not self.RateText then
 		return
 	end
-	if not XPBarTextFormatter then
+	if not Addon.TextFormatter then
 		return
 	end
 
@@ -192,17 +195,20 @@ function XPBarTextMixin:UpdateRateText(context)
 	local parts = {}
 
 	if showXPPerHour then
-		local ratePart = XPBarTextFormatter:GetXPRateText(xpPerHour or 0, abbreviate)
-		if ratePart and ratePart ~= "" and ratePart ~= "Calculating..." then
+		local ratePart = Addon.TextFormatter:GetXPRateText(xpPerHour or 0, abbreviate)
+		local calc = L["TT_CALCULATING"]
+		if ratePart and ratePart ~= "" and ratePart ~= calc then
 			table.insert(parts, ratePart)
 		end
 	end
 
 	if showTimeToLevel then
 		if timeToLevel and timeToLevel > 0 then
-			local timePart = XPBarTextFormatter:GetTimeToLevelText(timeToLevel)
-			if timePart and timePart ~= "" and timePart ~= "N/A" then
-				table.insert(parts, "Leveling in: " .. timePart)
+			local timePart = Addon.TextFormatter:GetTimeToLevelText(timeToLevel)
+			local na = L["TT_NA"]
+			if timePart and timePart ~= "" and timePart ~= na then
+				local label = L["TT_LEVELING_IN"] or L["TT_TIME_TO_LEVEL"]
+				table.insert(parts, string.format("%s: %s", label, timePart))
 			end
 		end
 	end
@@ -210,7 +216,7 @@ function XPBarTextMixin:UpdateRateText(context)
 	-- Set text content (may be empty initially)
 	local text = #parts > 0 and table.concat(parts, " - ") or ""
 	self.RateText:SetText(text)
-	
+
 	-- Don't hide the element here - visibility is controlled by UpdateTextVisibility
 	-- This allows the element to show placeholder space even when empty
 end
@@ -224,11 +230,10 @@ function XPBarTextMixin:UpdateSessionText(context)
 		self.SessionText:Hide()
 		return
 	end
-	if not XPBarTextFormatter then
+	if not Addon.TextFormatter then
 		return
 	end
 
-	local Addon = XPBarEnhanced
 	local sessionSeconds = 0
 	local levelSeconds = 0
 
@@ -263,7 +268,8 @@ function XPBarTextMixin:UpdateSessionText(context)
 
 	if showSessionTime then
 		if sessionSeconds > 0 then
-			local sessionPart = XPBarTextFormatter:GetSessionTimeText(sessionSeconds, "Session")
+			local sessionLabel = L["TT_SESSION"]
+			local sessionPart = Addon.TextFormatter:GetSessionTimeText(sessionSeconds, sessionLabel)
 			if sessionPart ~= "" then
 				table.insert(parts, sessionPart)
 			end
@@ -272,7 +278,8 @@ function XPBarTextMixin:UpdateSessionText(context)
 
 	if showLevelTime then
 		if levelSeconds > 0 then
-			local levelPart = XPBarTextFormatter:GetLevelTimeText(levelSeconds, "This Level")
+			local levelLabel = L["TT_LEVEL_TIME"]
+			local levelPart = Addon.TextFormatter:GetLevelTimeText(levelSeconds, levelLabel)
 			if levelPart ~= "" then
 				table.insert(parts, levelPart)
 			end
@@ -282,7 +289,7 @@ function XPBarTextMixin:UpdateSessionText(context)
 	-- Set text content (may be empty initially)
 	local text = #parts > 0 and table.concat(parts, " - ") or ""
 	self.SessionText:SetText(text)
-	
+
 	-- Don't hide the element here - visibility is controlled by UpdateTextVisibility
 	-- This allows the element to show placeholder space even when empty
 end
@@ -296,7 +303,7 @@ function XPBarTextMixin:UpdateQuestSummaryText(context)
 		self.QuestSummaryText:Hide()
 		return
 	end
-	if not XPBarTextFormatter then
+	if not Addon.TextFormatter then
 		return
 	end
 	if not context then
@@ -312,8 +319,11 @@ function XPBarTextMixin:UpdateQuestSummaryText(context)
 		totalQuestXP = context.totalQuestXP or 0
 		completeQuestXP = context.completeQuestXP or 0
 		incompleteQuestXP = context.incompleteQuestXP or 0
-	elseif Addon.XPBar then
-		totalQuestXP, completeQuestXP, incompleteQuestXP = Addon.XPBar:GetQuestXP()
+	elseif Addon.QuestXPService and Addon.QuestXPService.GetQuestXP then
+		totalQuestXP, completeQuestXP, incompleteQuestXP = Addon.QuestXPService:GetQuestXP()
+	else
+		-- If no service available, default to zeros (safety)
+		totalQuestXP, completeQuestXP, incompleteQuestXP = 0, 0, 0
 	end
 
 	local decimals = context.percentDecimals or 1
@@ -322,7 +332,7 @@ function XPBarTextMixin:UpdateQuestSummaryText(context)
 	local restedXP = context.restedXP or 0
 
 	local text =
-		XPBarTextFormatter:GetQuestSummaryText(completeQuestXP, incompleteQuestXP, totalQuestXP, maxXP, restedXP, decimals)
+		Addon.TextFormatter:GetQuestSummaryText(completeQuestXP, incompleteQuestXP, totalQuestXP, maxXP, restedXP, decimals)
 	self.QuestSummaryText:SetText(text)
 end
 

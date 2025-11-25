@@ -14,5 +14,10 @@
 
 # Other
 refs
-docs
 assets/refs
+
+# Ignore root-level docs if they are moved to `_docs`
+/ARCHITECTURE_EVENT_FLOW.md
+/MIGRATION_PLAN_NEW_STYLES.md
+/events_load_order.md
+/Ideas.md
