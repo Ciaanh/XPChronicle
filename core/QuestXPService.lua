@@ -53,7 +53,7 @@ function QuestXPService:InvalidateQuestCache()
     questCache.data = nil
     questCache.timestamp = 0
     if Addon.EventBus and Addon.EventBus.Emit then
-        Addon.EventBus:Emit(Addon.EventNames.QUESTS_CACHE_INVALIDATED, { time = GetTime() })
+        Addon.EventBus:Emit(Addon.EventNames.QUESTS_CACHE_INVALIDATED)
     end
 end
 

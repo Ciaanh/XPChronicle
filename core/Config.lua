@@ -15,7 +15,6 @@ local EventNames = Addon.EventNames
 local defaults = {
     -- Bar Style Selection
     barStyle = "classic", -- "none", "classic", "flat", "vertical", "circular"
-    hideBlizzardBar = true,
     barLocked = false,
     -- Text Display Settings
     showPercentage = true,
@@ -129,12 +128,6 @@ local optionDetails = {
             {value = "circular", label = Addon.L["OPT_BAR_STYLE_CIRCULAR"]}
         },
         commandKeys = {"style", "mode", "barstyle"}
-    },
-    hideBlizzardBar = {
-        key = "hideBlizzardBar",
-        label = Addon.L["OPT_HIDE_BLIZZARD_BAR"],
-        description = Addon.L["OPT_HIDE_BLIZZARD_BAR_DESC"],
-        commandKeys = {"hideblizzard", "blizzardbar"}
     },
     barLocked = {
         key = "barLocked",
@@ -267,7 +260,6 @@ local optionDetails = {
 
 local optionOrder = {
     "barStyle",
-    "hideBlizzardBar",
     "barLocked",
     "showRestedOverlay",
     "showQuestXP",
@@ -413,23 +405,6 @@ function Config:SetOptionKey(key, value, silent)
     Addon.db[key] = newValue
 
     self:ApplyOptionSideEffects(key)
-
-    if not silent then
-        local label = detail and detail.label or key
-        local Utils = Addon.Utils
-        if Utils and Utils.Print then
-            if newValue then
-                Utils.Print(string.format(L["MSG_OPTION_ENABLED"], label))
-            else
-                Utils.Print(string.format(L["MSG_OPTION_DISABLED"], label))
-            end
-        end
-
-        local optionsView = Addon.UI.Views and Addon.UI.Views.Options
-        if optionsView and optionsView.Refresh then
-            optionsView:Refresh()
-        end
-    end
 end
 
 -------------------------------------------------------------------
@@ -538,43 +513,13 @@ function Config:SetColor(key, hex, silent)
 
     -- Emit a dedicated color update event so views can update only their color previews
     if Addon.EventBus and Addon.EventBus.Emit then
-        Addon.EventBus:Emit(EventNames.COLORS_UPDATED, {key = key, color = colorTable})
+        Addon.EventBus:Emit(EventNames.COLORS_UPDATED)
     end
-
-    -- -- Update color on visible XP bars (Classic bar uses static colors)
-    -- local flatBar = _G.FlatXPBar and _G.FlatXPBar.Bar
-    -- if flatBar and flatBar.UpdateBarOverlayColors then
-    --     flatBar:UpdateBarOverlayColors()
-    -- end
-
-    -- Refresh tooltip (resolve at runtime to avoid load-order capture issues)
-    -- local tt = _G and _G.XPBarTooltip
-    -- if tt and tt.Refresh then
-    --     tt:Refresh()
-    -- end
-
-    -- if not silent then
-    --     local Utils = Addon.Utils
-    --     local info = self:GetColorOptionByKey(key)
-    --     if Utils and Utils.Print then
-    --         if info then
-    --             Utils.Print(string.format(L["MSG_COLOR_SET"] or "%s set to %s", info.label, normalized))
-    --         else
-    --             Utils.Print(string.format(L["MSG_COLOR_SET"] or "%s set to %s", key, normalized))
-    --         end
-    --     end
-    -- end
 
     local optionsView = Addon.UI.Views and Addon.UI.Views.Options
     if optionsView and optionsView.UpdateColorControls then
         optionsView:UpdateColorControls()
     end
-
-    -- Force visual refresh of flat and classic bars if present
-    -- local flatBar = _G and _G.FlatBar
-    -- if flatBar and flatBar.Refresh then
-    --     flatBar:Refresh()
-    -- end
 
     return true, normalized
 end
@@ -590,18 +535,6 @@ function Config:ResetColor(key, silent)
     if not success then
         return false, normalized
     end
-
-    -- if not silent then
-    --     local Utils = Addon.Utils
-    --     local info = self:GetColorOptionByKey(key)
-    --     if Utils and Utils.Print then
-    --         if info then
-    --             Utils.Print(string.format(L["MSG_COLOR_RESET"] or "%s reset to default", info.label))
-    --         else
-    --             Utils.Print(string.format(L["MSG_COLOR_RESET"] or "%s reset to default", key))
-    --         end
-    --     end
-    -- end
 
     local optionsView = Addon.UI.Views and Addon.UI.Views.Options
     if optionsView and optionsView.UpdateColorControls then
@@ -632,9 +565,8 @@ end
 
 function Config:ApplyOptionSideEffects(key)
     -- Emit a config-level event for fine-grained subscribers; also leave broadcast for compatibility
-    local emitedCtx = {key = key}
     if Addon.EventBus and Addon.EventBus.Emit then
-        Addon.EventBus:Emit(EventNames.CONFIG_UPDATED, emitedCtx)
+        Addon.EventBus:Emit(EventNames.CONFIG_UPDATED)
     end
     -- Bar visual options that require refresh
     local barVisualOptions = {
@@ -665,43 +597,9 @@ function Config:ApplyOptionSideEffects(key)
 
     if needsBarRefresh then
         -- Update XP bar controller (use new EventBus first)
-        local ctx =
-            XPBarContextBuilder and XPBarContextBuilder.BuildContext and
-            XPBarContextBuilder.BuildContext("BROADCAST_UPDATE") or
-            nil
         if Addon.EventBus and Addon.EventBus.Emit then
-            Addon.EventBus:Emit(EventNames.XPBAR_BROADCAST_UPDATE, ctx)
+            Addon.EventBus:Emit(EventNames.XPBAR_BROADCAST_UPDATE)
         end
-
-    -- Force visual refresh of flat bar
-    -- local _G_alias = _G
-    -- local flatBar = _G_alias.FlatXPBar
-    -- if flatBar and flatBar:IsShown() and flatBar.Bar then
-    --     if flatBar.Bar.UpdateBarOverlayColors then
-    --         flatBar.Bar:UpdateBarOverlayColors()
-    --     end
-    --     if flatBar.Bar.UpdateTextVisibility then
-    --         flatBar.Bar:UpdateTextVisibility()
-    --     end
-    --     if flatBar.Bar.UpdateAllText then
-    --         flatBar.Bar:UpdateAllText()
-    --     end
-    -- end
-
-    -- Force visual refresh of classic bar
-    -- local _G_alias2 = _G
-    -- local classicBar = _G_alias2.ClassicXPBar
-    -- if classicBar and classicBar:IsShown() and classicBar.Bar then
-    --     if classicBar.Bar.UpdateBarOverlayColors then
-    --         classicBar.Bar:UpdateBarOverlayColors()
-    --     end
-    --     if classicBar.Bar.UpdateTextVisibility then
-    --         classicBar.Bar:UpdateTextVisibility()
-    --     end
-    --     if classicBar.Bar.UpdateAllText then
-    --         classicBar.Bar:UpdateAllText()
-    --     end
-    -- end
     end
 
     -- Request time played if time text options enabled
@@ -747,14 +645,7 @@ function Config:ApplyOptionSideEffects(key)
     if key == "barStyle" then
         local newStyle = Addon.db.barStyle
         if Addon.BarManager and Addon.BarManager.SetStyle then
-            Addon.BarManager:SetStyle(newStyle, true)
-        end
-    end
-
-    -- Blizzard bar visibility changed
-    if key == "hideBlizzardBar" then
-        if Addon.UI.Views and Addon.UI.Views.XPBar and Addon.UI.Views.XPBar.Initialize then
-            Addon.UI.Views.XPBar:Initialize(Addon.Features and Addon.Features.xpbar)
+            Addon.BarManager:SetStyle(newStyle)
         end
     end
 end
@@ -832,9 +723,7 @@ function Config:Reset()
         optionsView:Refresh()
     end
 
-    if Utils and Utils.Print then
-        Utils.Print(Addon.L["MSG_SETTINGS_RESET"])
-    end
+        print(Addon.L["MSG_SETTINGS_RESET"])
 end
 
 function Config:ResetStats()
@@ -881,10 +770,7 @@ function Config:ResetStats()
     end
 
     if Addon.EventBus and Addon.EventBus.Emit then
-        local ctx = XPBarContextBuilder and XPBarContextBuilder.BuildContext and XPBarContextBuilder.BuildContext("BROADCAST_UPDATE") or nil
-        Addon.EventBus:Emit(EventNames.XPBAR_BROADCAST_UPDATE, ctx)
-    elseif Addon.BarManager and Addon.BarManager.Update then
-        Addon.BarManager:Update()
+        Addon.EventBus:Emit(EventNames.XPBAR_BROADCAST_UPDATE)
     end
 
     local optionsView = Addon.UI.Views and Addon.UI.Views.Options
@@ -892,9 +778,7 @@ function Config:ResetStats()
         optionsView:Refresh()
     end
 
-    if Utils and Utils.Print then
-        Utils.Print(Addon.L["MSG_SETTINGS_RESET"])
-    end
+    print(Addon.L["MSG_SETTINGS_RESET"])
 end
 
 -- Backward compatibility

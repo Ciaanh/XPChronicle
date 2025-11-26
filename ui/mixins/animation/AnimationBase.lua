@@ -23,7 +23,7 @@ function AnimationBase:InitializeAnimation()
 		flashDuration = 0,
 		eventContext = nil -- Single immutable event context (144 bytes)
 	}
-	
+
 	-- Track current displayed ratio (for retargeting)
 	self._currentRatio = 0
 end
@@ -33,10 +33,8 @@ end
 -- @param targetRatio number: Target ratio (0.0-1.0)
 -- @param xpContext table: XP context { xpBefore, xpAfter, xpMax, xpGained, restedXP, isResting, hasRestedXP, level, timestamp }
 -- @param config table: Animation config { enableAnimations, flashOnGain }
-function AnimationBase:StartAnimation(targetRatio, xpContext, config)
-	if XPBarDebugLog then XPBarDebugLog:Log("AnimationBase", "StartAnimation called for", self:GetName() or "unknown", "targetRatio:", targetRatio, "enableAnimations:", config and config.enableAnimations or "nil") end
+function AnimationBase:StartAnimation(targetRatio, context, config)
 	if not Addon.AnimationManager then
-		if XPBarDebugLog then XPBarDebugLog:Log("AnimationBase", "StartAnimation fallback (no manager)") end
 		-- Fallback to instant update if manager not available
 		if self.ApplyAnimationStep then
 			local now = GetTime()
@@ -57,15 +55,19 @@ function AnimationBase:StartAnimation(targetRatio, xpContext, config)
 				questOverlayIncompleteInitialAlpha = nil,
 				config = config
 			}
-			self:ApplyAnimationStep(instantIterationData, xpContext)
+			self:ApplyAnimationStep(instantIterationData, context)
 		end
 		self._currentRatio = targetRatio
 		return
 	end
-	
-	if XPBarDebugLog then XPBarDebugLog:Log("AnimationBase", "StartAnimation delegating to AnimationManager") end
+
 	-- Delegate to AnimationManager
-	Addon.AnimationManager:AnimateTo(self, targetRatio, xpContext, config)
+	Addon.AnimationManager:AnimateTo(self, targetRatio, context, config)
+
+	-- Update text
+	if self.UpdateTexts then
+		self:UpdateTexts(context)
+	end
 end
 
 --- Cleanup animation state
@@ -74,7 +76,7 @@ function AnimationBase:CleanupAnimation()
 	if Addon.AnimationManager then
 		Addon.AnimationManager:Unregister(self)
 	end
-	
+
 	if self.animation then
 		self.animation.isAnimating = false
 		self.animation.isFlashing = false
@@ -100,32 +102,32 @@ end
 -- Override in bar mixin if needed, or provide default config
 -- @return table: { enableAnimations = bool, flashOnGain = bool }
 function AnimationBase:GetAnimationConfig()
-    -- First check for frame-specific config
-    local frameConfig = self.__xpbar_config
-    if frameConfig and frameConfig.animation then
-        local anim = frameConfig.animation
-        return {
-            enableAnimations = anim.enableAnimations ~= false,
-            flashOnGain = anim.flashOnGain ~= false
-        }
-    end
+	-- First check for frame-specific config
+	local frameConfig = self.__xpbar_config
+	if frameConfig and frameConfig.animation then
+		local anim = frameConfig.animation
+		return {
+			enableAnimations = anim.enableAnimations ~= false,
+			flashOnGain = anim.flashOnGain ~= false
+		}
+	end
 
-    -- Fall back to global database
-    local Addon = XPBarEnhanced
-    local db = Addon and Addon.Database and Addon.Database:GetDB()
+	-- Fall back to global database
+	local Addon = XPBarEnhanced
+	local db = Addon and Addon.Database and Addon.Database:GetDB()
 
-    if db then
-        return {
-            enableAnimations = db.enableAnimations ~= false,
-            flashOnGain = db.flashOnGain ~= false
-        }
-    end
+	if db then
+		return {
+			enableAnimations = db.enableAnimations ~= false,
+			flashOnGain = db.flashOnGain ~= false
+		}
+	end
 
-    -- Fallback default config
-    return {
-        enableAnimations = true,
-        flashOnGain = true
-    }
+	-- Fallback default config
+	return {
+		enableAnimations = true,
+		flashOnGain = true
+	}
 end
 
 --- Animation step callback
@@ -133,9 +135,8 @@ end
 -- @param iterationData table: Per-frame iteration data (currentRatio, progress, easedProgress, flashData, timing, config)
 -- @param eventContext table: Immutable event context (XP state, session data, display flags - 144 bytes)
 function AnimationBase:ApplyAnimationStep(iterationData, eventContext)
-	if XPBarDebugLog then XPBarDebugLog:Log("AnimationBase", "ApplyAnimationStep called for", self:GetName() or "unknown") end
-	  self:AnimateBarPosition(iterationData, eventContext) -- Update bar fill
-	  self:AnimateBarEffect(iterationData, eventContext)   -- Update visual effects (flash, etc)
+	self:AnimateBarPosition(iterationData, eventContext) -- Update bar fill
+	self:AnimateBarEffect(iterationData, eventContext) -- Update visual effects (flash, etc)
 end
 
 --- Update bar position (ABSTRACT - must be implemented by style)
@@ -179,4 +180,3 @@ end
 -- Export as global for composition in StyleBuilder (consistent with other mixins)
 XPBarAnimationMixin = AnimationBase
 Addon.AnimationBase = AnimationBase -- Keep for backward compatibility
-

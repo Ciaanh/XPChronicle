@@ -107,15 +107,3 @@ function Utils.FormatTime(seconds)
     end
 end
 
----Print a prefixed addon message to the default output
-function Utils.Print(message, ...)
-    if not message then
-        return
-    end
-
-    if select("#", ...) > 0 then
-        message = string.format(message, ...)
-    end
-
-    print("|cFF00FF00XP Bar Enhanced:|r " .. message)
-end

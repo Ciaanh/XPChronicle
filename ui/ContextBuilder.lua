@@ -48,7 +48,9 @@ local function BuildDBConfig()
 	setIfPresent("showQuestPercent")
 
 	-- Configuration values
-	if db.percentDecimals ~= nil then cfg.percentDecimals = db.percentDecimals end
+	if db.percentDecimals ~= nil then
+		cfg.percentDecimals = db.percentDecimals
+	end
 	setIfPresent("abbreviateNumbers")
 	setIfPresent("flashOnGain")
 
@@ -197,11 +199,7 @@ end
 function ContextBuilder.ComputeXPGained(currentXP, xpMax)
 	local lastXP = ContextBuilder._lastXP or currentXP
 	local lastMax = ContextBuilder._lastMaxXP or xpMax
-	
-	if XPBarDebugLog then 
-		XPBarDebugLog:Log("ContextBuilder", "ComputeXPGained - currentXP:", currentXP, "lastXP:", lastXP, "_lastXP was nil:", ContextBuilder._lastXP == nil)
-	end
-	
+
 	local xpGained = currentXP - lastXP
 	if xpGained < 0 then
 		-- Level-up occurred, XP wrapped around
@@ -210,11 +208,7 @@ function ContextBuilder.ComputeXPGained(currentXP, xpMax)
 	if xpGained < 0 then
 		xpGained = 0
 	end
-	
-	if XPBarDebugLog then 
-		XPBarDebugLog:Log("ContextBuilder", "ComputeXPGained - xpGained:", xpGained)
-	end
-	
+
 	-- update last values for next computation
 	ContextBuilder._lastXP = currentXP
 	ContextBuilder._lastMaxXP = xpMax
@@ -275,7 +269,7 @@ function ContextBuilder.BuildBaseContext(event, source, coreState, extras)
 		restedXP = coreState.restedXP,
 		isResting = coreState.isResting,
 		hasRestedXP = coreState.hasRestedXP,
-		isFullyRested = coreState.isFullyRested,
+		isFullyRested = coreState.isFullyRested
 		-- Note: display/config flags are applied below only when
 		-- present in the saved DB. Do not inject defaults here; the
 		-- context must reflect only actual saved configuration values.
@@ -361,105 +355,96 @@ end
 --- @param ... any Event arguments (e.g., newLevel for PLAYER_LEVEL_UP)
 --- @return table context Immutable context object with a Get() accessor
 function ContextBuilder.BuildContext(event, ...)
-    local args = {...}
-    local coreState = ContextBuilder.GetCoreState()
-    local coreContext = ContextBuilder.BuildCoreContext(coreState)
+	local args = {...}
+	local coreState = ContextBuilder.GetCoreState()
+	local coreContext = ContextBuilder.BuildCoreContext(coreState)
 
-    -- Compute XP change for consistent results
-    local xpGained, lastXP = ContextBuilder.ComputeXPGained(coreState.currentXP, coreState.xpMax)
-    local sessionStart, sessionXP, sessionDuration, xpPerHour = ContextBuilder.UpdateSessionWithGain(xpGained)
+	-- Compute XP change for consistent results
+	local xpGained, lastXP = ContextBuilder.ComputeXPGained(coreState.currentXP, coreState.xpMax)
+	local sessionStart, sessionXP, sessionDuration, xpPerHour = ContextBuilder.UpdateSessionWithGain(xpGained)
 
-    -- Default union-of-all-fields event context (pre-populated)
-    local eventContext = {
-        -- Event metadata
-        event = event,
-        timestamp = time(),
-        source = tostring(event or "UNKNOWN"),
+	-- Default union-of-all-fields event context (pre-populated)
+	local eventContext = {
+		-- Event metadata
+		event = event,
+		timestamp = time(),
+		source = tostring(event or "UNKNOWN"),
+		-- XP tracking
+		xpBefore = lastXP or 0,
+		xpAfter = coreState.currentXP,
+		xpGained = xpGained or 0,
+		remainingXP = coreState.xpMax - coreState.currentXP,
+		-- Session
+		sessionStart = sessionStart or time(),
+		sessionXP = sessionXP or 0,
+		sessionDuration = sessionDuration or 0,
+		sessionSeconds = sessionDuration or 0,
+		xpPerHour = xpPerHour or 0,
+		-- Derived timing
+		timeToLevel = ContextBuilder.CalculateTimeToLevel(coreState.currentXP, coreState.xpMax, xpPerHour),
+		-- Level fields (some events won't use these)
+		oldLevel = coreState.level - 1,
+		newLevel = coreState.level,
+		-- Behavior flags (defaults)
+		hasGainedXP = (xpGained and xpGained > 0) or false,
+		hasLeveledUp = false,
+		shouldAnimate = (xpGained and xpGained > 0) or false,
+		shouldFlash = (xpGained and xpGained > 0) or false,
+		restedChanged = false,
+		questsChanged = false
+	}
 
-        -- XP tracking
-        xpBefore = lastXP or 0,
-        xpAfter = coreState.currentXP,
-        xpGained = xpGained or 0,
-        remainingXP = coreState.xpMax - coreState.currentXP,
+	-- Apply special handling per event to preserve previous semantics
+	if event == "PLAYER_XP_UPDATE" then
+		eventContext.source = "PLAYER_XP_UPDATE"
+		-- xpBefore/after were already set above
+		-- default flags (gain/animate/flash) remain
+		eventContext.hasLeveledUp = false
+	elseif event == "PLAYER_LEVEL_UP" then
+		eventContext.source = "PLAYER_LEVEL_UP"
+		local newLevel = args[1] or coreState.level
+		eventContext.newLevel = newLevel
+		eventContext.oldLevel = (newLevel or coreState.level) - 1
 
-        -- Session
-        sessionStart = sessionStart or time(),
-        sessionXP = sessionXP or 0,
-        sessionDuration = sessionDuration or 0,
-        sessionSeconds = sessionDuration or 0,
-        xpPerHour = xpPerHour or 0,
+		-- Keep xpBefore as 0 per previous behaviour (level-up resets xp)
+		eventContext.xpBefore = 0
+		eventContext.xpAfter = coreState.currentXP
+		-- Level-up always animates
+		eventContext.hasLeveledUp = true
+		eventContext.shouldAnimate = true
+		eventContext.hasGainedXP = (coreState.currentXP and coreState.currentXP > 0) or false
+		eventContext.shouldFlash = eventContext.hasGainedXP
+		-- Reset last XP to avoid incorrect gains next snapshot
+		ContextBuilder._lastXP = coreState.currentXP
+		ContextBuilder._lastMaxXP = coreState.xpMax
+	elseif event == "UPDATE_EXHAUSTION" or event == "PLAYER_UPDATE_RESTING" then
+		eventContext.source = "RESTED_UPDATE"
+		-- Rest changes do not affect XP numbers
+		eventContext.hasGainedXP = false
+		eventContext.hasLeveledUp = false
+		eventContext.shouldAnimate = false
+		eventContext.shouldFlash = false
+		eventContext.restedChanged = true
+	elseif event == "QUEST_LOG_UPDATE" then
+		eventContext.source = "QUEST_UPDATE"
+		eventContext.hasGainedXP = false
+		eventContext.hasLeveledUp = false
+		eventContext.shouldAnimate = false
+		eventContext.shouldFlash = false
+		eventContext.questsChanged = true
+	elseif event == "TOOLTIP" then
+		eventContext.source = "TOOLTIP_CONTEXT"
+		-- Tooltip is read-only, just present the computed values
+		eventContext.hasGainedXP = false
+		eventContext.hasLeveledUp = false
+		eventContext.shouldAnimate = false
+		eventContext.shouldFlash = false
+	else
+		-- For other events not explicitly handled, keep a conservative default:
+		eventContext.source = eventContext.source or "UNKNOWN"
+	end
 
-        -- Derived timing
-        timeToLevel = ContextBuilder.CalculateTimeToLevel(coreState.currentXP, coreState.xpMax, xpPerHour),
-
-        -- Level fields (some events won't use these)
-        oldLevel = coreState.level - 1,
-        newLevel = coreState.level,
-
-        -- Behavior flags (defaults)
-        hasGainedXP = (xpGained and xpGained > 0) or false,
-        hasLeveledUp = false,
-        shouldAnimate = (xpGained and xpGained > 0) or false,
-        shouldFlash = (xpGained and xpGained > 0) or false,
-        restedChanged = false,
-        questsChanged = false
-    }
-
-    -- Apply special handling per event to preserve previous semantics
-    if event == "PLAYER_XP_UPDATE" then
-        eventContext.source = "PLAYER_XP_UPDATE"
-        -- xpBefore/after were already set above
-        -- default flags (gain/animate/flash) remain
-        eventContext.hasLeveledUp = false
-    elseif event == "PLAYER_LEVEL_UP" then
-        eventContext.source = "PLAYER_LEVEL_UP"
-        local newLevel = args[1] or coreState.level
-        eventContext.newLevel = newLevel
-        eventContext.oldLevel = (newLevel or coreState.level) - 1
-
-        -- Keep xpBefore as 0 per previous behaviour (level-up resets xp)
-        eventContext.xpBefore = 0
-        eventContext.xpAfter = coreState.currentXP
-        -- Level-up always animates
-        eventContext.hasLeveledUp = true
-        eventContext.shouldAnimate = true
-        eventContext.hasGainedXP = (coreState.currentXP and coreState.currentXP > 0) or false
-        eventContext.shouldFlash = eventContext.hasGainedXP
-        -- Reset last XP to avoid incorrect gains next snapshot
-        ContextBuilder._lastXP = coreState.currentXP
-        ContextBuilder._lastMaxXP = coreState.xpMax
-    elseif event == "UPDATE_EXHAUSTION" or event == "PLAYER_UPDATE_RESTING" then
-        eventContext.source = "RESTED_UPDATE"
-        -- Rest changes do not affect XP numbers
-        eventContext.hasGainedXP = false
-        eventContext.hasLeveledUp = false
-        eventContext.shouldAnimate = false
-        eventContext.shouldFlash = false
-        eventContext.restedChanged = true
-    elseif event == "QUEST_LOG_UPDATE" then
-        eventContext.source = "QUEST_UPDATE"
-        eventContext.hasGainedXP = false
-        eventContext.hasLeveledUp = false
-        eventContext.shouldAnimate = false
-        eventContext.shouldFlash = false
-        eventContext.questsChanged = true
-    elseif event == "TOOLTIP" then
-        eventContext.source = "TOOLTIP_CONTEXT"
-        -- Tooltip is read-only, just present the computed values
-        eventContext.hasGainedXP = false
-        eventContext.hasLeveledUp = false
-        eventContext.shouldAnimate = false
-        eventContext.shouldFlash = false
-    else
-        -- For other events not explicitly handled, keep a conservative default:
-        eventContext.source = eventContext.source or "UNKNOWN"
-    end
-
-    if XPBarDebugLog then 
-        XPBarDebugLog:Log("ContextBuilder", "BuildContext - event:", event, "xpGained:", xpGained, "hasGainedXP:", eventContext.hasGainedXP, "hasLeveledUp:", eventContext.hasLeveledUp)
-    end
-
-    return ContextBuilder.MakeImmutable(eventContext, coreContext)
+	return ContextBuilder.MakeImmutable(eventContext, coreContext)
 end
 
 -------------------------------------------------------------------

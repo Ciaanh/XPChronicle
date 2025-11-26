@@ -317,54 +317,7 @@ function CircularBarStyleTemplate:UpdateSegmentColors(hasRestedXP, overlayAlpha)
 end
 
 -------------------------------------------------------------------
--- OVERRIDE: Refresh with logging
--------------------------------------------------------------------
-
-function CircularBarStyleTemplate:Refresh()
-    -- Build context
-    if not XPBarContextBuilder then
-        return
-    end
-
-    local context = XPBarContextBuilder.BuildContext("MANUAL_REFRESH")
-
-    if not context then
-        return
-    end
-
-    -- Call TriggerBarRefresh ( method name)
-    if self.TriggerBarRefresh then
-        self:TriggerBarRefresh(context)
-    end
-end
-
--------------------------------------------------------------------
--- OVERRIDE: FullUpdate - handle option changes
--------------------------------------------------------------------
-
-function CircularBarStyleTemplate:FullUpdate(context)
-    -- Prevent re-entrant calls
-    if self._isUpdating then
-        return
-    end
-    self._isUpdating = true
-
-    -- Trigger bar refresh through orchestration layer
-    -- RenderBar will update overlays, so we don't do it here (no duplication)
-    if self.TriggerBarRefresh then
-        self:TriggerBarRefresh(context)
-    end
-
-    -- Update text visibility in case options changed
-    if self.UpdateTextVisibility then
-        self:UpdateTextVisibility(context)
-    end
-
-    self._isUpdating = nil
-end
-
--------------------------------------------------------------------
---  UNIFIED RENDER PATTERN (Phase 2: Refactor)
+--  UNIFIED RENDER PATTERN
 -------------------------------------------------------------------
 
 --- Single render method for circular bar ( unified pattern)
@@ -454,6 +407,10 @@ function CircularBarStyleTemplate:UpdateRestedOverlay(context)
 end
 
 function CircularBarStyleTemplate:UpdateQuestCompleteOverlay(context)
+    local Addon = XPBarEnhanced
+    local dbFlag = Addon.db and Addon.db.showCompleteQuestOverlay
+    local ctxFlag = context and context.showCompleteQuestOverlay
+
     if not context then
         return
     end
@@ -497,7 +454,7 @@ end
 
 function CircularBarStyleTemplate:UpdatePercentText(context)
     local Addon = XPBarEnhanced
-    
+
     if not self.PercentText or not context or not Addon.TextFormatter then
         return
     end

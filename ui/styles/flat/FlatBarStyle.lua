@@ -1,4 +1,4 @@
--- XP Bar Enhanced - FlatBar Style 
+-- XP Bar Enhanced - FlatBar Style
 -- Minimal style file: XML owns visual creation via contract.
 -- Only provides config and registration. No overrides needed for standard flat layout.
 
@@ -7,9 +7,7 @@
 -------------------------------------------------------------------
 
 if not XPBarStyleBuilder or not XPBarMixinBase then
-	error(
-		"FlatBarStyle:  core (StyleBuilder/BaseMixin) not loaded. Ensure ui/xpbars core files are earlier in the .toc."
-	)
+	error("FlatBarStyle:  core (StyleBuilder/BaseMixin) not loaded. Ensure ui/xpbars core files are earlier in the .toc.")
 end
 
 -------------------------------------------------------------------
@@ -31,7 +29,6 @@ local FlatBarStyleTemplate = {}
 --       fill animates from old to new currentXP, it progressively reveals/covers the rested
 --       overlay beneath it, creating smooth animation without any per-frame updates.
 function FlatBarStyleTemplate:AnimateBarPosition(iterationData, eventContext)
-	print("FlatBarStyleTemplate:AnimateBarPosition called")
 	if self.StatusBar then
 		self.StatusBar:SetValue(iterationData.currentRatio)
 	end
@@ -84,7 +81,6 @@ end
 --- Pure rendering method - orchestration handled by BaseMixin:TriggerBarRefresh
 ---@param context table Immutable context with all state and flags
 function FlatBarStyleTemplate:RenderBar(context)
-	if XPBarDebugLog then XPBarDebugLog:Log("FlatBar", "RenderBar called") end
 	if not context then
 		error("RenderBar requires an explicit immutable context")
 	end

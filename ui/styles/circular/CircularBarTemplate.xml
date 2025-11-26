@@ -26,16 +26,6 @@
 				<Texture parentKey="GainFlash" setAllPoints="true" hidden="true" file="Interface\AddOns\XPBarEnhanced\assets\glow"/>
 			</Layer>
 
-			<!-- Flash effect overlay  -->
-			<!-- <Layer level="BACKGROUND" textureSubLevel="2">
-				<Texture parentKey="GainFlash" hidden="true">
-					<Anchors>
-						<Anchor point="TOPLEFT"/>
-						<Anchor point="BOTTOMRIGHT"/>
-					</Anchors>
-				</Texture>
-			</Layer> -->
-
 			<!-- Center text elements -->
 			<Layer level="OVERLAY" textureSubLevel="2">
 				<!-- Level text (large, center-top) -->

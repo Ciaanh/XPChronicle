@@ -11,15 +11,13 @@ local ANIMATION_CONSTANTS = {
 	MIN_ANIMATION_DURATION = 0.3, -- Minimum animation time (seconds)
 	MAX_ANIMATION_DURATION = 2.0, -- Maximum animation time (seconds)
 	ENFORCED_MIN_DURATION = 0.25, -- Clearly visible at 60 FPS (15 frames)
-	
 	-- Flash effect (matches V1 glow pattern)
 	GAIN_FLASH_FADE_IN_DURATION = 0.2, -- Fade in time (200ms)
 	GAIN_FLASH_FADE_OUT_DURATION = 0.3, -- Fade out time (300ms)
 	GAIN_FLASH_HOLD_DURATION = 0.5, -- Hold at max alpha (500ms)
 	GAIN_FLASH_MAX_ALPHA = 0.6, -- Maximum flash opacity (60%)
-	
 	-- Thresholds
-	ANIMATION_THRESHOLD = 0.001, -- Minimum change to animate (0.1%)
+	ANIMATION_THRESHOLD = 0.001 -- Minimum change to animate (0.1%)
 }
 
 -----------------------------------
@@ -32,11 +30,11 @@ local AnimationUtils = {}
 -- @return number: Duration in seconds, clamped to min/max bounds
 function AnimationUtils.CalculateDuration(delta)
 	local constants = ANIMATION_CONSTANTS
-	
+
 	-- Linear scaling: 0.001 delta = MIN, 1.0 delta = MAX
-	local duration = constants.MIN_ANIMATION_DURATION + 
-		(delta * (constants.MAX_ANIMATION_DURATION - constants.MIN_ANIMATION_DURATION))
-	
+	local duration =
+		constants.MIN_ANIMATION_DURATION + (delta * (constants.MAX_ANIMATION_DURATION - constants.MIN_ANIMATION_DURATION))
+
 	-- Clamp to bounds
 	return math.max(constants.ENFORCED_MIN_DURATION, math.min(constants.MAX_ANIMATION_DURATION, duration))
 end
@@ -59,17 +57,17 @@ end
 -- @return string: Reason for decision ("enabled", "user_disabled", "delta_too_small")
 function AnimationUtils.ShouldAnimate(delta, config)
 	local constants = ANIMATION_CONSTANTS
-	
+
 	-- Rule: User disabled animations
 	if not config.enableAnimations then
 		return false, "user_disabled"
 	end
-	
+
 	-- Rule: Tiny changes are instant (avoid micro-animations)
 	if delta < constants.ANIMATION_THRESHOLD then
 		return false, "delta_too_small"
 	end
-	
+
 	-- Otherwise, animate
 	return true, "enabled"
 end
@@ -96,7 +94,6 @@ function AnimationUtils.DetectLevelUp(context)
 	end
 
 	if hasLeveledUp then
-		if XPBarDebugLog then XPBarDebugLog:Log("AnimationUtils", "DetectLevelUp - hasLeveledUp flag true") end
 		return true
 	end
 
@@ -105,7 +102,6 @@ function AnimationUtils.DetectLevelUp(context)
 	local xpBefore = (type(context.Get) == "function") and context:Get("xpBefore") or context.xpBefore
 
 	if not xpAfter or not xpBefore then
-		if XPBarDebugLog then XPBarDebugLog:Log("AnimationUtils", "DetectLevelUp - missing xpBefore/xpAfter, cannot detect level-up") end
 		return false
 	end
 
@@ -115,9 +111,8 @@ end
 --- Get total flash duration (fade in + hold + fade out)
 -- @return number: Total flash duration in seconds
 function AnimationUtils.GetFlashTotalDuration()
-	return ANIMATION_CONSTANTS.GAIN_FLASH_FADE_IN_DURATION +
-	       ANIMATION_CONSTANTS.GAIN_FLASH_HOLD_DURATION +
-	       ANIMATION_CONSTANTS.GAIN_FLASH_FADE_OUT_DURATION
+	return ANIMATION_CONSTANTS.GAIN_FLASH_FADE_IN_DURATION + ANIMATION_CONSTANTS.GAIN_FLASH_HOLD_DURATION +
+		ANIMATION_CONSTANTS.GAIN_FLASH_FADE_OUT_DURATION
 end
 
 --- Get animation constants

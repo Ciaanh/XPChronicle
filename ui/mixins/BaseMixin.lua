@@ -21,23 +21,12 @@ local EventNames = Addon.EventNames
 
 --- Refresh bar state from game data ( unified pattern)
 function BaseMixin:Refresh()
-	if XPBarDebugLog then
-		XPBarDebugLog:Log("BaseMixin", "Refresh called")
-	end
-
 	-- Check if ContextBuilder exists
 	if not XPBarContextBuilder then
-		if XPBarDebugLog then
-			XPBarDebugLog:Log("BaseMixin", "ERROR: XPBarContextBuilder not found")
-		end
 		error("XPBarContextBuilder not loaded")
 	end
 
 	local context = XPBarContextBuilder.BuildContext("MANUAL_REFRESH")
-
-	if XPBarDebugLog then
-		XPBarDebugLog:Log("BaseMixin", "Refresh context built:", context ~= nil)
-	end
 
 	self:TriggerBarRefresh(context)
 end
@@ -60,6 +49,9 @@ function BaseMixin:FullUpdate(context)
 	-- Use unified render pattern
 	self:TriggerBarRefresh(context)
 
+	-- Update text visibility in case options changed
+	self:UpdateTextVisibility(ctx)
+
 	self._isUpdating = nil
 end
 
@@ -69,9 +61,6 @@ end
 
 --- OnLoad - Initialize bar state and register events
 function BaseMixin:OnLoad()
-	if XPBarDebugLog then
-		XPBarDebugLog:Log("BaseMixin", "OnLoad called")
-	end
 	-- Initialize internal config
 	self.__xpbar_config = self.__xpbar_config or {}
 
@@ -104,50 +93,46 @@ function BaseMixin:OnLoad()
 	if Addon.EventBus and Addon.EventBus.Register then
 		local handler = function(ctx)
 			if self and self.FullUpdate then
-				pcall(function() self:FullUpdate(ctx) end)
+				pcall(
+					function()
+						self:FullUpdate(ctx)
+					end
+				)
 			end
-		Addon.EventBus:Register(EventNames.XPBAR_BROADCAST_UPDATE, observerId, handler)
-		-- Subscribe to CONFIG_UPDATED (EventNames.CONFIG_UPDATED) to react to fine-grained key changes
-		local configId = observerId .. ":config"
-		local configHandler = function(payload)
-			-- Basic default: full update on config change
-			if self and self.FullUpdate then
-				pcall(function()
-					local ctx = XPBarContextBuilder and XPBarContextBuilder.BuildContext and XPBarContextBuilder.BuildContext("BROADCAST_UPDATE") or nil
-					self:FullUpdate(ctx)
-				end)
+			Addon.EventBus:Register(EventNames.XPBAR_BROADCAST_UPDATE, observerId, handler)
+			-- Subscribe to CONFIG_UPDATED (EventNames.CONFIG_UPDATED) to react to fine-grained key changes
+			local configId = observerId .. ":config"
+			local configHandler = function(payload)
+				-- Basic default: full update on config change
+				if self and self.FullUpdate then
+					pcall(
+						function()
+							local ctx =
+								XPBarContextBuilder and XPBarContextBuilder.BuildContext and
+								XPBarContextBuilder.BuildContext("BROADCAST_UPDATE") or
+								nil
+							self:FullUpdate(ctx)
+						end
+					)
+				end
 			end
+			Addon.EventBus:Register(EventNames.CONFIG_UPDATED, configId, configHandler)
+			self.__observer_id = observerId
+			self.__config_observer_id = configId
 		end
-		Addon.EventBus:Register(EventNames.CONFIG_UPDATED, configId, configHandler)
-		self.__observer_id = observerId
-		self.__config_observer_id = configId
-	end
 	end
 
 	-- Initial refresh
-	if XPBarDebugLog then
-		XPBarDebugLog:Log("BaseMixin", "OnLoad calling initial Refresh")
-	end
+
 	if not self.Refresh then
-		if XPBarDebugLog then
-			XPBarDebugLog:Log("BaseMixin", "ERROR: Refresh method not found on frame")
-		end
 		error("Refresh method missing")
 	end
-	if XPBarDebugLog then
-		XPBarDebugLog:Log("BaseMixin", "OnLoad about to call self:Refresh()")
-	end
+
 	self:Refresh()
-	if XPBarDebugLog then
-		XPBarDebugLog:Log("BaseMixin", "OnLoad Refresh completed")
-	end
 end
 
 --- OnShow - Called when bar becomes visible
 function BaseMixin:OnShow()
-	if XPBarDebugLog then
-		XPBarDebugLog:Log("BaseMixin", "OnShow called")
-	end
 	-- Refresh state when shown
 	self:Refresh()
 
@@ -158,17 +143,26 @@ function BaseMixin:OnShow()
 		if Addon.EventBus and Addon.EventBus.Register then
 			local handler = function(ctx)
 				if self and self.FullUpdate then
-					pcall(function() self:FullUpdate(ctx) end)
+					pcall(
+						function()
+							self:FullUpdate(ctx)
+						end
+					)
 				end
 			end
 			Addon.EventBus:Register(EventNames.XPBAR_BROADCAST_UPDATE, observerId, handler)
 			local configId = observerId .. ":config"
 			local configHandler = function(payload)
 				if self and self.FullUpdate then
-					pcall(function()
-						local ctx = XPBarContextBuilder and XPBarContextBuilder.BuildContext and XPBarContextBuilder.BuildContext("BROADCAST_UPDATE") or nil
-						self:FullUpdate(ctx)
-					end)
+					pcall(
+						function()
+							local ctx =
+								XPBarContextBuilder and XPBarContextBuilder.BuildContext and
+								XPBarContextBuilder.BuildContext("BROADCAST_UPDATE") or
+								nil
+							self:FullUpdate(ctx)
+						end
+					)
 				end
 			end
 			Addon.EventBus:Register(EventNames.CONFIG_UPDATED, configId, configHandler)
@@ -317,10 +311,6 @@ end
 --- Orchestrates animation vs immediate render based on context
 ---@param context table Immutable context from ContextBuilder with event flags
 function BaseMixin:TriggerBarRefresh(context)
-	if XPBarDebugLog then
-		XPBarDebugLog:Log("BaseMixin", "TriggerBarRefresh called")
-	end
-
 	-- Explicit context required
 	if not context then
 		error("TriggerBarRefresh requires an explicit immutable context")
@@ -328,40 +318,19 @@ function BaseMixin:TriggerBarRefresh(context)
 
 	-- Validate required methods
 	if not self.RenderBar then
-		if XPBarDebugLog then
-			XPBarDebugLog:Log("BaseMixin", "ERROR: RenderBar method not found on frame", self:GetName() or "unknown")
-		end
 		error("Style must implement RenderBar(context) method")
 	end
 
 	local frameName = self:GetName() or "unnamed"
-	if XPBarDebugLog then
-		XPBarDebugLog:Log("BaseMixin", "Frame:", frameName, "shouldAnimate:", tostring(context.shouldAnimate))
-	end
 
 	-- ORCHESTRATION: Decide between animation vs immediate render
 	if context.shouldAnimate and self.StartAnimation then
 		-- Animated update path
-		if XPBarDebugLog then
-			XPBarDebugLog:Log("BaseMixin", "Starting animation for", frameName)
-		end
 
 		-- Calculate target ratio for animation (use xpMax, not maxXP)
 		local targetRatio = 0
 		if context.currentXP and context.xpMax and context.xpMax > 0 then
 			targetRatio = context.currentXP / context.xpMax
-		end
-
-		if XPBarDebugLog then
-			XPBarDebugLog:Log(
-				"BaseMixin",
-				"Animation targetRatio:",
-				targetRatio,
-				"currentXP:",
-				context.currentXP,
-				"xpMax:",
-				context.xpMax
-			)
 		end
 
 		-- Get animation config from nested structure
@@ -382,23 +351,8 @@ function BaseMixin:TriggerBarRefresh(context)
 			config.flashOnGain = true
 		end
 
-		if XPBarDebugLog then
-			XPBarDebugLog:Log(
-				"BaseMixin",
-				"Animation config for",
-				frameName,
-				"enableAnimations:",
-				config.enableAnimations,
-				"flashOnGain:",
-				config.flashOnGain,
-				"from nested:",
-				animConfig.flashOnGain
-			)
-		end
-
-		-- Before starting animation, update overlays (if present) so any cached
-		-- overlay data (used by styles like CircularBar) are up-to-date for
-		-- the animation path. This mirrors the non-animated RenderBar flow
+		-- Before starting animation, update overlays (if present)
+		-- This mirrors the non-animated RenderBar flow
 		-- and avoids stale visuals during animation.
 		if self.UpdateRestedOverlay then
 			self:UpdateRestedOverlay(context)
@@ -415,16 +369,8 @@ function BaseMixin:TriggerBarRefresh(context)
 
 		-- Start animation - AnimationManager will call AnimateBarPosition on each tick
 		self:StartAnimation(targetRatio, context, config)
-
-		if XPBarDebugLog then
-			XPBarDebugLog:Log("BaseMixin", "Animation started for", frameName)
-		end
 	else
 		-- Immediate render path
-		if XPBarDebugLog then
-			local reason = not context.shouldAnimate and "shouldAnimate=false" or "no StartAnimation method"
-			XPBarDebugLog:Log("BaseMixin", "Immediate render for", frameName, "reason:", reason)
-		end
 
 		-- Call style-specific render method directly
 		-- If an animation is currently running, we still allow immediate render
@@ -451,20 +397,6 @@ function BaseMixin:TriggerBarRefresh(context)
 
 		if not (self.animation and self.animation.isAnimating) then
 			self:RenderBar(context)
-		else
-			if XPBarDebugLog then
-				XPBarDebugLog:Log(
-					"BaseMixin",
-					"Skipping immediate RenderBar for",
-					frameName,
-					"animation.isAnimating:",
-					self.animation and self.animation.isAnimating or "nil"
-				)
-			end
-		end
-
-		if XPBarDebugLog then
-			XPBarDebugLog:Log("BaseMixin", "RenderBar completed for", frameName)
 		end
 	end
 end

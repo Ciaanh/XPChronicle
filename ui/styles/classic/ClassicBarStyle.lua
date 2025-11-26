@@ -1,4 +1,4 @@
--- XP Bar Enhanced - Classic Bar Style 
+-- XP Bar Enhanced - Classic Bar Style
 -- Blizzard-style XP bar with border frame and atlas textures
 -- Static positioning (anchored to Blizzard's MainStatusTrackingBarContainer)
 
@@ -56,17 +56,17 @@ function ClassicBarStyleTemplate:AnimateBarEffect(iterationData, eventContext)
     else
         gainFlash:Hide()
     end
-    
+
     -- Apply quest overlay alpha reduction during flash
     if iterationData.questOverlayAlpha and self.StatusBar then
         local questOverlayComplete = self.StatusBar.QuestOverlayComplete
         local questOverlayIncomplete = self.StatusBar.QuestOverlayIncomplete
-        
+
         if questOverlayComplete and iterationData.questOverlayCompleteInitialAlpha then
             local newAlpha = iterationData.questOverlayCompleteInitialAlpha * iterationData.questOverlayAlpha
             questOverlayComplete:SetAlpha(newAlpha)
         end
-        
+
         if questOverlayIncomplete and iterationData.questOverlayIncompleteInitialAlpha then
             local newAlpha = iterationData.questOverlayIncompleteInitialAlpha * iterationData.questOverlayAlpha
             questOverlayIncomplete:SetAlpha(newAlpha)
@@ -82,7 +82,6 @@ end
 --- Pure rendering method - orchestration handled by BaseMixin:TriggerBarRefresh
 ---@param context table Immutable context with all state and flags
 function ClassicBarStyleTemplate:RenderBar(context)
-    if XPBarDebugLog then XPBarDebugLog:Log("ClassicBar", "RenderBar called") end
     if not context then
         error("RenderBar requires an explicit immutable context")
     end
@@ -94,7 +93,6 @@ function ClassicBarStyleTemplate:RenderBar(context)
     end
 
     -- Render at final position (no animation decision - BaseMixin handles that)
-    if XPBarDebugLog then XPBarDebugLog:Log("ClassicBar", "RenderBar calling RenderBarFrame with ratio:", targetRatio) end
     self:RenderBarFrame(targetRatio, context)
 
     -- Update overlays (always update, even during animation)

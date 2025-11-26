@@ -827,10 +827,10 @@ function XPBarEnhancedOptionsMixin:OnLoad()
             container.BarSettingsHeader.Title:SetText(ResolveLocale("OPT_HEADER_BAR_SETTINGS"))
         end
 
-                -- Quest Features section
-                if container.OverlayFeaturesHeader and container.OverlayFeaturesHeader.Title then
-                    container.OverlayFeaturesHeader.Title:SetText(ResolveLocale("OPT_HEADER_DISPLAY_FEATURES"))
-                end
+        -- Quest Features section
+        if container.OverlayFeaturesHeader and container.OverlayFeaturesHeader.Title then
+            container.OverlayFeaturesHeader.Title:SetText(ResolveLocale("OPT_HEADER_DISPLAY_FEATURES"))
+        end
 
         -- Quest Features section
         if container.QuestFeaturesHeader and container.QuestFeaturesHeader.Title then
@@ -979,11 +979,11 @@ end
 function XPBarEnhancedOptionsMixin:OnResetSettingsClicked()
     Config:Reset()
     self:Refresh()
-    
+
     -- Refresh bars immediately to apply new colors and settings
-    local ctx = XPBarContextBuilder and XPBarContextBuilder.BuildContext and XPBarContextBuilder.BuildContext("BROADCAST_UPDATE") or nil
+
     if Addon.EventBus and Addon.EventBus.Emit then
-        Addon.EventBus:Emit(EventNames.XPBAR_BROADCAST_UPDATE, ctx)
+        Addon.EventBus:Emit(EventNames.XPBAR_BROADCAST_UPDATE)
     end
 end
 
@@ -994,18 +994,9 @@ end
 
 function XPBarEnhancedOptionsMixin:OnResetBarPositionClicked()
     -- Prefer BarManager wrapper or direct view call for reset position; fallback to old shim
-    if Addon.BarManager and Addon.BarManager.ResetFlatBarPosition then
-        Addon.BarManager:ResetFlatBarPosition()
-    else
-        local flatBar = _G and _G.FlatBar
-        if flatBar and flatBar.ResetPosition then
-            flatBar:ResetPosition()
-        end
+    if Addon.BarManager and Addon.BarManager.ResetBarPosition then
+        Addon.BarManager:ResetBarPosition()
     end
-    -- Show confirmation message
-    local addonName = ResolveLocale("ADDON_NAME")
-    local message = ResolveLocale("OPT_BAR_POSITION_RESET")
-    print("|cFF00FF00" .. addonName .. ":|r " .. message)
 end
 
 function XPBarEnhancedOptionsMixin:UpdateColorControls()
@@ -1103,7 +1094,7 @@ function XPBarEnhancedOptionsMixin:OpenColorPicker(colorKey)
                 ColorPickerFrame.Content and ColorPickerFrame.Content.ColorPicker and
                     ColorPickerFrame.Content.ColorPicker.GetColorAlpha
              then
-                opacity = ColorPickerFrame.Content.ColorPicker:GetColorAlpha()
+                opacity = ColorPickerFrame.Content.ColorPicker
             end
 
             -- Fallback to the static opacity field if GetColorAlpha doesn't exist
@@ -1198,7 +1189,7 @@ function XPBarEnhancedOptionsMixin:Refresh()
 
     -- Get current barStyle value for conditional visibility
     local barStyle = Config:GetOptionValue("barStyle")
-    local isFlatMode = (barStyle == "flat")
+    local isNoneMode = (barStyle == "none")
 
     -- Refresh checkboxes
     for key, checkbox in pairs(self.controls) do
@@ -1207,22 +1198,22 @@ function XPBarEnhancedOptionsMixin:Refresh()
             checkbox:SetChecked(value and true or false)
 
             -- Conditional visibility: only show flat-mode options when in flat mode
-            if key == "hideBlizzardBar" or key == "barLocked" then
-                -- Get the parent row frame (Row_hideBlizzardBar or Row_barLocked)
+            if key == "barLocked" then
+                -- Get the parent row frame (Row_barLocked)
                 local rowKey = "Row_" .. key
                 local rowFrame =
                     self.ContentFrame and self.ContentFrame.OptionsContainer and
                     self.ContentFrame.OptionsContainer[rowKey]
 
-                if isFlatMode then
-                    checkbox:Show()
-                    if rowFrame then
-                        rowFrame:Show()
-                    end
-                else
+                if isNoneMode then
                     checkbox:Hide()
                     if rowFrame then
                         rowFrame:Hide()
+                    end
+                else
+                    checkbox:Show()
+                    if rowFrame then
+                        rowFrame:Show()
                     end
                 end
             end
@@ -1384,100 +1375,65 @@ end
 -- Controller Methods
 
 function Options:OnOptionChanged(key)
-    -- Emit config update event for subscribers
-    if Addon.EventBus and Addon.EventBus.Emit then
-        Addon.EventBus:Emit(EventNames.CONFIG_UPDATED, { key = key })
-    end
     -- Handle specific option changes
     if key == "barStyle" then
-        -- Update bar style via BarManager, fallback to XPBar shim
         local value = Addon.db and Addon.db.barStyle or "classic"
         if Addon.BarManager and Addon.BarManager.SetStyle then
-            Addon.BarManager:SetStyle(value, true)
+            Addon.BarManager:SetStyle(value)
         end
-        
-        -- Refresh UI to update dropdown text and visibility
-        self:Refresh()
-        
     elseif key == "hideBlizzardBar" then
         -- Update Blizzard bar visibility (handled by Config side effects)
         -- No additional action needed here
-        
     elseif key == "barLocked" then
-        -- Update Flat bar lock state via EventBus (broad notify) or fallback to shim
-        do
-            local ctx = XPBarContextBuilder and XPBarContextBuilder.BuildContext and XPBarContextBuilder.BuildContext("BROADCAST_UPDATE") or nil
-            if Addon.EventBus and Addon.EventBus.Emit then
-                Addon.EventBus:Emit(EventNames.XPBAR_BROADCAST_UPDATE, ctx)
-            elseif Addon.BarManager and Addon.BarManager.UpdateLockedState then
-                Addon.BarManager:UpdateLockedState()
-            end
+        if Addon.BarManager and Addon.BarManager.UpdateLockedState then
+            Addon.BarManager:UpdateLockedState()
         end
-        
-    elseif key == "enableAnimations" or key == "animationSpeed" or key == "animationEasing" 
-        or key == "flashOnGain" or key == "pauseOnHover" then
-        -- Update animation settings via EventBus (broad notify) so all views update; fallback to shim
-        do
-            local ctx = XPBarContextBuilder and XPBarContextBuilder.BuildContext and XPBarContextBuilder.BuildContext("BROADCAST_UPDATE") or nil
-            if Addon.EventBus and Addon.EventBus.Emit then
-                Addon.EventBus:Emit(EventNames.XPBAR_BROADCAST_UPDATE, ctx)
-            elseif Addon.BarManager and Addon.BarManager.UpdateAnimationSettings then
-                Addon.BarManager:UpdateAnimationSettings()
-            end
+    elseif
+        key == "enableAnimations" or key == "animationSpeed" or key == "animationEasing" or key == "flashOnGain" or
+            key == "pauseOnHover"
+     then
+        if Addon.BarManager and Addon.BarManager.UpdateAnimationSettings then
+            Addon.BarManager:UpdateAnimationSettings()
         end
-        
-    elseif key == "showQuestXP" or key == "showQuestPercent" or key == "questOverlaysEnabled"
-        or key == "showCompleteQuestOverlay" or key == "showIncompleteQuestOverlay" then
-        -- Update quest-related display (overlays and text)
-        -- Broadcast to all bars (V1 +  observers)
-        local ctx = XPBarContextBuilder and XPBarContextBuilder.BuildContext and XPBarContextBuilder.BuildContext("BROADCAST_UPDATE") or nil
-        if Addon.EventBus and Addon.EventBus.Emit then
-            Addon.EventBus:Emit(EventNames.XPBAR_BROADCAST_UPDATE, ctx)
-        elseif Addon.BarManager and Addon.BarManager.Update then
-            Addon.BarManager:Update(ctx)
-        end
+    elseif
+        key == "showQuestXP" or key == "showQuestPercent" or key == "questOverlaysEnabled" or
+            key == "showCompleteQuestOverlay" or
+            key == "showIncompleteQuestOverlay"
+     then
     end
-    
+
     -- General refresh
     self:Refresh()
-    local ctx = XPBarContextBuilder and XPBarContextBuilder.BuildContext and XPBarContextBuilder.BuildContext("BROADCAST_UPDATE") or nil
+
     if Addon.EventBus and Addon.EventBus.Emit then
-        Addon.EventBus:Emit(EventNames.XPBAR_BROADCAST_UPDATE, ctx)
-    elseif Addon.BarManager and Addon.BarManager.Update then
-        Addon.BarManager:Update(ctx)
+        Addon.EventBus:Emit(EventNames.CONFIG_UPDATED)
+    end
+    if Addon.EventBus and Addon.EventBus.Emit then
+        Addon.EventBus:Emit(EventNames.XPBAR_BROADCAST_UPDATE)
     end
 end
 
 function Options:OnColorReset()
     self:UpdateColorControls()
     -- Refresh bars to apply new colors
-    local ctx = XPBarContextBuilder and XPBarContextBuilder.BuildContext and XPBarContextBuilder.BuildContext("BROADCAST_UPDATE") or nil
     if Addon.EventBus and Addon.EventBus.Emit then
-        Addon.EventBus:Emit(EventNames.XPBAR_BROADCAST_UPDATE, ctx)
-    elseif Addon.BarManager and Addon.BarManager.Update then
-        Addon.BarManager:Update(ctx)
+        Addon.EventBus:Emit(EventNames.XPBAR_BROADCAST_UPDATE)
     end
 end
 
 function Options:OnColorChanged()
     self:UpdateColorControls()
     -- Refresh bars to apply new colors
-    local ctx = XPBarContextBuilder and XPBarContextBuilder.BuildContext and XPBarContextBuilder.BuildContext("BROADCAST_UPDATE") or nil
     if Addon.EventBus and Addon.EventBus.Emit then
-        Addon.EventBus:Emit(EventNames.XPBAR_BROADCAST_UPDATE, ctx)
-    elseif Addon.BarManager and Addon.BarManager.Update then
-        Addon.BarManager:Update(ctx)
+        Addon.EventBus:Emit(EventNames.XPBAR_BROADCAST_UPDATE)
     end
 end
 
 function Options:OnColorCancel()
     self:UpdateColorControls()
     -- Refresh bars to apply new colors
-    local ctx = XPBarContextBuilder and XPBarContextBuilder.BuildContext and XPBarContextBuilder.BuildContext("BROADCAST_UPDATE") or nil
     if Addon.EventBus and Addon.EventBus.Emit then
-        Addon.EventBus:Emit(EventNames.XPBAR_BROADCAST_UPDATE, ctx)
-    elseif Addon.BarManager and Addon.BarManager.Update then
-        Addon.BarManager:Update(ctx)
+        Addon.EventBus:Emit(EventNames.XPBAR_BROADCAST_UPDATE)
     end
 end
 
@@ -1492,4 +1448,3 @@ _G.XPBarEnhancedOptionsMixin = XPBarEnhancedOptionsMixin
 Addon:RegisterFeature("options", Options)
 
 return Options
-

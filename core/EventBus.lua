@@ -50,16 +50,41 @@ function EventBus:Unregister(eventName, idOrHandler)
 end
 
 --- Emit an event to all listeners
-function EventBus:Emit(eventName, payload)
-    if not eventName then return end
-    local listeners = EventBus.listeners[eventName]
-    if not listeners then return end
-    for id, fn in pairs(listeners) do
-        local ok, err = pcall(fn, payload)
-        if not ok and Addon.Logger and Addon.Logger.Error then
-            Addon.Logger:Error("EventBus handler failed for " .. tostring(eventName) .. ": " .. tostring(err))
+function EventBus:Emit(eventName)
+    -- Build a fresh immutable context
+    local context = nil
+    if XPBarContextBuilder and XPBarContextBuilder.BuildContext then
+        -- use eventName to let the builder set a reason; fall back to generic
+        local reason = eventName or "BROADCAST_UPDATE"
+        context = XPBarContextBuilder.BuildContext(reason)
+    end
+
+    if context == nil then
+        error("EventBus:Emit requires a valid context")
+    end
+
+    -- Dispatch to listeners (use defensive pcall so a failing listener won't break others)
+    local listenersForEvent = self.listeners and self.listeners[eventName]
+    if not listenersForEvent then
+        return context
+    end
+
+    for id, handler in pairs(listenersForEvent) do
+        local ok, err = pcall(handler, context)
+        if not ok then
+            -- Keep a small error log but avoid throwing here
+
+                print(
+                    ("EventBus: listener [%s] for %s failed: %s"):format(
+                        tostring(id),
+                        tostring(eventName),
+                        tostring(err)
+                    )
+                )
         end
     end
+
+    return context
 end
 
 return EventBus

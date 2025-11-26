@@ -1,4 +1,4 @@
--- XP Bar Enhanced - VerticalBar Style 
+-- XP Bar Enhanced - VerticalBar Style
 -- Vertical XP bar with StatusBar widget using vertical orientation
 -- Integrates with  AnimationManager for standard effects
 
@@ -68,7 +68,6 @@ end
 --- Pure rendering method - orchestration handled by BaseMixin:TriggerBarRefresh
 ---@param context table Immutable context with all state and flags
 function VerticalBarStyleTemplate:RenderBar(context)
-    if XPBarDebugLog then XPBarDebugLog:Log("VerticalBar", "RenderBar called") end
     if not context then
         error("RenderBar requires an explicit immutable context")
     end
@@ -134,13 +133,13 @@ function VerticalBarStyleTemplate:UpdateBarColors(context, barName)
     if not self.StatusBar then
         return
     end
-    
+
     -- Select color based on whether player has rested XP
     local XPBarColors = _G.XPBarColors
     local hasRestedXP = context.hasRestedXP or (context.restedXP and context.restedXP > 0)
     local colorKey = hasRestedXP and Color.XpBarRested or Color.XpBar
     local color = XPBarColors:GetUserColor(colorKey)
-    
+
     -- Use SetStatusBarColor for StatusBar widget
     self.StatusBar:SetStatusBarColor(color.r, color.g, color.b, color.a or 1)
 end
@@ -149,14 +148,14 @@ end
 function VerticalBarStyleTemplate:UpdateRestedOverlayColor(overlayName)
     overlayName = overlayName or "RestedOverlay"
     local overlay = self[overlayName]
-    
+
     if not overlay then
         return
     end
-    
+
     local XPBarColors = _G.XPBarColors
     local color = XPBarColors:GetUserColor(Color.Rested)
-    
+
     -- Use SetVertexColor for WHITE8X8 texture
     overlay:SetVertexColor(color.r, color.g, color.b, color.a or 0.3)
 end
@@ -165,11 +164,11 @@ end
 function VerticalBarStyleTemplate:UpdateQuestCompleteOverlayColor(overlayName)
     overlayName = overlayName or "QuestOverlayComplete"
     local overlay = self.StatusBar and self.StatusBar[overlayName]
-    
+
     if not overlay then
         return
     end
-    
+
     local XPBarColors = _G.XPBarColors
     local color = XPBarColors:GetUserColor(Color.QuestComplete)
     overlay:SetVertexColor(color.r, color.g, color.b, color.a or 0.85)
@@ -179,11 +178,11 @@ end
 function VerticalBarStyleTemplate:UpdateQuestIncompleteOverlayColor(overlayName)
     overlayName = overlayName or "QuestOverlayIncomplete"
     local overlay = self.StatusBar and self.StatusBar[overlayName]
-    
+
     if not overlay then
         return
     end
-    
+
     local XPBarColors = _G.XPBarColors
     local color = XPBarColors:GetUserColor(Color.QuestIncomplete)
     overlay:SetVertexColor(color.r, color.g, color.b, color.a or 0.85)
@@ -193,18 +192,18 @@ end
 function VerticalBarStyleTemplate:UpdateQuestCompleteOverlayLayout(context, overlayName)
     overlayName = overlayName or "QuestOverlayComplete"
     local overlay = self.StatusBar and self.StatusBar[overlayName]
-    
+
     if not overlay then
         return
     end
-    
+
     local Addon = XPBarEnhanced
     local completeXP = context.completeQuestXP or 0
-    
+
     -- Get visibility flags from context (single source of truth)
     local showQuestXP = context.showQuestXP
     local showComplete = context.showCompleteQuestOverlay
-    
+
     local visible = false
     if showQuestXP and showComplete and (completeXP and completeXP > 0) then
         local currentXP = context.currentXP or 0
@@ -212,15 +211,15 @@ function VerticalBarStyleTemplate:UpdateQuestCompleteOverlayLayout(context, over
         local remainingXP = math.max(0, maxXP - currentXP)
         local questXPClamped = math.min(completeXP, remainingXP)
         local ratio = questXPClamped / maxXP
-        
+
         if ratio >= 0.01 then
             local barHeight = self:GetHeight()
-            
+
             -- Vertical: calculate Y offset and height
             local currentRatio = currentXP / maxXP
             local yOffset = barHeight * currentRatio -- Start at top of current XP
             local height = barHeight * ratio
-            
+
             overlay:ClearAllPoints()
             overlay:SetPoint("BOTTOMLEFT", self.StatusBar, "BOTTOMLEFT", 0, yOffset)
             overlay:SetPoint("BOTTOMRIGHT", self.StatusBar, "BOTTOMRIGHT", 0, yOffset)
@@ -228,7 +227,7 @@ function VerticalBarStyleTemplate:UpdateQuestCompleteOverlayLayout(context, over
             visible = true
         end
     end
-    
+
     overlay:SetShown(visible)
 end
 
@@ -236,47 +235,47 @@ end
 function VerticalBarStyleTemplate:UpdateQuestIncompleteOverlayLayout(context, overlayName)
     overlayName = overlayName or "QuestOverlayIncomplete"
     local overlay = self.StatusBar and self.StatusBar[overlayName]
-    
+
     if not overlay then
         return
     end
-    
+
     local Addon = XPBarEnhanced
     local completeQuestXP = context.completeQuestXP or 0
     local incompleteQuestXP = context.incompleteQuestXP or 0
-    
+
     -- Get visibility flags from context (single source of truth)
     local showQuestXP = context.showQuestXP
     local showComplete = context.showCompleteQuestOverlay
     local showIncomplete = context.showIncompleteQuestOverlay
-    
+
     local visible = false
     if showQuestXP and showIncomplete and incompleteQuestXP > 0 then
         local currentXP = context.currentXP or 0
         local maxXP = context.xpMax or 1
         local remainingXP = math.max(0, maxXP - currentXP)
-        
+
         -- Only subtract complete quest XP if that overlay is actually showing
         if showQuestXP and showComplete and completeQuestXP > 0 then
             remainingXP = math.max(0, remainingXP - completeQuestXP)
         end
-        
+
         local questXPClamped = math.min(incompleteQuestXP, remainingXP)
         local ratio = questXPClamped / maxXP
-        
+
         if ratio >= 0.01 then
             local barHeight = self:GetHeight()
-            
+
             -- Vertical: calculate start Y position (current XP + complete quest XP if showing)
             local startXP = currentXP
             if showQuestXP and showComplete and completeQuestXP > 0 then
                 startXP = startXP + completeQuestXP
             end
-            
+
             local startRatio = startXP / maxXP
             local yOffset = barHeight * startRatio
             local height = barHeight * ratio
-            
+
             overlay:ClearAllPoints()
             overlay:SetPoint("BOTTOMLEFT", self.StatusBar, "BOTTOMLEFT", 0, yOffset)
             overlay:SetPoint("BOTTOMRIGHT", self.StatusBar, "BOTTOMRIGHT", 0, yOffset)
@@ -284,7 +283,7 @@ function VerticalBarStyleTemplate:UpdateQuestIncompleteOverlayLayout(context, ov
             visible = true
         end
     end
-    
+
     overlay:SetShown(visible)
 end
 
@@ -293,50 +292,50 @@ function VerticalBarStyleTemplate:UpdateRestedOverlayLayout(context)
     if not self.RestedOverlay then
         return
     end
-    
+
     local Addon = XPBarEnhanced
     local restedXP = context.restedXP or 0
     local showRested = Addon.ConfigHelper.GetShowRestedOverlay(context)
-    
+
     -- Get quest overlay visibility from context (single source of truth)
     local showQuestXP = context.showQuestXP
     local showComplete = context.showCompleteQuestOverlay
     local showIncomplete = context.showIncompleteQuestOverlay
-    
+
     local visible = false
     if showRested and restedXP > 0 then
         local currentXP = context.currentXP or 0
         local maxXP = context.xpMax or 1
         local remainingXP = math.max(0, maxXP - currentXP)
         local restedXPClamped = math.min(restedXP, remainingXP)
-        
+
         -- Calculate quest offset (how much space quest overlays take)
         local questOffset = 0
         local completeQuestXP = context.completeQuestXP or 0
         local incompleteQuestXP = context.incompleteQuestXP or 0
-        
+
         -- Add complete quest XP if showing
         if showQuestXP and showComplete and completeQuestXP > 0 then
             local completeQuestClamped = math.min(completeQuestXP, remainingXP)
             questOffset = questOffset + completeQuestClamped
         end
-        
+
         -- Add incomplete quest XP if showing
         if showQuestXP and showIncomplete and incompleteQuestXP > 0 then
             local remainingAfterComplete = math.max(0, remainingXP - questOffset)
             local incompleteQuestClamped = math.min(incompleteQuestXP, remainingAfterComplete)
             questOffset = questOffset + incompleteQuestClamped
         end
-        
+
         -- Vertical: total height from bottom (current XP + quest overlays + rested XP)
         -- The rested overlay is behind everything, so it extends from 0 to (current + quests + rested)
         local totalXP = currentXP + questOffset + restedXPClamped
         local totalRatio = math.min(totalXP / maxXP, 1.0)
-        
+
         if totalRatio >= 0.01 then
             local barHeight = self:GetHeight()
             local height = barHeight * totalRatio
-            
+
             self.RestedOverlay:ClearAllPoints()
             self.RestedOverlay:SetPoint("BOTTOMLEFT", self, "BOTTOMLEFT", 0, 0)
             self.RestedOverlay:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", 0, 0)
@@ -344,7 +343,7 @@ function VerticalBarStyleTemplate:UpdateRestedOverlayLayout(context)
             visible = true
         end
     end
-    
+
     self.RestedOverlay:SetShown(visible)
 end
 
@@ -353,11 +352,11 @@ function VerticalBarStyleTemplate:UpdatePercentText(context)
     if not self.PercentText then
         return
     end
-    
+
     local currentXP = context.currentXP or 0
     local maxXP = context.xpMax or 1
     local percent = maxXP > 0 and ((currentXP / maxXP) * 100) or 0
-    
+
     -- Simple format: just the current XP percentage
     self.PercentText:SetFormattedText("%.1f%%", percent)
 end

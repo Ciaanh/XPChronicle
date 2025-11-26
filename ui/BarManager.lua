@@ -15,25 +15,38 @@ local StyleTemplateNameMap = {
     circular = "CircularBarTemplate"
 }
 
+-- Helper: true if style key corresponds to a custom addon style (not Blizzard's bar)
+function BarManager:IsCustomStyle(style)
+    return style and StyleTemplateNameMap[style] ~= nil
+end
+
 function BarManager:Initialize()
     Addon.UI = Addon.UI or {}
     Addon.UI.Views = Addon.UI.Views or {}
-    Addon.UI.Views.XPBar = self
 
     local db = Addon.db or {}
     local defaultStyle = (Addon.defaults and Addon.defaults.barStyle) or "classic"
     local style = db.barStyle or defaultStyle
 
-    self:SetStyle(style, true)
+    self:SetStyle(style)
 
-    if db.hideBlizzardBar then
-        self:ApplyDefaultXPBarVisibility()
+    -- Ensure lock state is applied at startup
+    if Addon.db == nil then
+        Addon.db = {}
     end
+    if Addon.db.locked == nil then
+        Addon.db.locked = false
+    end
+    self:UpdateLockedState()
+
+    -- Hide Blizzard default whenever a custom style is active
+    self:ApplyDefaultXPBarVisibility()
 end
 
 function BarManager:ApplyDefaultXPBarVisibility()
-    local db = Addon.db or {}
-    if db.hideBlizzardBar and self.currentStyle == "flat" then
+    -- Hide Blizzard main bar components whenever we are using a custom style
+    -- (classic, flat, vertical, circular)
+    if self:IsCustomStyle(self.currentStyle) then
         if _G.MainMenuExpBar and _G.MainMenuExpBar.Hide then
             _G.MainMenuExpBar:Hide()
         end
@@ -41,6 +54,7 @@ function BarManager:ApplyDefaultXPBarVisibility()
             _G.MainStatusTrackingBarContainer:Hide()
         end
     else
+        -- Otherwise, restore Blizzard defaults
         if _G.MainMenuExpBar and _G.MainMenuExpBar.Show then
             _G.MainMenuExpBar:Show()
         end
@@ -50,132 +64,123 @@ function BarManager:ApplyDefaultXPBarVisibility()
     end
 end
 
-function BarManager:SetStyle(style, skipSave)
-    if not style or type(style) ~= "string" then
-        style = (Addon.defaults and Addon.defaults.barStyle) or "classic"
+function BarManager:GetCurrentFrame()
+    self.barFrames = self.barFrames or {}
+    return self.barFrames[self.currentStyle]
+end
+
+function BarManager:SetStyle(nextStyle)
+    Addon.UI.Views = Addon.UI.Views or {}
+    self.barFrames = self.barFrames or {}
+
+    local previousStyle = self.currentStyle
+    if not nextStyle or type(nextStyle) ~= "string" then
+        nextStyle = (Addon.defaults and Addon.defaults.barStyle) or "classic"
     end
-    local curStyle = self.currentStyle
-    if curStyle == style then
+
+    if previousStyle == nextStyle then
         return
     end
-    if self.currentFrame and self.currentFrame.Hide then
-        pcall(
-            function()
-                self.currentFrame:Hide()
-            end
-        )
+
+    local previousFrame = self.barFrames[previousStyle]
+    if previousFrame and previousFrame.Hide then
+        print("Hiding current frame for style: " .. tostring(previousStyle) .. " -> " .. tostring(nextStyle))
+        previousFrame:Hide()
     end
-    self.frames = self.frames or {}
-    local frame = self.frames[style]
-    if not frame then
-        local templateName = StyleTemplateNameMap[style]
-        if not frame and StyleBuilder and StyleBuilder.CreateFrameForStyle then
-            local mixin = StyleBuilder:GetStyleMixin(style)
-            if not mixin then
-                style = (Addon.defaults and Addon.defaults.barStyle) or "classic"
-                mixin = StyleBuilder:GetStyleMixin(style)
-            end
-            frame = StyleBuilder:CreateFrameForStyle(style, mixin.__xpbar_config or {}, templateName)
+
+    local nextFrame = self.barFrames[nextStyle]
+
+    if not nextFrame and StyleBuilder and StyleBuilder.CreateFrameForStyle then
+        local templateName = StyleTemplateNameMap[nextStyle]
+        local mixin = StyleBuilder:GetStyleMixin(nextStyle)
+        if not mixin then
+            error("BarManager:SetStyle: Unknown style key: " .. tostring(nextStyle))
         end
-        -- if frame and frame.OnLoad then
-        --     pcall(
-        --         function()
-        --             frame:OnLoad()
-        --         end
-        --     )
-        -- end
-        self.frames[style] = frame
+
+        frame = StyleBuilder:CreateFrameForStyle(nextStyle, mixin.__xpbar_config or {}, templateName)
+        self.barFrames[nextStyle] = frame
+        Addon.UI.Views[nextStyle] = frame
+    else
+        if nextFrame and nextFrame.Show then
+            nextFrame:Show()
+        end
     end
-    if frame and frame.Show then
-        pcall(
-            function()
-                frame:Show()
-            end
-        )
-    end
-    Addon.UI.Views = Addon.UI.Views or {}
-    Addon.UI.Views[style] = frame
-    self.currentStyle = style
-    self.currentFrame = frame
-    if not skipSave and Addon.db then
-        Addon.db.barStyle = style
-    end
+
+    self.currentStyle = nextStyle
+
+    -- Apply the lock setting to the new view and to all cached views
+    self:UpdateLockedState()
+
     if Addon.EventBus and Addon.EventBus.Emit then
-        Addon.EventBus:Emit(Addon.EventNames.XPBAR_BROADCAST_UPDATE, {reason = "SET_STYLE", style = style})
+        Addon.EventBus:Emit(Addon.EventNames.XPBAR_BROADCAST_UPDATE)
     end
-    if Addon.db and Addon.db.hideBlizzardBar then
-        self:ApplyDefaultXPBarVisibility()
-    end
+
+    -- Always hide the Blizzard XP bar when we are using a custom style
+    self:ApplyDefaultXPBarVisibility()
 end
 
 function BarManager:GetCurrentStyle()
     return self.currentStyle
 end
 
--- Helper: return the flat view frame if it exists
-function BarManager:GetFlatView()
-    -- Prioritize frames table, then Addon.UI.Views
-    self.frames = self.frames or {}
-    local flat = self.frames.flat or (Addon.UI and Addon.UI.Views and Addon.UI.Views.flat)
-    return flat
-end
-
--- Reset position for the flat view, clearing saved position and restoring defaults
-function BarManager:ResetFlatBarPosition()
-    local flat = self:GetFlatView()
-    if flat then
-        if flat.ResetPosition then
-            pcall(
-                function()
-                    flat:ResetPosition()
-                end
-            )
-            return true
-        elseif flat.ClearSavedPosition and flat.SetDefaultDraggablePosition then
-            pcall(
-                function()
-                    flat:ClearSavedPosition()
-                    flat:SetDefaultDraggablePosition()
-                end
-            )
-            return true
+function BarManager:ResetBarPosition()
+    for key, value in pairs(self.barFrames) do
+        if value.ClearSavedPosition and value.SetDefaultDraggablePosition then
+            value:ClearSavedPosition()
+            value:SetDefaultDraggablePosition()
         end
     end
-    return false
-end
-
--- Trigger a full update (broadcast) across views
-function BarManager:Update(ctx)
-    ctx =
-        ctx or
-        (XPBarContextBuilder and XPBarContextBuilder.BuildContext and
-            XPBarContextBuilder.BuildContext("BROADCAST_UPDATE"))
-    if Addon.EventBus and Addon.EventBus.Emit then
-        Addon.EventBus:Emit(Addon.EventNames.XPBAR_BROADCAST_UPDATE, ctx)
-        return true
-    elseif self.currentFrame and self.currentFrame.Update then
-        pcall(
-            function()
-                self.currentFrame:Update()
-            end
-        )
-        return true
-    end
-    return false
 end
 
 -- Update locked state on the current view (e.g., lock/unlock drag on flat style)
 function BarManager:UpdateLockedState()
-    if self.currentFrame and self.currentFrame.UpdateLockedState then
-        pcall(
-            function()
-                self.currentFrame:UpdateLockedState()
+    self.barFrames = self.barFrames or {}
+
+    -- If a given frame implements UpdateLockedState, call it to ensure it applies lock/unlock
+    for key, frame in pairs(self.barFrames) do
+        if frame and frame.UpdateLockedState then
+            pcall(
+                function()
+                    frame:UpdateLockedState()
+                end
+            )
+        else
+            -- Fallback: if the frame supports SetDraggable/SetMovable or a SetLocked helper, try those
+            if frame and frame.SetLocked then
+                pcall(
+                    function()
+                        frame:SetLocked(Addon.db and Addon.db.locked or false)
+                    end
+                )
             end
-        )
+            if frame and frame.SetMovable and frame.SetUserPlaced then
+                pcall(
+                    function()
+                        local locked = Addon.db and Addon.db.locked or false
+                        frame:SetMovable(not locked)
+                    end
+                )
+            end
+        end
+    end
+
+    -- Broadcast update so styles that are not currently cached can react
+    if Addon.EventBus and Addon.EventBus.Emit then
+        Addon.EventBus:Emit(Addon.EventNames.XPBAR_BROADCAST_UPDATE)
         return true
     end
-    -- Fallback: emit broadcast so views can react
-    return self:Update()
+
+    return true
+end
+
+-- Public helper to toggle or set the locked state across all styles
+function BarManager:SetLocked(locked)
+    if Addon.db == nil then
+        Addon.db = {}
+    end
+    Addon.db.locked = (locked == true)
+    self:UpdateLockedState()
+    return Addon.db.locked
 end
 
 -- Update animation settings for views (emit broadcast for views to reconfigure)
@@ -189,11 +194,11 @@ function BarManager:UpdateAnimationSettings()
         )
         return true
     end
-    return self:Update()
+    return false
 end
 
 -- Lifecycle wrappers (compatibility helpers / convenience)
-function BarManager:OnEnteringWorld(isInitialLogin, isReloadingUI)
+function BarManager:OnEnteringWorld()
     -- Invalidate Quest cache and notify listeners
     if Addon.QuestXPService and Addon.QuestXPService.InvalidateQuestCache then
         pcall(
@@ -201,12 +206,12 @@ function BarManager:OnEnteringWorld(isInitialLogin, isReloadingUI)
                 Addon.QuestXPService:InvalidateQuestCache()
             end
         )
+        return true
     end
-    -- Broadcast a full update so views can refresh
-    self:Update()
+    return false
 end
 
-function BarManager:OnLevelUp(level)
+function BarManager:OnLevelUp()
     -- Invalidate quest XP cache and notify listeners
     if Addon.QuestXPService and Addon.QuestXPService.InvalidateQuestCache then
         pcall(
@@ -215,34 +220,22 @@ function BarManager:OnLevelUp(level)
             end
         )
     end
-    -- Broadcast level-up update
-    local ctx =
-        XPBarContextBuilder and XPBarContextBuilder.BuildContext and
-        XPBarContextBuilder.BuildContext("PLAYER_LEVEL_UP", level) or
-        nil
+
     if Addon.EventBus and Addon.EventBus.Emit then
-        Addon.EventBus:Emit(Addon.EventNames.XPBAR_BROADCAST_UPDATE, ctx)
-    else
-        self:Update(ctx)
+        Addon.EventBus:Emit(Addon.EventNames.XPBAR_BROADCAST_UPDATE)
     end
 end
 
 function BarManager:OnRestedChanged()
-    local ctx =
-        XPBarContextBuilder and XPBarContextBuilder.BuildContext and
-        XPBarContextBuilder.BuildContext("UPDATE_EXHAUSTION") or
-        nil
     if Addon.EventBus and Addon.EventBus.Emit then
-        Addon.EventBus:Emit(Addon.EventNames.XPBAR_BROADCAST_UPDATE, ctx)
-    else
-        self:Update(ctx)
+        Addon.EventBus:Emit(Addon.EventNames.XPBAR_BROADCAST_UPDATE)
     end
 end
 
 function BarManager:Shutdown()
     -- Hide any frames and perform light cleanup
-    self.frames = self.frames or {}
-    for style, frame in pairs(self.frames) do
+    self.barFrames = self.barFrames or {}
+    for style, frame in pairs(self.barFrames) do
         if frame and frame.Hide then
             pcall(
                 function()
@@ -254,10 +247,7 @@ function BarManager:Shutdown()
     self.currentFrame = nil
     self.currentStyle = nil
     if Addon.EventBus and Addon.EventBus.Emit then
-        local ctx =
-            XPBarContextBuilder and XPBarContextBuilder.BuildContext and XPBarContextBuilder.BuildContext("SHUTDOWN") or
-            nil
-        Addon.EventBus:Emit(Addon.EventNames.XPBAR_BROADCAST_UPDATE, ctx)
+        Addon.EventBus:Emit(Addon.EventNames.XPBAR_BROADCAST_UPDATE)
     end
 end
 

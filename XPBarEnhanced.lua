@@ -20,7 +20,6 @@ Addon.Config = Addon.Config or {}
 Addon.Database = Addon.Database or {}
 Addon.Session = Addon.Session or {}
 Addon.Utils = Addon.Utils or {}
-Addon.Logger = Addon.Logger or {}
 
 -- Features
 Addon.Features = Addon.Features or {}
@@ -70,9 +69,7 @@ function eventHandlers:OnAddonLoaded(name)
     Addon.state.xpGainDisabled = Addon.Database:IsXPGainDisabled()
 
     -- Print loaded message
-    if Addon.Utils and Addon.Utils.Print and Addon.L then
-        Addon.Utils.Print(Addon.L["ADDON_LOADED"])
-    end
+    print(Addon.L["ADDON_LOADED"])
 end
 
 function eventHandlers:OnPlayerLogin()
@@ -109,12 +106,8 @@ function eventHandlers:OnPlayerEnteringWorld(isInitialLogin, isReloadingUI)
     if Addon.QuestXPService and Addon.QuestXPService.InvalidateQuestCache then
         Addon.QuestXPService:InvalidateQuestCache()
     end
-    local ctx =
-        XPBarContextBuilder and XPBarContextBuilder.BuildContext and
-        XPBarContextBuilder.BuildContext("PLAYER_ENTERING_WORLD", isInitialLogin, isReloadingUI) or
-        nil
     if Addon.EventBus and Addon.EventBus.Emit then
-        Addon.EventBus:Emit(Addon.EventNames.XPBAR_BROADCAST_UPDATE, ctx)
+        Addon.EventBus:Emit(Addon.EventNames.XPBAR_BROADCAST_UPDATE)
     elseif Addon.BarManager and Addon.BarManager.OnEnteringWorld then
         Addon.BarManager:OnEnteringWorld(isInitialLogin, isReloadingUI)
     end
@@ -140,12 +133,8 @@ function eventHandlers:OnPlayerLevelUp(level)
     if Addon.QuestXPService and Addon.QuestXPService.InvalidateQuestCache then
         Addon.QuestXPService:InvalidateQuestCache()
     end
-    local ctx =
-        XPBarContextBuilder and XPBarContextBuilder.BuildContext and
-        XPBarContextBuilder.BuildContext("PLAYER_LEVEL_UP", level) or
-        nil
     if Addon.EventBus and Addon.EventBus.Emit then
-        Addon.EventBus:Emit(Addon.EventNames.XPBAR_BROADCAST_UPDATE, ctx)
+        Addon.EventBus:Emit(Addon.EventNames.XPBAR_BROADCAST_UPDATE)
     elseif Addon.BarManager and Addon.BarManager.OnLevelUp then
         Addon.BarManager:OnLevelUp(level)
     end
@@ -157,12 +146,8 @@ end
 
 function eventHandlers:OnUpdateExhaustion()
     -- Prefer broadcasting via EventBus; fall back to shim if necessary
-    local ctx =
-        XPBarContextBuilder and XPBarContextBuilder.BuildContext and
-        XPBarContextBuilder.BuildContext("UPDATE_EXHAUSTION") or
-        nil
     if Addon.EventBus and Addon.EventBus.Emit then
-        Addon.EventBus:Emit(Addon.EventNames.XPBAR_BROADCAST_UPDATE, ctx)
+        Addon.EventBus:Emit(Addon.EventNames.XPBAR_BROADCAST_UPDATE)
     elseif Addon.BarManager and Addon.BarManager.OnRestedChanged then
         Addon.BarManager:OnRestedChanged()
     end
@@ -170,12 +155,8 @@ end
 
 function eventHandlers:OnPlayerUpdateResting()
     -- Prefer broadcasting via EventBus; fall back to shim if necessary
-    local ctx =
-        XPBarContextBuilder and XPBarContextBuilder.BuildContext and
-        XPBarContextBuilder.BuildContext("PLAYER_UPDATE_RESTING") or
-        nil
     if Addon.EventBus and Addon.EventBus.Emit then
-        Addon.EventBus:Emit(Addon.EventNames.XPBAR_BROADCAST_UPDATE, ctx)
+        Addon.EventBus:Emit(Addon.EventNames.XPBAR_BROADCAST_UPDATE)
     elseif Addon.BarManager and Addon.BarManager.OnRestedChanged then
         Addon.BarManager:OnRestedChanged()
     end
@@ -208,10 +189,8 @@ end
 
 function eventHandlers:OnPlayerLogout()
     -- Broadcast shutdown to observers and graceful shutdown of sub-systems
-    local ctx =
-        XPBarContextBuilder and XPBarContextBuilder.BuildContext and XPBarContextBuilder.BuildContext("SHUTDOWN") or nil
     if Addon.EventBus and Addon.EventBus.Emit then
-        Addon.EventBus:Emit(Addon.EventNames.XPBAR_BROADCAST_UPDATE, ctx)
+        Addon.EventBus:Emit(Addon.EventNames.XPBAR_BROADCAST_UPDATE)
     elseif Addon.BarManager and Addon.BarManager.Shutdown then
         Addon.BarManager:Shutdown()
     end
@@ -238,8 +217,8 @@ eventFrame:SetScript(
         local handlerName = eventMap[event]
         if handlerName and eventHandlers[handlerName] then
             local success, err = pcall(eventHandlers[handlerName], eventHandlers, ...)
-            if not success and Addon.Logger and Addon.Logger.Error then
-                Addon.Logger:Error("Event handler failed for " .. event .. ": " .. tostring(err))
+            if not success then
+                error("Event handler failed for " .. event .. ": " .. tostring(err))
             end
         end
     end
@@ -339,6 +318,7 @@ local function handleStyle(style)
         -- Use BarManager directly when available, otherwise fallback to simplified XPBar shim
         if Addon.BarManager and Addon.BarManager.SetStyle then
             Addon.BarManager:SetStyle(style)
+            Addon.db.barStyle = style
             print("|cFF00FF00XP Bar Enhanced:|r Bar style set to: " .. style)
         else
             print("|cFFFF0000XP Bar Enhanced:|r XP Bar module or BarManager not available")

@@ -25,7 +25,7 @@ Addon.EventBus:Register(Addon.EventNames.XPBAR_BROADCAST_UPDATE, "myHandler", fu
 	-- handle context
 end)
 
-Addon.EventBus:Emit(Addon.EventNames.XPBAR_BROADCAST_UPDATE, buildContext())
+Addon.EventBus:Emit(Addon.EventNames.XPBAR_BROADCAST_UPDATE)
 ```
 
 ## Documentation

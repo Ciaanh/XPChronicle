@@ -55,18 +55,9 @@
                                             <KeyValue key="configKey" value="barStyle" type="string"/>
                                         </KeyValues>
                                     </Frame>
-                                    <Frame parentKey="Row_hideBlizzardBar" inherits="ConfigCheckboxTemplate" hidden="true">
-                                        <Anchors>
-                                            <Anchor point="TOPLEFT" relativeKey="$parent.Row_barStyle" relativePoint="BOTTOMLEFT" x="0" y="0"/>
-                                            <Anchor point="RIGHT"/>
-                                        </Anchors>
-                                        <KeyValues>
-                                            <KeyValue key="configKey" value="hideBlizzardBar" type="string"/>
-                                        </KeyValues>
-                                    </Frame>
                                     <Frame parentKey="Row_barLocked" inherits="ConfigCheckboxTemplate" hidden="true">
                                         <Anchors>
-                                            <Anchor point="TOPLEFT" relativeKey="$parent.Row_hideBlizzardBar" relativePoint="BOTTOMLEFT" x="0" y="0"/>
+                                            <Anchor point="TOPLEFT" relativeKey="$parent.Row_barStyle" relativePoint="BOTTOMLEFT" x="0" y="0"/>
                                             <Anchor point="RIGHT"/>
                                         </Anchors>
                                         <KeyValues>

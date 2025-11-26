@@ -37,8 +37,6 @@ locales\enUS.lua
 XPBarEnhanced.lua
 
 core\Utils.lua
-core\Logger.lua
-core\DebugLog.lua
 core\Colors.lua
 core\Config.lua
 core\Database.lua

@@ -113,9 +113,6 @@ function AnimationManager:AnimateTo(bar, targetRatio, xpContext, config)
 	-- targetRatio (within EPSILON), ignore the request to avoid duplicate
 	-- registrations and duplicate StartAnimation delegations.
 	if anim.isAnimating and math.abs((anim.targetRatio or 0) - targetRatio) <= EPSILON then
-		if XPBarDebugLog then
-			XPBarDebugLog:Log("AnimationManager", "AnimateTo - skipping duplicate for", bar:GetName() or "unknown", "targetRatio:", targetRatio, "anim.isAnimating:", anim.isAnimating)
-		end
 		return
 	end
 
@@ -125,9 +122,7 @@ function AnimationManager:AnimateTo(bar, targetRatio, xpContext, config)
 		if bar.SetCurrentRatio then
 			bar:SetCurrentRatio(targetRatio)
 		end
-		if XPBarDebugLog then
-			XPBarDebugLog:Log("AnimationManager", "AnimateTo - current visual equals target, no animation needed:", targetRatio)
-		end
+
 		return
 	end
 
@@ -265,10 +260,6 @@ function AnimationManager:AnimateTo(bar, targetRatio, xpContext, config)
 	anim.startTime = now
 	anim.duration = duration
 	anim.targetRatio = targetRatio
-	
-	if XPBarDebugLog then
-		XPBarDebugLog:Log("AnimationManager", "AnimateTo - setting isAnimating=true for", bar:GetName() or "unknown", "targetRatio:", targetRatio)
-	end
 
 	-- Setup flash effect if enabled and XP was gained
 	if willFlash then
@@ -280,16 +271,19 @@ function AnimationManager:AnimateTo(bar, targetRatio, xpContext, config)
 			anim.flashStartTime = now
 			-- Total flash duration = fade in + hold + fade out (1.0 second total)
 			anim.flashDuration = AnimationUtils.GetFlashTotalDuration()
-			
+
 			-- Capture initial quest overlay alphas to restore after flash (only if not already captured)
 			if not anim.questOverlayCompleteInitialAlpha and not anim.questOverlayIncompleteInitialAlpha then
 				if bar.StatusBar then
-					anim.questOverlayCompleteInitialAlpha = bar.StatusBar.QuestOverlayComplete and bar.StatusBar.QuestOverlayComplete:GetAlpha() or 1.0
-					anim.questOverlayIncompleteInitialAlpha = bar.StatusBar.QuestOverlayIncomplete and bar.StatusBar.QuestOverlayIncomplete:GetAlpha() or 1.0
+					anim.questOverlayCompleteInitialAlpha =
+						bar.StatusBar.QuestOverlayComplete and bar.StatusBar.QuestOverlayComplete:GetAlpha() or 1.0
+					anim.questOverlayIncompleteInitialAlpha =
+						bar.StatusBar.QuestOverlayIncomplete and bar.StatusBar.QuestOverlayIncomplete:GetAlpha() or 1.0
 				elseif bar.QuestOverlayComplete or bar.QuestOverlayIncomplete then
 					-- Flat  style
 					anim.questOverlayCompleteInitialAlpha = bar.QuestOverlayComplete and bar.QuestOverlayComplete:GetAlpha() or 1.0
-					anim.questOverlayIncompleteInitialAlpha = bar.QuestOverlayIncomplete and bar.QuestOverlayIncomplete:GetAlpha() or 1.0
+					anim.questOverlayIncompleteInitialAlpha =
+						bar.QuestOverlayIncomplete and bar.QuestOverlayIncomplete:GetAlpha() or 1.0
 				end
 			end
 		end
@@ -327,7 +321,7 @@ end
 -- @param now number: Current time (GetTime())
 function AnimationManager:UpdateBarAnimation(bar, now)
 	local anim = bar.animation
-	
+
 	-- Get animation config (bar should provide this)
 	local config
 	if bar.GetAnimationConfig then
@@ -343,7 +337,7 @@ function AnimationManager:UpdateBarAnimation(bar, now)
 			anim.isFlashing = false
 			-- Set cooldown to prevent immediate restart (prevents double flash on rapid XP events)
 			anim.flashCooldownUntil = now + 0.1 -- 100ms cooldown after flash completes
-			
+
 			-- Restore quest overlay alphas to initial values
 			if bar.StatusBar then
 				if bar.StatusBar.QuestOverlayComplete and anim.questOverlayCompleteInitialAlpha then
@@ -361,24 +355,24 @@ function AnimationManager:UpdateBarAnimation(bar, now)
 					bar.QuestOverlayIncomplete:SetAlpha(anim.questOverlayIncompleteInitialAlpha)
 				end
 			end
-			
+
 			-- Clear initial alpha storage
 			anim.questOverlayCompleteInitialAlpha = nil
 			anim.questOverlayIncompleteInitialAlpha = nil
 		end
 	end
-	
+
 	-- Calculate iteration data per frame (progress, elapsed, easing, flash)
 	local elapsedTime = now - anim.startTime
 	local progress = math.min(elapsedTime / anim.duration, 1.0)
-	
+
 	-- Apply easing to get current ratio
 	local easedProgress = progress
 	if progress < 1.0 then
 		easedProgress = AnimationUtils.EaseOutQuad(progress, 0, 1, 1)
 	end
 	local currentRatio = anim.startRatio + (anim.targetRatio - anim.startRatio) * easedProgress
-	
+
 	-- Calculate flash state
 	local flashData = nil
 	if anim.isFlashing then
@@ -389,11 +383,11 @@ function AnimationManager:UpdateBarAnimation(bar, now)
 		local holdDuration = constants.GAIN_FLASH_HOLD_DURATION
 		local fadeOutDuration = constants.GAIN_FLASH_FADE_OUT_DURATION
 		local maxAlpha = constants.GAIN_FLASH_MAX_ALPHA
-		
+
 		-- Calculate flash alpha with three phases: fade in, hold, fade out
 		local flashAlpha = 0
 		local phase = "none"
-		
+
 		if flashElapsed < fadeInDuration then
 			flashAlpha = (flashElapsed / fadeInDuration) * maxAlpha
 			phase = "fade_in"
@@ -405,7 +399,7 @@ function AnimationManager:UpdateBarAnimation(bar, now)
 			flashAlpha = maxAlpha * (1 - fadeOutProgress)
 			phase = "fade_out"
 		end
-		
+
 		flashData = {
 			active = flashElapsed < flashDuration,
 			currentAlpha = flashAlpha,
@@ -415,10 +409,10 @@ function AnimationManager:UpdateBarAnimation(bar, now)
 			phase = phase,
 			fadeInDuration = fadeInDuration,
 			holdDuration = holdDuration,
-			fadeOutDuration = fadeOutDuration,
+			fadeOutDuration = fadeOutDuration
 		}
 	end
-	
+
 	-- Calculate quest overlay alpha reduction during flash
 	local questOverlayAlpha = nil
 	if anim.isFlashing and (anim.questOverlayCompleteInitialAlpha or anim.questOverlayIncompleteInitialAlpha) then
@@ -429,7 +423,7 @@ function AnimationManager:UpdateBarAnimation(bar, now)
 		local reductionFactor = MIN_ALPHA_MULTIPLIER + (1.0 - MIN_ALPHA_MULTIPLIER) * fadeProgress
 		questOverlayAlpha = reductionFactor
 	end
-	
+
 	-- Build iteration data (calculated per frame, zero allocation)
 	local iterationData = {
 		-- Core interpolated values
@@ -438,26 +432,22 @@ function AnimationManager:UpdateBarAnimation(bar, now)
 		startRatio = anim.startRatio,
 		progress = progress,
 		easedProgress = easedProgress,
-		
 		-- Timing information
 		startTime = anim.startTime,
 		currentTime = now,
 		elapsedTime = elapsedTime,
 		duration = anim.duration,
-		
 		-- Flash data (nil if not flashing)
 		flashData = flashData,
 		isFlashing = anim.isFlashing,
-		
 		-- Quest overlay alpha multiplier (nil if not flashing)
 		questOverlayAlpha = questOverlayAlpha,
 		questOverlayCompleteInitialAlpha = anim.questOverlayCompleteInitialAlpha,
 		questOverlayIncompleteInitialAlpha = anim.questOverlayIncompleteInitialAlpha,
-		
 		-- Configuration
 		config = config
 	}
-	
+
 	-- Use stored event context (single immutable context, no aggregation)
 	local eventContext = anim.eventContext
 
@@ -495,7 +485,7 @@ function AnimationManager:UpdateBarAnimation(bar, now)
 			questOverlayIncompleteInitialAlpha = anim.questOverlayIncompleteInitialAlpha,
 			config = config
 		}
-		
+
 		if bar.ApplyAnimationStep then
 			bar:ApplyAnimationStep(cleanupIterationData, eventContext)
 		end
