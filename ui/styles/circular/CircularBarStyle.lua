@@ -572,8 +572,10 @@ function CircularBarStyleTemplate:ComputeOverlaySegments(progress, context, tota
      then
         local completeXP = math.min(context.completeQuestXP, remainingXP)
         local completeRatio = completeXP / xpMax
+
         local count = self:CountSegmentsToDisplay(completeRatio, totalSegments)
         count = math.max(0, math.min(count, totalSegments - currentXPSegments))
+
         result.completeCount = count
         result.completeStart = currentXPSegments + 1
         remainingXP = math.max(0, remainingXP - completeXP)
@@ -586,9 +588,11 @@ function CircularBarStyleTemplate:ComputeOverlaySegments(progress, context, tota
      then
         local incompleteXP = math.min(context.incompleteQuestXP, remainingXP)
         local incompleteRatio = incompleteXP / xpMax
+
         local count = self:CountSegmentsToDisplay(incompleteRatio, totalSegments)
         local maxAvailable = totalSegments - currentXPSegments - result.completeCount
         count = math.max(0, math.min(count, maxAvailable))
+
         result.incompleteCount = count
         result.incompleteStart = currentXPSegments + 1 + result.completeCount
         remainingXP = math.max(0, remainingXP - incompleteXP)
@@ -598,9 +602,15 @@ function CircularBarStyleTemplate:ComputeOverlaySegments(progress, context, tota
     if context.showRestedOverlay and (context.restedXP or 0) > 0 and remainingXP > 0 then
         local restedXP = math.min(context.restedXP, remainingXP)
         local restedRatio = restedXP / xpMax
+
         local count = self:CountSegmentsToDisplay(restedRatio, totalSegments)
         local maxAvailable = totalSegments - currentXPSegments - result.completeCount - result.incompleteCount
         count = math.max(0, math.min(count, maxAvailable))
+        -- Ensure tiny rested XP shows at least 1 segment when possible, matching other styles.
+        if count == 0 and (context.restedXP or 0) > 0 and maxAvailable > 0 then
+            count = 1
+        end
+
         result.restedCount = count
         result.restedStart = currentXPSegments + 1 + result.completeCount + result.incompleteCount
     end
