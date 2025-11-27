@@ -75,7 +75,7 @@ function ClassicBarStyleTemplate:AnimateBarEffect(iterationData, eventContext)
 end
 
 -------------------------------------------------------------------
---  UNIFIED RENDER PATTERN (Phase 2: Refactor)
+--  UNIFIED RENDER PATTERN
 -------------------------------------------------------------------
 
 --- Single render method for classic bar ( unified pattern)

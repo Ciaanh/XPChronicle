@@ -74,7 +74,7 @@ function FlatBarStyleTemplate:AnimateBarEffect(iterationData, eventContext)
 end
 
 -------------------------------------------------------------------
---  UNIFIED RENDER PATTERN (Phase 2: Refactor)
+--  UNIFIED RENDER PATTERN
 -------------------------------------------------------------------
 
 --- Single render method for flat bar ( unified pattern)

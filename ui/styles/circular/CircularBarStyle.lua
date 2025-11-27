@@ -486,14 +486,7 @@ function CircularBarStyleTemplate:UpdateRateText(context)
     end
 
     -- only shows time to level (not XP/hour)
-    local showTimeToLevel = true
-
-    if Addon and Addon.Database then
-        local db = Addon.Database:GetDB()
-        if db then
-            showTimeToLevel = db.showTimeToLevelText ~= false
-        end
-    end
+    local showTimeToLevel = Addon.ConfigHelper.GetShowTimeToLevelText(context)
 
     if not showTimeToLevel then
         self.RateText:SetText("")
@@ -501,10 +494,10 @@ function CircularBarStyleTemplate:UpdateRateText(context)
     end
 
     -- Get time to level from context or Session service
-    local timeToLevel = (context and context.timeToLevel) or 0
-    if timeToLevel == 0 and Addon.Session and Addon.Session.GetTimeToLevel then
-        timeToLevel = Addon.Session:GetTimeToLevel()
-    end
+    local timeToLevel =
+        (context and context.timeToLevel) or
+        (Addon.Session and Addon.Session.GetTimeToLevel and Addon.Session:GetTimeToLevel()) or
+        0
 
     if timeToLevel > 0 then
         self.RateText:SetText(Addon.TextFormatter:GetTimeToLevelText(timeToLevel))

@@ -111,32 +111,30 @@ function TextFormatter:GetLevelText(level)
     return string.format(fmt, tonumber(lvl) or 1)
 end
 
-function TextFormatter:GetXPText(current, maxv, abbreviate, showRemaining)
-    current = current or 0
-    maxv = maxv or 1
-    abbreviate = abbreviate or false
-    showRemaining = showRemaining or false
-    if showRemaining then
-        local remaining = math.max(0, maxv - current)
-        return self:FormatNumber(remaining, abbreviate)
-    else
-        local cur = self:FormatNumber(current, abbreviate)
-        local mx = self:FormatNumber(maxv, abbreviate)
-        return string.format("%s / %s", cur, mx)
+function TextFormatter:GetXPText(currentXP, maxXP, abbreviate, showRemaining)
+    if not currentXP or not maxXP then
+        return ""
     end
+    local current = self:FormatNumber(currentXP, abbreviate)
+    local max = self:FormatNumber(maxXP, abbreviate)
+    if showRemaining then
+        local remaining = self:FormatNumber(maxXP - currentXP, abbreviate)
+        return string.format("%s / %s (%s)", current, max, remaining)
+    end
+    return string.format("%s / %s", current, max)
 end
 
-function TextFormatter:GetPercentText(current, maxv, decimals, showQuestPercent, questXP)
-    current = current or 0
-    maxv = maxv or 1
-    decimals = decimals or 1
-    showQuestPercent = showQuestPercent or false
-    questXP = questXP or 0
-    local val = current
-    if showQuestPercent then
-        val = val + (questXP or 0)
+function TextFormatter:GetPercentText(currentXP, maxXP, decimals, showQuestPercent, questXP)
+    if not currentXP or not maxXP then
+        return "0%"
     end
-    return self:FormatPercent(val, maxv, decimals)
+    local percent = self:FormatPercent(currentXP, maxXP, decimals)
+    if showQuestPercent and questXP and questXP > 0 then
+        local withQuest = currentXP + questXP
+        local questPercent = self:FormatPercent(withQuest, maxXP, decimals)
+        return string.format("%s (%s)", percent, questPercent)
+    end
+    return percent
 end
 
 function TextFormatter:GetQuestSummaryText(completeXP, incompleteXP, totalXP, maxXP, restedXP, opts)

@@ -19,6 +19,18 @@ end
 local VerticalBarStyleTemplate = {}
 
 -------------------------------------------------------------------
+-- INITIALIZATION
+-------------------------------------------------------------------
+
+function VerticalBarStyleTemplate:OnLoad()
+    -- Circular bar specific setup
+    self.RateText = self.OverlayFrameTextContainer.RateText
+
+    if XPBarMixinBase and XPBarMixinBase.OnLoad then
+        XPBarMixinBase.OnLoad(self)
+    end
+end
+-------------------------------------------------------------------
 --  ANIMATION IMPLEMENTATION (AnimationManager integration)
 -------------------------------------------------------------------
 
@@ -61,7 +73,7 @@ function VerticalBarStyleTemplate:AnimateBarEffect(iterationData, eventContext)
 end
 
 -------------------------------------------------------------------
---  UNIFIED RENDER PATTERN (Phase 2: Refactor)
+--  UNIFIED RENDER PATTERN
 -------------------------------------------------------------------
 
 --- Single render method for vertical bar ( unified pattern)
@@ -128,6 +140,45 @@ end
 -- OVERRIDES for the vertical layout
 -------------------------------------------------------------------
 
+--- Override text update methods to match v1 circular format (simple values, not full formatted text)
+function VerticalBarStyleTemplate:UpdateLevelText(context)
+    if not self.LevelText then
+        return
+    end
+
+    -- shows just the level number, not "Level XX"
+    local level = (context and context.level) or UnitLevel("player")
+    self.LevelText:SetText(tostring(level))
+end
+
+function VerticalBarStyleTemplate:UpdateRateText(context)
+    local Addon = XPBarEnhanced
+
+    if not self.RateText or not Addon.TextFormatter then
+        return
+    end
+
+    -- only shows time to level (not XP/hour)
+    local showTimeToLevel = Addon.ConfigHelper.GetShowTimeToLevelText(context)
+
+    if not showTimeToLevel then
+        self.RateText:SetText("")
+        return
+    end
+
+    -- Get time to level from context or Session service
+    local timeToLevel =
+        (context and context.timeToLevel) or
+        (Addon.Session and Addon.Session.GetTimeToLevel and Addon.Session:GetTimeToLevel()) or
+        0
+
+    if timeToLevel > 0 then
+        self.RateText:SetText(Addon.TextFormatter:GetTimeToLevelText(timeToLevel))
+    else
+        self.RateText:SetText("")
+    end
+end
+
 --- Override main bar color for vertical orientation (uses StatusBar SetStatusBarColor)
 function VerticalBarStyleTemplate:UpdateBarColors(context, barName)
     if not self.StatusBar then
@@ -144,50 +195,6 @@ function VerticalBarStyleTemplate:UpdateBarColors(context, barName)
     self.StatusBar:SetStatusBarColor(color.r, color.g, color.b, color.a or 1)
 end
 
---- Override rested overlay color for vertical orientation
-function VerticalBarStyleTemplate:UpdateRestedOverlayColor(overlayName)
-    overlayName = overlayName or "RestedOverlay"
-    local overlay = self[overlayName]
-
-    if not overlay then
-        return
-    end
-
-    local XPBarColors = _G.XPBarColors
-    local color = XPBarColors:GetUserColor(Color.Rested)
-
-    -- Use SetVertexColor for WHITE8X8 texture
-    overlay:SetVertexColor(color.r, color.g, color.b, color.a or 0.3)
-end
-
---- Override quest complete overlay color
-function VerticalBarStyleTemplate:UpdateQuestCompleteOverlayColor(overlayName)
-    overlayName = overlayName or "QuestOverlayComplete"
-    local overlay = self.StatusBar and self.StatusBar[overlayName]
-
-    if not overlay then
-        return
-    end
-
-    local XPBarColors = _G.XPBarColors
-    local color = XPBarColors:GetUserColor(Color.QuestComplete)
-    overlay:SetVertexColor(color.r, color.g, color.b, color.a or 0.85)
-end
-
---- Override quest incomplete overlay color
-function VerticalBarStyleTemplate:UpdateQuestIncompleteOverlayColor(overlayName)
-    overlayName = overlayName or "QuestOverlayIncomplete"
-    local overlay = self.StatusBar and self.StatusBar[overlayName]
-
-    if not overlay then
-        return
-    end
-
-    local XPBarColors = _G.XPBarColors
-    local color = XPBarColors:GetUserColor(Color.QuestIncomplete)
-    overlay:SetVertexColor(color.r, color.g, color.b, color.a or 0.85)
-end
-
 --- Override quest complete overlay layout for vertical orientation
 function VerticalBarStyleTemplate:UpdateQuestCompleteOverlayLayout(context, overlayName)
     overlayName = overlayName or "QuestOverlayComplete"
@@ -197,7 +204,6 @@ function VerticalBarStyleTemplate:UpdateQuestCompleteOverlayLayout(context, over
         return
     end
 
-    local Addon = XPBarEnhanced
     local completeXP = context.completeQuestXP or 0
 
     -- Get visibility flags from context (single source of truth)
@@ -347,18 +353,55 @@ function VerticalBarStyleTemplate:UpdateRestedOverlayLayout(context)
     self.RestedOverlay:SetShown(visible)
 end
 
---- Override percent text to show only current XP percentage (no quest percent)
+--- Override percent text (respects showQuestPercent & visibility like other styles)
 function VerticalBarStyleTemplate:UpdatePercentText(context)
     if not self.PercentText then
         return
     end
 
+    local Addon = XPBarEnhanced
+
+    -- Respect explicit visibility flags first (context wins); fallback to ConfigHelper if present
+    local showPercent = nil
+    if context then
+        showPercent = context.showPercent or context.showPercentage
+    end
+    if Addon.ConfigHelper and Addon.ConfigHelper.GetShowPercentText then
+        showPercent = Addon.ConfigHelper:GetShowPercentText(context)
+    end
+    if showPercent == false then
+        self.PercentText:Hide()
+        return
+    end
+
     local currentXP = context.currentXP or 0
     local maxXP = context.xpMax or 1
-    local percent = maxXP > 0 and ((currentXP / maxXP) * 100) or 0
+    local decimals = context.percentDecimals or 1
 
-    -- Simple format: just the current XP percentage
-    self.PercentText:SetFormattedText("%.1f%%", percent)
+    -- Determine whether to include quest XP in percent (respect settings)
+    local showQuestPercent = false
+    if Addon.ConfigHelper and Addon.ConfigHelper.GetShowQuestPercent then
+        showQuestPercent = Addon.ConfigHelper:GetShowQuestPercent(context)
+    elseif context then
+        showQuestPercent = context.showQuestPercent
+    end
+
+    local questXP = 0
+    if showQuestPercent then
+        questXP = (context.completeQuestXP or 0) + (context.incompleteQuestXP or 0)
+    end
+
+    -- Delegate formatting to the shared formatter for consistent behavior
+    if Addon.TextFormatter and Addon.TextFormatter.GetPercentText then
+        local text = Addon.TextFormatter:GetPercentText(currentXP, maxXP, decimals, showQuestPercent, questXP)
+        self.PercentText:SetText(text or "")
+        self.PercentText:Show()
+    else
+        -- Fallback: show simple percent of current XP only
+        local percent = maxXP > 0 and ((currentXP / maxXP) * 100) or 0
+        self.PercentText:SetFormattedText("%." .. decimals .. "f%%", percent)
+        self.PercentText:Show()
+    end
 end
 
 -------------------------------------------------------------------

@@ -13,33 +13,35 @@ local L = Addon.L or {}
 
 --- Update text element visibility based on config
 function XPBarTextMixin:UpdateTextVisibility(context)
-	-- On-bar text elements: prefer explicit context flags when provided, default to true if not set
 	if self.LevelText then
 		local show = Addon.ConfigHelper.GetShowLevelText(context)
 		self.LevelText:SetShown(show)
 	end
+
 	if self.XPText then
 		local show = Addon.ConfigHelper.GetShowXPText(context)
 		self.XPText:SetShown(show)
 	end
+
 	if self.PercentText then
 		local show = Addon.ConfigHelper.GetShowPercentage(context)
 		self.PercentText:SetShown(show)
 	end
 
-	-- Below-bar text elements: default to true if not explicitly set to false
 	if self.RateText then
 		local showXPPerHour = Addon.ConfigHelper.GetShowXPPerHourText(context)
 		local showTimeToLevel = Addon.ConfigHelper.GetShowTimeToLevelText(context)
 		local showRate = showXPPerHour or showTimeToLevel
 		self.RateText:SetShown(showRate)
 	end
+
 	if self.SessionText then
 		local showLevelTime = Addon.ConfigHelper.GetShowLevelTimeText(context)
 		local showSessionTime = Addon.ConfigHelper.GetShowSessionTimeText(context)
 		local showSession = showLevelTime or showSessionTime
 		self.SessionText:SetShown(showSession)
 	end
+
 	if self.QuestSummaryText then
 		local showQuest = Addon.ConfigHelper.GetShowQuestXP(context)
 		self.QuestSummaryText:SetShown(showQuest)
