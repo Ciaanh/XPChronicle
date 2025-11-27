@@ -84,7 +84,6 @@ function BarManager:SetStyle(nextStyle)
 
     local previousFrame = self.barFrames[previousStyle]
     if previousFrame and previousFrame.Hide then
-        print("Hiding current frame for style: " .. tostring(previousStyle) .. " -> " .. tostring(nextStyle))
         previousFrame:Hide()
     end
 

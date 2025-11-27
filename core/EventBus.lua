@@ -74,13 +74,9 @@ function EventBus:Emit(eventName)
         if not ok then
             -- Keep a small error log but avoid throwing here
 
-                print(
-                    ("EventBus: listener [%s] for %s failed: %s"):format(
-                        tostring(id),
-                        tostring(eventName),
-                        tostring(err)
-                    )
-                )
+            print(
+                ("EventBus: listener [%s] for %s failed: %s"):format(tostring(id), tostring(eventName), tostring(err))
+            )
         end
     end
 

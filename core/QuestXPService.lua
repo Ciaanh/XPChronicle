@@ -5,96 +5,128 @@ local Addon = XPBarEnhanced
 Addon.QuestXPService = Addon.QuestXPService or {}
 local QuestXPService = Addon.QuestXPService
 
-local questCache = { data = nil, timestamp = 0, TTL = 0.5 }
+-- Replace simple cache with a per-quest cache and totals
+local questCache = {
+    perQuest = {}, -- [key] = { xp = number, complete = bool, stable = bool }
+    totals = nil, -- { total, complete, incomplete }
+    timestamp = 0,
+    TTL = 0.5,
+    ready = false
+}
 
-local function areObjectivesComplete(questID)
-    if not (C_QuestLog and C_QuestLog.GetQuestObjectives) then
-        return false
+-- Small helper to key per-quest entries — prefer questID if available
+local function makeQuestKey(info, idx)
+    if info and info.questID and info.questID > 0 then
+        return tostring(info.questID)
     end
-    local objectives = C_QuestLog.GetQuestObjectives(questID)
-    if not objectives or #objectives == 0 then
-        return false
-    end
-    for _, objective in ipairs(objectives) do
-        if not objective.finished then
-            return false
-        end
-    end
-    return true
+    return "idx:" .. tostring(idx)
 end
 
-local function isQuestReadyForTurnIn(questID, info)
+-- New: determine whether the quest is ready for turn-in/complete.
+-- Uses available fields and compatibility API/C_QuestLog fallbacks.
+local function isQuestReadyForTurnIn(comp, questID, info)
     if info then
-        if info.isComplete or info.isAutoComplete then
+        -- prefer precomputed info flag if present
+        if info.isComplete or info.isCompleted or info.isAutoComplete then
             return true
         end
-        if info.isOnQuest == false then
-            return false
+        -- if we have a questLogIndex and the compatibility wrapper exposes a "IsQuestComplete" method, prefer that
+        if comp and comp.IsQuestComplete and info.questLogIndex then
+            local ok, val = pcall(comp.IsQuestComplete, comp, info.questLogIndex)
+            if ok and val then
+                return true
+            end
         end
     end
 
-    local comp = Addon.Compatibility
-    if comp then
-        if comp.IsQuestComplete and comp:IsQuestComplete(questID) then
+    -- fallback to C_QuestLog APIs (safe pcall)
+    if questID and C_QuestLog and C_QuestLog.IsComplete then
+        local ok, val = pcall(C_QuestLog.IsComplete, questID)
+        if ok and val then
             return true
         end
-        if comp.ReadyForTurnIn and comp:ReadyForTurnIn(questID) then
+    end
+    if questID and C_QuestLog and C_QuestLog.IsQuestFlaggedCompleted then
+        local ok, flagged = pcall(C_QuestLog.IsQuestFlaggedCompleted, questID)
+        if ok and flagged then
             return true
         end
     end
 
-    if areObjectivesComplete(questID) then
-        return true
-    end
     return false
 end
 
-function QuestXPService:InvalidateQuestCache()
-    questCache.data = nil
-    questCache.timestamp = 0
-    if Addon.EventBus and Addon.EventBus.Emit then
-        Addon.EventBus:Emit(Addon.EventNames.QUESTS_CACHE_INVALIDATED)
-    end
-end
-
-function QuestXPService:GetQuestXP(forceRefresh)
-    local comp = Addon.Compatibility
-    if not comp or not comp.GetNumQuestLogEntries then
-        return 0, 0, 0
-    end
-
-    if not forceRefresh and questCache.data then
-        local now = GetTime()
-        if (now - questCache.timestamp) < questCache.TTL then
-            return questCache.data.totalQuestXP, questCache.data.completeQuestXP, questCache.data.incompleteQuestXP
+-- Choose best XP source (index-based preferred)
+local function readXPForQuest(comp, idx, info)
+    -- prefer index-based scaled XP if available
+    if comp.GetQuestLogRewardXP then
+        local ok, xp = pcall(comp.GetQuestLogRewardXP, comp, idx)
+        if ok and xp and xp > 0 then
+            return xp, "index"
         end
     end
+    -- fallback to questID-based DB value
+    if comp.GetQuestRewardXP and info and info.questID then
+        local ok, xp = pcall(comp.GetQuestRewardXP, comp, idx, info.questID)
+        if ok and xp and xp > 0 then
+            return xp, "byID"
+        end
+    end
+    -- last resort: info.rewardXP or similar
+    local raw = info and (info.rewardXP or info.value or info.xp) or 0
+    return (raw or 0), "info"
+end
 
-    local numEntries = comp:GetNumQuestLogEntries()
-    if not numEntries or numEntries <= 0 then
-        questCache.data = { totalQuestXP = 0, completeQuestXP = 0, incompleteQuestXP = 0, completeQuestCount = 0, incompleteQuestCount = 0 }
+-- Build or refresh the per-quest cache; returns computed totals
+local function buildQuestCache(force)
+    local comp = Addon.Compatibility
+    if not comp or not comp.GetNumQuestLogEntries then
+        -- if Compatibility not available, clear cache
+        questCache.perQuest = {}
+        questCache.totals = {0, 0, 0}
         questCache.timestamp = GetTime()
-        return 0, 0, 0
+        questCache.ready = false
+        return questCache.totals
+    end
+
+    local numEntries = comp:GetNumQuestLogEntries() or 0
+    if numEntries <= 0 then
+        questCache.perQuest = {}
+        questCache.totals = {0, 0, 0}
+        questCache.timestamp = GetTime()
+        questCache.ready = true
+        return questCache.totals
     end
 
     local totalQuestXP, completeQuestXP, incompleteQuestXP = 0, 0, 0
-    local completeQuestCount, incompleteQuestCount = 0, 0
-    local countedQuests = {}
+    local counted = {}
 
+    -- iterate and populate perQuest entries
     for i = 1, numEntries do
         local info = comp:GetQuestInfo(i)
         if info and not info.isHeader and not info.isHidden then
-            local key = info.questID or ("idx:" .. tostring(i))
-            if not countedQuests[key] then
-                countedQuests[key] = true
-                local xp = comp.GetQuestRewardXP and comp:GetQuestRewardXP(i, info.questID) or 0
-                if xp > 0 then
-                    if isQuestReadyForTurnIn(info.questID, info) then
+            local key = makeQuestKey(info, i)
+            if not counted[key] then
+                counted[key] = true
+                local xp, source = readXPForQuest(comp, i, info)
+                -- Use the XP only if positive
+                if xp and xp > 0 then
+                    -- Mark stable if we used index API (considered canonical)
+                    local stable = (source == "index")
+                    local prev = questCache.perQuest[key]
+                    if prev and prev.xp == xp and prev.stable then
+                        -- keep stable true, xp identical
+                        stable = true
+                    end
+                    questCache.perQuest[key] = {
+                        xp = xp,
+                        complete = isQuestReadyForTurnIn(comp, info.questID, info),
+                        stable = stable
+                    }
+                    if questCache.perQuest[key].complete then
                         completeQuestXP = completeQuestXP + xp
-                        completeQuestCount = completeQuestCount + 1
                     else
                         incompleteQuestXP = incompleteQuestXP + xp
-                        incompleteQuestCount = incompleteQuestCount + 1
                     end
                     totalQuestXP = totalQuestXP + xp
                 end
@@ -102,22 +134,97 @@ function QuestXPService:GetQuestXP(forceRefresh)
         end
     end
 
-    questCache.data = {
-        totalQuestXP = totalQuestXP,
-        completeQuestXP = completeQuestXP,
-        incompleteQuestXP = incompleteQuestXP,
-        completeQuestCount = completeQuestCount,
-        incompleteQuestCount = incompleteQuestCount
-    }
+    questCache.totals = {totalQuestXP, completeQuestXP, incompleteQuestXP}
     questCache.timestamp = GetTime()
+    questCache.ready = true
+    return questCache.totals
+end
 
-    return totalQuestXP, completeQuestXP, incompleteQuestXP
+-- Invalidate the quest cache (clear per-quest entries and totals)
+function QuestXPService:InvalidateQuestCache()
+    questCache.perQuest = {}
+    questCache.totals = nil
+    questCache.timestamp = 0
+    questCache.ready = false
+    if Addon.EventBus and Addon.EventBus.Emit then
+        Addon.EventBus:Emit(Addon.EventNames.QUESTS_CACHE_INVALIDATED)
+    end
+end
+
+-- tiny event frame for invalidation & rebuild scheduling
+local function ensureCacheListeners()
+    if QuestXPService._listenerFrame then
+        return
+    end
+    local frame = CreateFrame("Frame")
+    QuestXPService._listenerFrame = frame
+
+    local function doDelayedRebuild(delay)
+        delay = delay or 0.8
+        if C_Timer and C_Timer.After then
+            C_Timer.After(
+                delay,
+                function()
+                    buildQuestCache(true)
+                    -- notify the system to refresh UI
+                    if Addon.EventBus and Addon.EventBus.Emit then
+                        Addon.EventBus:Emit(Addon.EventNames.XPBAR_BROADCAST_UPDATE or "XPBAR:BROADCAST_UPDATE")
+                    end
+                end
+            )
+        else
+            buildQuestCache(true)
+        end
+    end
+
+    local function onEvent(_, event, ...)
+        -- Invalidate cache on any quest/log related events and schedule rebuild
+        QuestXPService:InvalidateQuestCache()
+
+        if event == "PLAYER_ENTERING_WORLD" then
+            doDelayedRebuild(1.0)
+        else
+            -- small delay to allow server to populate scaled values
+            doDelayedRebuild(0.5)
+        end
+    end
+
+    frame:SetScript("OnEvent", onEvent)
+    frame:RegisterEvent("QUEST_LOG_UPDATE")
+    frame:RegisterEvent("QUEST_DATA_LOAD_RESULT")
+    frame:RegisterEvent("PLAYER_ENTERING_WORLD")
+    frame:RegisterEvent("PLAYER_LEVEL_UP")
+    frame:RegisterEvent("ZONE_CHANGED_NEW_AREA")
+    frame:RegisterEvent("UNIT_QUEST_LOG_CHANGED")
+end
+
+ensureCacheListeners()
+
+-- Public API: returns totals, using cache and rebuild if needed
+function QuestXPService:GetQuestXP(forceRefresh)
+    local comp = Addon.Compatibility
+    if not comp or not comp.GetNumQuestLogEntries then
+        -- no comp; return zeros
+        return 0, 0, 0
+    end
+
+    -- if forced or cache expired, rebuild
+    local now = GetTime()
+    if forceRefresh or not questCache.totals or ((now - questCache.timestamp) > questCache.TTL) then
+        buildQuestCache(forceRefresh)
+    end
+
+    if questCache.totals then
+        return questCache.totals[1], questCache.totals[2], questCache.totals[3]
+    end
+
+    return 0, 0, 0
 end
 
 function QuestXPService:GetQuestCounts()
     self:GetQuestXP()
-    if questCache.data then
-        return questCache.data.completeQuestCount or 0, questCache.data.incompleteQuestCount or 0
+    if questCache.totals then
+        return questCache.totals[2] or 0, questCache.totals[3] or 0
     end
     return 0, 0
 end

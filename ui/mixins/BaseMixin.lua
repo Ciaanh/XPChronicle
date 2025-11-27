@@ -50,7 +50,7 @@ function BaseMixin:FullUpdate(context)
 	self:TriggerBarRefresh(context)
 
 	-- Update text visibility in case options changed
-	self:UpdateTextVisibility(ctx)
+	self:UpdateTextVisibility(context)
 
 	self._isUpdating = nil
 end
@@ -91,6 +91,7 @@ function BaseMixin:OnLoad()
 	-- Uses a named subscription id so we can unregister later if needed
 	local observerId = self:GetName() or ("_bar_" .. tostring(self))
 	if Addon.EventBus and Addon.EventBus.Register then
+		-- Handler invoked by EventBus subscriptions
 		local handler = function(ctx)
 			if self and self.FullUpdate then
 				pcall(
@@ -99,27 +100,30 @@ function BaseMixin:OnLoad()
 					end
 				)
 			end
-			Addon.EventBus:Register(EventNames.XPBAR_BROADCAST_UPDATE, observerId, handler)
-			-- Subscribe to CONFIG_UPDATED (EventNames.CONFIG_UPDATED) to react to fine-grained key changes
-			local configId = observerId .. ":config"
-			local configHandler = function(payload)
-				-- Basic default: full update on config change
-				if self and self.FullUpdate then
-					pcall(
-						function()
-							local ctx =
-								XPBarContextBuilder and XPBarContextBuilder.BuildContext and
-								XPBarContextBuilder.BuildContext("BROADCAST_UPDATE") or
-								nil
-							self:FullUpdate(ctx)
-						end
-					)
-				end
-			end
-			Addon.EventBus:Register(EventNames.CONFIG_UPDATED, configId, configHandler)
-			self.__observer_id = observerId
-			self.__config_observer_id = configId
 		end
+
+		-- Register the two EventBus topics now (NOT inside handler)
+		Addon.EventBus:Register(EventNames.XPBAR_BROADCAST_UPDATE, observerId, handler)
+
+		-- Subscribe to CONFIG_UPDATED (EventNames.CONFIG_UPDATED) to react to fine-grained key changes
+		local configId = observerId .. ":config"
+		local configHandler = function(payload)
+			-- Basic default: full update on config change
+			if self and self.FullUpdate then
+				pcall(
+					function()
+						local ctx =
+							XPBarContextBuilder and XPBarContextBuilder.BuildContext and XPBarContextBuilder.BuildContext("BROADCAST_UPDATE") or
+							nil
+						self:FullUpdate(ctx)
+					end
+				)
+			end
+		end
+		Addon.EventBus:Register(EventNames.CONFIG_UPDATED, configId, configHandler)
+
+		self.__observer_id = observerId
+		self.__config_observer_id = configId
 	end
 
 	-- Initial refresh
@@ -273,13 +277,7 @@ function BaseMixin:OnEvent(event, ...)
 		return
 	end
 
-	local context
-	if event == "PLAYER_LEVEL_UP" then
-		local newLevel = ...
-		context = XPBarContextBuilder.BuildContext(event, newLevel)
-	else
-		context = XPBarContextBuilder.BuildContext(event, ...)
-	end
+	local context = XPBarContextBuilder.BuildContext(event, ...)
 
 	-- "PLAYER_ENTERING_WORLD"
 	-- "PLAYER_XP_UPDATE"
