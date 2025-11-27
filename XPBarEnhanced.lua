@@ -390,10 +390,3 @@ function Addon:RequestTimePlayed()
         self.Session:RequestTimePlayed()
     end
 end
-
-function Addon:ApplyDefaultXPBarVisibility()
-    local view = self.UI.Views and self.UI.Views.XPBar
-    if view and view.ApplyDefaultXPBarVisibility then
-        view:ApplyDefaultXPBarVisibility()
-    end
-end

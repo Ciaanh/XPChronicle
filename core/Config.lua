@@ -460,14 +460,6 @@ function Config:GetColor(key)
         return nil
     end
 
-    local xpbarView = Addon.UI.Views and Addon.UI.Views.XPBar
-    if xpbarView and xpbarView.GetColor then
-        local xpBarColor = xpbarView:GetColor(key)
-        if xpBarColor then
-            return xpBarColor
-        end
-    end
-
     if Addon.db and Addon.db.colors and Addon.db.colors[key] then
         return Addon.db.colors[key]
     end
@@ -516,11 +508,6 @@ function Config:SetColor(key, hex, silent)
         Addon.EventBus:Emit(EventNames.COLORS_UPDATED)
     end
 
-    local optionsView = Addon.UI.Views and Addon.UI.Views.Options
-    if optionsView and optionsView.UpdateColorControls then
-        optionsView:UpdateColorControls()
-    end
-
     return true, normalized
 end
 
@@ -536,9 +523,8 @@ function Config:ResetColor(key, silent)
         return false, normalized
     end
 
-    local optionsView = Addon.UI.Views and Addon.UI.Views.Options
-    if optionsView and optionsView.UpdateColorControls then
-        optionsView:UpdateColorControls()
+    if Addon.EventBus and Addon.EventBus.Emit then
+        Addon.EventBus:Emit(EventNames.COLORS_UPDATED)
     end
 
     return true, normalized
@@ -694,21 +680,6 @@ function Config:Reset()
         xpBarController:ResetToDefaults()
     end
 
-    -- Apply changes
-    if Addon.UI.Views and Addon.UI.Views.XPBar then
-        if Addon.UI.Views.XPBar.ApplySavedPosition then
-            Addon.UI.Views.XPBar:ApplySavedPosition()
-        end
-        if Addon.UI.Views.XPBar.ApplyAllColors then
-            Addon.UI.Views.XPBar:ApplyAllColors()
-        elseif Addon.UI.Views.XPBar.ApplyBarColor then
-            Addon.UI.Views.XPBar:ApplyBarColor()
-        end
-        if Addon.UI.Views.XPBar.Update then
-            Addon.UI.Views.XPBar:Update()
-        end
-    end
-
     local stats = Addon.Stats
     if stats and stats.Update then
         stats:Update()
@@ -718,12 +689,7 @@ function Config:Reset()
         Addon.Session:ClearTimePlayedRequest()
     end
 
-    local optionsView = Addon.UI.Views and Addon.UI.Views.Options
-    if optionsView and optionsView.Refresh then
-        optionsView:Refresh()
-    end
-
-        print(Addon.L["MSG_SETTINGS_RESET"])
+    print(Addon.L["MSG_SETTINGS_RESET"])
 end
 
 function Config:ResetStats()
@@ -771,11 +737,6 @@ function Config:ResetStats()
 
     if Addon.EventBus and Addon.EventBus.Emit then
         Addon.EventBus:Emit(EventNames.XPBAR_BROADCAST_UPDATE)
-    end
-
-    local optionsView = Addon.UI.Views and Addon.UI.Views.Options
-    if optionsView and optionsView.Refresh then
-        optionsView:Refresh()
     end
 
     print(Addon.L["MSG_SETTINGS_RESET"])

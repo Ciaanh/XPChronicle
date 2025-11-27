@@ -21,9 +21,6 @@ function BarManager:IsCustomStyle(style)
 end
 
 function BarManager:Initialize()
-    Addon.UI = Addon.UI or {}
-    Addon.UI.Views = Addon.UI.Views or {}
-
     local db = Addon.db or {}
     local defaultStyle = (Addon.defaults and Addon.defaults.barStyle) or "classic"
     local style = db.barStyle or defaultStyle
@@ -69,7 +66,6 @@ function BarManager:GetCurrentFrame()
 end
 
 function BarManager:SetStyle(nextStyle)
-    Addon.UI.Views = Addon.UI.Views or {}
     self.barFrames = self.barFrames or {}
 
     local previousStyle = self.currentStyle
@@ -97,7 +93,6 @@ function BarManager:SetStyle(nextStyle)
 
         frame = StyleBuilder:CreateFrameForStyle(nextStyle, mixin.__xpbar_config or {}, templateName)
         self.barFrames[nextStyle] = frame
-        Addon.UI.Views[nextStyle] = frame
     else
         if nextFrame and nextFrame.Show then
             nextFrame:Show()

@@ -105,14 +105,7 @@ end
 
 --- OnLeftClick - Handle left mouse click
 function InteractionMixin:OnLeftClick()
-	-- Default: toggle stats frame if available
-	-- local addon = XPBarEnhanced
-	-- if addon and addon.UI and addon.UI.Views and addon.UI.Views.Stats then
-	-- 	local statsView = addon.UI.Views.Stats
-	-- 	if statsView.Toggle then
-	-- 		statsView:Toggle()
-	-- 	end
-	-- end
+	-- Styles can override this method for custom behavior
 end
 
 --- OnRightClick - Handle right mouse click

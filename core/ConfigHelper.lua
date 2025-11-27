@@ -13,11 +13,11 @@ local ConfigHelper = {}
 
 --- Resolve a boolean configuration value with standardized fallback logic
 --- Priority: context value -> default value
---- 
+---
 --- ARCHITECTURE: Context is the single source of truth.
 --- ContextBuilder populates all values from database during context creation.
 --- No database fallback is allowed here - this enforces immutable context pattern.
---- 
+---
 --- @param context table|nil Immutable context object (may be nil)
 --- @param contextKey string Key name in context table
 --- @param defaultValue boolean Default value when context doesn't have the value
@@ -34,7 +34,7 @@ function ConfigHelper.GetBooleanValue(context, contextKey, defaultValue)
 		local value = context[contextKey]
 		return value == true
 	end
-	
+
 	-- Priority 2: Default value
 	return defaultValue == true
 end

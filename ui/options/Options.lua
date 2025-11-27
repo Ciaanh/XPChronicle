@@ -14,8 +14,6 @@ end
 
 -- Expose via multiple namespaces for compatibility
 Addon.UI = Addon.UI or {}
-Addon.UI.Views = Addon.UI.Views or {}
-Addon.UI.Views.Options = Options
 Addon.App = Addon.App or {}
 Addon.App.Features = Addon.App.Features or {}
 Addon.App.Features.options = Options
@@ -852,6 +850,14 @@ function XPBarEnhancedOptionsMixin:OnLoad()
     self:BuildColorControls()
     self:Refresh()
     self:RegisterCategory()
+
+    local observerId = self:GetName() or ("_bar_" .. tostring(self))
+    local colorHandler = function(payload)
+        if self and self.UpdateColorControls then
+            self:UpdateColorControls()
+        end
+    end
+    Addon.EventBus:Register(EventNames.COLORS_UPDATED, observerId, colorHandler)
 end
 
 function XPBarEnhancedOptionsMixin:OnPanelShow()
@@ -1385,7 +1391,6 @@ function Options:OnOptionChanged(key)
         -- Update Blizzard bar visibility (handled by Config side effects)
         -- No additional action needed here
     elseif key == "barLocked" then
-
     elseif
         key == "enableAnimations" or key == "animationSpeed" or key == "animationEasing" or key == "flashOnGain" or
             key == "pauseOnHover"

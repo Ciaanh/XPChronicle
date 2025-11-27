@@ -123,9 +123,6 @@ function Session:OnXPUpdate()
     session.lastXP = currentXP
     session.maxXP = maxXP
     session.lastUpdate = time()
-
-    -- Notify StatsView
-    self:NotifySessionUpdated()
 end
 
 function Session:OnLevelUp(newLevel)
@@ -290,18 +287,6 @@ function Session:GetStats()
         realTotalTime = session.realTotalTime or 0,
         realLevelTime = session.realLevelTime or 0
     }
-end
-
--------------------------------------------------------------------
--- VIEW NOTIFICATION (replaces EventBus)
--------------------------------------------------------------------
-
-function Session:NotifySessionUpdated()
-    -- Notify StatsView directly
-    local statsView = Addon.UI and Addon.UI.Views and Addon.UI.Views.Stats
-    if statsView and statsView.OnSessionUpdated then
-        statsView:OnSessionUpdated()
-    end
 end
 
 -------------------------------------------------------------------

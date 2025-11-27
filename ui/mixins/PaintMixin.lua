@@ -150,7 +150,8 @@ function XPBarPaintMixin:BuildVisuals()
 
 	-- Apply text visibility from config (delegate to text mixin if available)
 	if self.UpdateTextVisibility then
-		self:UpdateTextVisibility(nil)
+		local context = XPBarContextBuilder.BuildContext("MANUAL_REFRESH")
+		self:UpdateTextVisibility(context)
 	end
 
 	--  Architecture: Initialize user colors immediately after XML elements are aliased

@@ -454,13 +454,4 @@ end
 
 XPBarEnhanced.Stats = Stats
 
--- Compatibility: Expose via old paths
-Addon.UI = Addon.UI or {}
-Addon.UI.Views = Addon.UI.Views or {}
-Addon.UI.Views.Stats = Stats
-
--- Compatibility: Old Features.stats path
--- Register Stats module
-Addon.Stats = Stats
-
 return Stats

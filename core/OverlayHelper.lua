@@ -51,12 +51,6 @@ function OverlayHelper:GetQuestSummaryText(completeXP, incompleteXP, totalXP, ma
                 completePercent = Addon.TextFormatter:FormatPercent(completeXP, maxXP, decimals)
             end
             local completeText = colorText(completePercent, Addon.Colors.Key.QuestComplete)
-            if completeCount and completeCount > 0 then
-                local t1 = L["TT_QUEST"]
-                local tN = L["TT_QUESTS"]
-                local countText = (completeCount == 1) and string.format(t1, completeCount) or string.format(tN, completeCount)
-                completeText = string.format("%s - %s", completeText, countText)
-            end
             table.insert(parts, string.format(L["TT_QUESTS_COMPLETE"], completeText))
         else
             if completeCount and completeCount > 0 then
@@ -86,10 +80,6 @@ function OverlayHelper:GetQuestSummaryText(completeXP, incompleteXP, totalXP, ma
                 incompletePercent = Addon.TextFormatter:FormatPercent(incompleteXP, maxXP, decimals)
             end
             local incompleteText = colorText(incompletePercent, Addon.Colors.Key.QuestIncomplete)
-            if incompleteCount and incompleteCount > 0 then
-                local countText = (incompleteCount == 1) and string.format(L["TT_QUEST"], incompleteCount) or string.format(L["TT_QUESTS"], incompleteCount)
-                incompleteText = string.format("%s - %s", incompleteText, countText)
-            end
             table.insert(parts, string.format(L["TT_QUESTS_INCOMPLETE"], incompleteText))
         else
             if incompleteCount and incompleteCount > 0 then
