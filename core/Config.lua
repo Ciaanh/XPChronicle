@@ -26,7 +26,7 @@ local defaults = {
     showTimeToLevelText = true,
     abbreviateNumbers = true,
     showRemainingXP = true,
-    showBarAtMaxLevel = true,
+    showBarAtMaxLevel = false,
     showLevelText = true,
     showXPText = true,
     -- Overlays settings

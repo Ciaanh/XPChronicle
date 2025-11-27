@@ -566,54 +566,96 @@ function CircularBarStyleTemplate:ComputeOverlaySegments(progress, context, tota
     local remainingXP = math.max(0, xpMax - currentXP)
 
     -- Quest complete overlay
+    local completeXPUsed = 0
     if
         context.showQuestXP and context.showCompleteQuestOverlay and (context.completeQuestXP or 0) > 0 and
             remainingXP > 0
      then
-        local completeXP = math.min(context.completeQuestXP, remainingXP)
-        local completeRatio = completeXP / xpMax
-
-        local count = self:CountSegmentsToDisplay(completeRatio, totalSegments)
-        count = math.max(0, math.min(count, totalSegments - currentXPSegments))
-
-        result.completeCount = count
-        result.completeStart = currentXPSegments + 1
-        remainingXP = math.max(0, remainingXP - completeXP)
+        completeXPUsed = math.min(context.completeQuestXP, remainingXP)
+        remainingXP = math.max(0, remainingXP - completeXPUsed)
     end
 
-    -- Quest incomplete overlay
+    local incompleteXPUsed = 0
     if
         context.showQuestXP and context.showIncompleteQuestOverlay and (context.incompleteQuestXP or 0) > 0 and
             remainingXP > 0
      then
-        local incompleteXP = math.min(context.incompleteQuestXP, remainingXP)
-        local incompleteRatio = incompleteXP / xpMax
-
-        local count = self:CountSegmentsToDisplay(incompleteRatio, totalSegments)
-        local maxAvailable = totalSegments - currentXPSegments - result.completeCount
-        count = math.max(0, math.min(count, maxAvailable))
-
-        result.incompleteCount = count
-        result.incompleteStart = currentXPSegments + 1 + result.completeCount
-        remainingXP = math.max(0, remainingXP - incompleteXP)
+        incompleteXPUsed = math.min(context.incompleteQuestXP, remainingXP)
+        remainingXP = math.max(0, remainingXP - incompleteXPUsed)
     end
 
-    -- Rested overlay (applies only to empty segments after above overlays)
+    local restedXPUsed = 0
     if context.showRestedOverlay and (context.restedXP or 0) > 0 and remainingXP > 0 then
-        local restedXP = math.min(context.restedXP, remainingXP)
-        local restedRatio = restedXP / xpMax
-
-        local count = self:CountSegmentsToDisplay(restedRatio, totalSegments)
-        local maxAvailable = totalSegments - currentXPSegments - result.completeCount - result.incompleteCount
-        count = math.max(0, math.min(count, maxAvailable))
-        -- Ensure tiny rested XP shows at least 1 segment when possible, matching other styles.
-        if count == 0 and (context.restedXP or 0) > 0 and maxAvailable > 0 then
-            count = 1
-        end
-
-        result.restedCount = count
-        result.restedStart = currentXPSegments + 1 + result.completeCount + result.incompleteCount
+        restedXPUsed = math.min(context.restedXP, remainingXP)
+        remainingXP = math.max(0, remainingXP - restedXPUsed)
     end
+
+    -- Compute target total filled segments based on combined XP
+    local combinedXP = currentXP + completeXPUsed + incompleteXPUsed + restedXPUsed
+    local totalFillSegments = self:CountSegmentsToDisplay((combinedXP / xpMax), totalSegments)
+
+    -- Compute initial floor-based counts for overlays (clamped by available slots)
+    local slotsRemaining = totalSegments - currentXPSegments
+
+    local completeCount = 0
+    if completeXPUsed > 0 and slotsRemaining > 0 then
+        completeCount = self:CountSegmentsToDisplay((completeXPUsed / xpMax), totalSegments)
+        completeCount = math.max(0, math.min(completeCount, slotsRemaining))
+        slotsRemaining = slotsRemaining - completeCount
+    end
+
+    local incompleteCount = 0
+    if incompleteXPUsed > 0 and slotsRemaining > 0 then
+        incompleteCount = self:CountSegmentsToDisplay((incompleteXPUsed / xpMax), totalSegments)
+        incompleteCount = math.max(0, math.min(incompleteCount, slotsRemaining))
+        slotsRemaining = slotsRemaining - incompleteCount
+    end
+
+    local restedCount = 0
+    if restedXPUsed > 0 and slotsRemaining > 0 then
+        restedCount = self:CountSegmentsToDisplay((restedXPUsed / xpMax), totalSegments)
+        restedCount = math.max(0, math.min(restedCount, slotsRemaining))
+        slotsRemaining = slotsRemaining - restedCount
+    end
+
+    -- If rounding leaves a deficit compared to combined total, distribute deficit deterministically
+    local filled = currentXPSegments + completeCount + incompleteCount + restedCount
+    if filled < totalFillSegments then
+        local deficit = totalFillSegments - filled
+        while deficit > 0 and (completeCount + incompleteCount + restedCount + currentXPSegments) < totalSegments do
+            -- Allocate to complete first, then incomplete, then rested
+            if
+                completeXPUsed > 0 and
+                    (completeCount < (totalSegments - currentXPSegments - incompleteCount - restedCount))
+             then
+                completeCount = completeCount + 1
+            elseif
+                incompleteXPUsed > 0 and
+                    (incompleteCount < (totalSegments - currentXPSegments - completeCount - restedCount))
+             then
+                incompleteCount = incompleteCount + 1
+            elseif
+                restedXPUsed > 0 and
+                    (restedCount < (totalSegments - currentXPSegments - completeCount - incompleteCount))
+             then
+                restedCount = restedCount + 1
+            else
+                -- No place to allocate more; break out
+                break
+            end
+            deficit = deficit - 1
+        end
+    end
+
+    -- Assign results + starts
+    result.completeCount = completeCount
+    result.completeStart = currentXPSegments + 1
+
+    result.incompleteCount = incompleteCount
+    result.incompleteStart = currentXPSegments + 1 + completeCount
+
+    result.restedCount = restedCount
+    result.restedStart = currentXPSegments + 1 + completeCount + incompleteCount
 
     return result
 end

@@ -182,14 +182,15 @@ function BaseMixin:OnShow()
 			2.5,
 			function()
 				if self and self:IsShown() then
+					local context = XPBarContextBuilder.BuildContext("MANUAL_REFRESH")
 					-- Update session text with fresh time values (computes from Session service)
 					-- Don't pass context so it always fetches fresh time
 					if self.UpdateSessionText then
-						self:UpdateSessionText(nil)
+						self:UpdateSessionText(context)
 					end
 					-- Update rate text (XP/hour and time to level) with fresh calculations
 					if self.UpdateRateText then
-						self:UpdateRateText(nil)
+						self:UpdateRateText(context)
 					end
 				end
 			end

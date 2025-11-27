@@ -77,9 +77,11 @@ function BarManager:SetStyle(nextStyle)
         return
     end
 
-    local previousFrame = self.barFrames[previousStyle]
-    if previousFrame and previousFrame.Hide then
-        previousFrame:Hide()
+    -- Hide any other frames except the selected style to ensure only one visible
+    for key, frame in pairs(self.barFrames) do
+        if key ~= nextStyle and frame and frame.Hide then
+            frame:SetShown(false)
+        end
     end
 
     local nextFrame = self.barFrames[nextStyle]
@@ -91,11 +93,15 @@ function BarManager:SetStyle(nextStyle)
             error("BarManager:SetStyle: Unknown style key: " .. tostring(nextStyle))
         end
 
-        frame = StyleBuilder:CreateFrameForStyle(nextStyle, mixin.__xpbar_config or {}, templateName)
+        local frame = StyleBuilder:CreateFrameForStyle(nextStyle, mixin.__xpbar_config or {}, templateName)
         self.barFrames[nextStyle] = frame
+
+        if frame and frame.Show then
+            frame:SetShown(true)
+        end
     else
         if nextFrame and nextFrame.Show then
-            nextFrame:Show()
+            nextFrame:SetShown(true)
         end
     end
 
