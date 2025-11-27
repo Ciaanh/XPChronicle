@@ -1,6 +1,8 @@
 -- XP Bar Enhanced - Interaction Mixin ()
 -- Behavior mixin for mouse handling and click interactions (non-tooltip)
 
+local Addon = XPBarEnhanced
+
 -------------------------------------------------------------------
 -- GLOBAL INTERACTION MIXIN
 -------------------------------------------------------------------
@@ -19,23 +21,24 @@ local InteractionMixin = XPBarInteractionMixin
 function InteractionMixin:OnMouseDown(button)
 	local config = self.__xpbar_config or {}
 	local interactionConfig = config.interaction or {}
-	
+
 	if interactionConfig.enabled == false then
 		return
 	end
-	
+
 	-- Handle Shift + Left click for dragging (if in DRAGGABLE mode)
 	if button == "LeftButton" and IsShiftKeyDown() then
 		if self.GetPositionMode then
 			local positionMode = self:GetPositionMode()
-			if positionMode == "DRAGGABLE" and self:IsMovable() then
+			local locked = Addon.db and Addon.db.barLocked or false
+			if positionMode == "DRAGGABLE" and self:IsMovable() and not locked then
 				self:StartMoving()
 				self.__isDragging = true
 				return
 			end
 		end
 	end
-	
+
 	-- Styles can override this method for custom behavior
 end
 
@@ -44,11 +47,11 @@ end
 function InteractionMixin:OnMouseUp(button)
 	local config = self.__xpbar_config or {}
 	local interactionConfig = config.interaction or {}
-	
+
 	if interactionConfig.enabled == false then
 		return
 	end
-	
+
 	-- Stop dragging if active (and don't process any click actions)
 	if self.__isDragging then
 		self:StopMovingOrSizing()
@@ -58,24 +61,24 @@ function InteractionMixin:OnMouseUp(button)
 		end
 		return
 	end
-	
+
 	-- If Shift is still held down, don't process clicks (user was trying to drag)
 	if IsShiftKeyDown() then
 		return
 	end
-	
+
 	-- Alt + Click: Open options
 	if IsAltKeyDown() then
 		self:OnAltClick(button)
 		return
 	end
-	
+
 	-- Ctrl + Click: Toggle stats
 	if IsControlKeyDown() then
 		self:OnCtrlClick(button)
 		return
 	end
-	
+
 	-- Regular click (no modifiers)
 	if button == "LeftButton" then
 		self:OnLeftClick()
@@ -128,11 +131,11 @@ end
 function InteractionMixin:OnKeyDown(key)
 	local config = self.__xpbar_config or {}
 	local interactionConfig = config.interaction or {}
-	
+
 	if interactionConfig.enabled == false then
 		return
 	end
-	
+
 	-- Default: no keyboard handling
 	-- Styles can override for accessibility features
 end

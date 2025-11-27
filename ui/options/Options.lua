@@ -1385,9 +1385,7 @@ function Options:OnOptionChanged(key)
         -- Update Blizzard bar visibility (handled by Config side effects)
         -- No additional action needed here
     elseif key == "barLocked" then
-        if Addon.BarManager and Addon.BarManager.UpdateLockedState then
-            Addon.BarManager:UpdateLockedState()
-        end
+
     elseif
         key == "enableAnimations" or key == "animationSpeed" or key == "animationEasing" or key == "flashOnGain" or
             key == "pauseOnHover"

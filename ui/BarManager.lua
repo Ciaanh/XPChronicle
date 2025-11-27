@@ -37,7 +37,6 @@ function BarManager:Initialize()
     if Addon.db.locked == nil then
         Addon.db.locked = false
     end
-    self:UpdateLockedState()
 
     -- Hide Blizzard default whenever a custom style is active
     self:ApplyDefaultXPBarVisibility()
@@ -107,9 +106,6 @@ function BarManager:SetStyle(nextStyle)
 
     self.currentStyle = nextStyle
 
-    -- Apply the lock setting to the new view and to all cached views
-    self:UpdateLockedState()
-
     if Addon.EventBus and Addon.EventBus.Emit then
         Addon.EventBus:Emit(Addon.EventNames.XPBAR_BROADCAST_UPDATE)
     end
@@ -129,57 +125,6 @@ function BarManager:ResetBarPosition()
             value:SetDefaultDraggablePosition()
         end
     end
-end
-
--- Update locked state on the current view (e.g., lock/unlock drag on flat style)
-function BarManager:UpdateLockedState()
-    self.barFrames = self.barFrames or {}
-
-    -- If a given frame implements UpdateLockedState, call it to ensure it applies lock/unlock
-    for key, frame in pairs(self.barFrames) do
-        if frame and frame.UpdateLockedState then
-            pcall(
-                function()
-                    frame:UpdateLockedState()
-                end
-            )
-        else
-            -- Fallback: if the frame supports SetDraggable/SetMovable or a SetLocked helper, try those
-            if frame and frame.SetLocked then
-                pcall(
-                    function()
-                        frame:SetLocked(Addon.db and Addon.db.locked or false)
-                    end
-                )
-            end
-            if frame and frame.SetMovable and frame.SetUserPlaced then
-                pcall(
-                    function()
-                        local locked = Addon.db and Addon.db.locked or false
-                        frame:SetMovable(not locked)
-                    end
-                )
-            end
-        end
-    end
-
-    -- Broadcast update so styles that are not currently cached can react
-    if Addon.EventBus and Addon.EventBus.Emit then
-        Addon.EventBus:Emit(Addon.EventNames.XPBAR_BROADCAST_UPDATE)
-        return true
-    end
-
-    return true
-end
-
--- Public helper to toggle or set the locked state across all styles
-function BarManager:SetLocked(locked)
-    if Addon.db == nil then
-        Addon.db = {}
-    end
-    Addon.db.locked = (locked == true)
-    self:UpdateLockedState()
-    return Addon.db.locked
 end
 
 -- Update animation settings for views (emit broadcast for views to reconfigure)
