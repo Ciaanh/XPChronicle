@@ -172,19 +172,3 @@ local DefaultConfig = {
 -- Create composed mixin (Base + Behaviors + Style)
 FlatBarXPBarMixin = XPBarStyleBuilder:Create(XPBarMixinBase, FlatBarStyleTemplate, DefaultConfig)
 XPBarStyleBuilder:RegisterStyle("flat", FlatBarXPBarMixin)
-
--------------------------------------------------------------------
--- PROGRAMMATIC HELPER
--------------------------------------------------------------------
-
---- Create FlatBar frame programmatically.
-function XPBarEnhanced_CreateFlatBarFrame()
-	local styleKey = "flat"
-
-	local frame = XPBarStyleBuilder:CreateFrameForStyle(styleKey, DefaultConfig, "FlatBarTemplate")
-	frame:Show()
-
-	_G.FlatBar = frame -- Global reference
-
-	return frame
-end

@@ -17,6 +17,7 @@ local StyleBuilder = XPBarStyleBuilder
 XPBarStyles = XPBarStyles or {}
 
 function XPBarStyleBuilder:RegisterStyle(key, mixin)
+	mixin.__xpbar_key = key
 	XPBarStyles[key] = mixin
 end
 

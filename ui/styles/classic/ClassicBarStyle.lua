@@ -164,19 +164,3 @@ local DefaultConfig = {
 -- Create composed mixin (Base + Behaviors + Style)
 ClassicBarXPBarMixin = XPBarStyleBuilder:Create(XPBarMixinBase, ClassicBarStyleTemplate, DefaultConfig)
 XPBarStyleBuilder:RegisterStyle("classic", ClassicBarXPBarMixin)
-
--------------------------------------------------------------------
--- PROGRAMMATIC HELPER
--------------------------------------------------------------------
-
---- Create Classic Bar frame programmatically.
-function XPBarEnhanced_CreateClassicBarFrame()
-    local styleKey = "classic"
-
-    local frame = XPBarStyleBuilder:CreateFrameForStyle(styleKey, DefaultConfig, "ClassicBarTemplate")
-    frame:Show()
-
-    _G.ClassicBar = frame -- Global reference
-
-    return frame
-end

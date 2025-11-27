@@ -640,19 +640,3 @@ local DefaultConfig = {
 -- Create composed mixin (Base + Behaviors + Style)
 CircularBarXPBarMixin = XPBarStyleBuilder:Create(XPBarMixinBase, CircularBarStyleTemplate, DefaultConfig)
 XPBarStyleBuilder:RegisterStyle("circular", CircularBarXPBarMixin)
-
--------------------------------------------------------------------
--- PROGRAMMATIC HELPER
--------------------------------------------------------------------
-
---- Create CircularBar frame programmatically.
-function XPBarEnhanced_CreateCircularBarFrame()
-    local styleKey = "circular"
-
-    local frame = XPBarStyleBuilder:CreateFrameForStyle(styleKey, DefaultConfig, "CircularBarTemplate")
-    frame:Show()
-
-    _G.CircularBar = frame -- Global reference
-
-    return frame
-end

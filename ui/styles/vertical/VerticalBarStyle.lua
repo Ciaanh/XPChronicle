@@ -427,19 +427,3 @@ local DefaultConfig = {
 -- Create composed mixin (Base + Behaviors + Style)
 VerticalBarXPBarMixin = XPBarStyleBuilder:Create(XPBarMixinBase, VerticalBarStyleTemplate, DefaultConfig)
 XPBarStyleBuilder:RegisterStyle("vertical", VerticalBarXPBarMixin)
-
--------------------------------------------------------------------
--- PROGRAMMATIC HELPER
--------------------------------------------------------------------
-
---- Create VerticalBar frame programmatically.
-function XPBarEnhanced_CreateVerticalBarFrame()
-    local styleKey = "vertical"
-
-    local frame = XPBarStyleBuilder:CreateFrameForStyle(styleKey, DefaultConfig, "VerticalBarTemplate")
-    frame:Show()
-
-    _G.VerticalBar = frame -- Global reference
-
-    return frame
-end
