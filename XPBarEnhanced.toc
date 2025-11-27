@@ -1,13 +1,8 @@
-## Interface: 110205
-## Interface-Retail: 110205
-## Interface-Classic: 11504
-## Interface-Cata: 40400
+## Interface: 110207
+## Interface-Retail: 110207
 
 ## Title: XP Bar Enhanced
 ## Notes: Enhanced XP bar with quest XP tracking and comprehensive statistics
-## Notes-deDE: Verbesserte XP-Leiste mit Quest-XP-Verfolgung und umfassenden Statistiken
-## Notes-frFR: Barre d'XP améliorée avec suivi des quêtes et statistiques complètes
-## Notes-esES: Barra de XP mejorada con seguimiento de XP de misiones y estadísticas completas
 
 ## Author: Ciaanh
 ## Version: 0.0.1
@@ -17,11 +12,9 @@
 ## Category: Quests & Leveling
 ## X-Category: Quests & Leveling
 ## X-Website: https://github.com/Ciaanh/XPBarEnhanced
-## X-Curse-Project-ID: YOUR_PROJECT_ID_HERE
-## X-WoWI-ID: YOUR_WOWI_ID_HERE
-## X-Wago-ID: YOUR_WAGO_ID_HERE
+## X-Curse-Project-ID: 1372659
 ## X-License: MIT
-## X-Localizations: enUS, deDE, frFR, esES
+## X-Localizations: enUS
 ## X-Compatibility: Retail
 ## X-Embeds: LibStub, AceLocale-3.0
 ## DefaultState: enabled
