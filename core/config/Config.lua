@@ -206,5 +206,40 @@ function Config:ShowHelp()
     print("  |cFFFFD700/xpbe style <none|classic|flat>|r - Change bar style")
 end
 
+--- Reset all settings to defaults
+function Config:Reset()
+    -- Wipe saved-variables and reinitialize database
+    XPBarEnhancedDB = {}
+    if Addon.Database and Addon.Database.Initialize then
+        Addon.Database:Initialize()
+    end
+    -- Emit config change so UI updates
+    if Addon.EventBus and Addon.EventBus.Emit then
+        Addon.EventBus:Emit(EventNames.CONFIG_UPDATED)
+        Addon.EventBus:Emit(EventNames.XPBAR_BROADCAST_UPDATE)
+    end
+end
+
+--- Reset/clear all tracked statistics stored in DB
+function Config:ResetStats()
+    if Addon and Addon.db then
+        Addon.db.sessionData = {}
+        Addon.db.stats = {}
+    end
+    if Addon.ContextBuilder and Addon.ContextBuilder.ResetSession then
+        Addon.ContextBuilder.ResetSession()
+    end
+    if Addon.Session and Addon.Session.Initialize then
+        Addon.Session:Initialize()
+    end
+    local stats = Addon.Stats
+    if stats and stats.Update then
+        stats:Update()
+    end
+    if Addon.EventBus and Addon.EventBus.Emit then
+        Addon.EventBus:Emit(EventNames.CONFIG_UPDATED)
+    end
+end
+
 Addon.Config = Config
 return Config
