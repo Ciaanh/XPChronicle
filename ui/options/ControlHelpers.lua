@@ -318,6 +318,17 @@ function ControlHelpers.SetupDropdown(selfFrame, dropdown, key, detail)
     button.tooltipRequirement = detail.description
 
     local currentValue = Config:GetOptionValue(key)
+    -- Helper: detect if player is at max level (compatibility safe)
+    local function IsPlayerAtMaxLevel()
+        local level = (UnitLevel and UnitLevel("player")) or 0
+        local maxLevel = nil
+        if GetMaxPlayerLevel and type(GetMaxPlayerLevel) == "function" then
+            maxLevel = GetMaxPlayerLevel()
+        else
+            maxLevel = MAX_PLAYER_LEVEL or 60
+        end
+        return level >= (maxLevel or 0)
+    end
     for i, opt in ipairs(button.options) do
         if opt.value == currentValue then
             button:SetText(opt.label)
@@ -325,7 +336,20 @@ function ControlHelpers.SetupDropdown(selfFrame, dropdown, key, detail)
         end
     end
 
+    -- If player is at max level and this dropdown controls the bar style, disable it
+    if key == "barStyle" and IsPlayerAtMaxLevel() then
+        button:Disable()
+        button:SetText(Addon.L and "Blizzard Bar (Max Level)" or "Blizzard Bar (Max Level)")
+        if button.SetTooltip then
+            button:SetTooltip("Disabled at max level: Blizzard experience bar enforced")
+        end
+    end
+
     button:SetScript("OnClick", function(btn)
+        if key == "barStyle" and IsPlayerAtMaxLevel() then
+            -- no-op at max level; player is forced to Blizzard bar
+            return
+        end
         local currentValue = Config:GetOptionValue(key)
         local currentIndex = 1
         for i, opt in ipairs(btn.options) do
