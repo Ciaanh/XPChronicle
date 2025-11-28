@@ -327,16 +327,7 @@ function BaseMixin:TriggerBarRefresh(context)
 		-- Animated update path
 
 		-- Calculate target ratio for animation (use xpMax, not maxXP)
-		local targetRatio = 0
-		-- Prefer the shared helper if available, otherwise compute inline
-		local StyleHelpers = Addon.UI and Addon.UI.StyleHelpers
-		if StyleHelpers and StyleHelpers.CalculateTargetRatio then
-			targetRatio = StyleHelpers.CalculateTargetRatio(context)
-		else
-			if context.currentXP and context.xpMax and context.xpMax > 0 then
-				targetRatio = context.currentXP / context.xpMax
-			end
-		end
+		local targetRatio = Addon.UI.StyleHelpers.CalculateTargetRatio(context)
 
 		-- Get animation config from nested structure
 		local fullConfig = self.__xpbar_config or {}

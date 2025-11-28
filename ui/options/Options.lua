@@ -15,15 +15,11 @@ end
 -- Expose via multiple namespaces for compatibility
 Addon.UI = Addon.UI or {}
 Addon.App = Addon.App or {}
--- Addon.App.Features = Addon.App.Features or {}
--- Addon.App.Features.options = Options
 
 local _G = _G
 local Settings = rawget(_G, "Settings")
 local InterfaceOptions_AddCategory = rawget(_G, "InterfaceOptions_AddCategory")
 local InterfaceOptionsFrame_OpenToCategory = rawget(_G, "InterfaceOptionsFrame_OpenToCategory")
--- local PlaySound = rawget(_G, "PlaySound")
--- local SOUNDKIT = rawget(_G, "SOUNDKIT")
 local ColorPickerFrame = rawget(_G, "ColorPickerFrame")
 local OpacitySliderFrame = rawget(_G, "OpacitySliderFrame")
 
@@ -52,8 +48,6 @@ local function rgbToHex(r, g, b, a)
     return string.format("%02X%02X%02X%02X", comp(r), comp(g), comp(b), comp(a ~= nil and a or 1))
 end
 
--- Play checkbox sound handled by ControlHelpers
-
 ---Collects immediate children of a container indexed by their `configKey` field
 local function CollectChildrenByConfigKey(container)
     if not container then
@@ -74,24 +68,6 @@ end
 
 -- ControlHelpers is used for centralized option control setup
 local ControlHelpers = Addon.UI.ControlHelpers
-
--- Setup proper dropdown control (real dropdown menu with WowStyle1DropdownTemplate)
--- Note: `SetupProperDropdown` implemented in ControlHelpers
-
--- Setup proper slider control (MinimalSliderWithSteppersTemplate)
-
--- Note: `SetupDropdown` implemented in ControlHelpers
-
--- Note: SetupProperSlider, SetupTwoColumnCheckbox, SetupSlider and other helpers
--- are implemented in `Addon.UI.ControlHelpers` and are called directly in build methods.
-
--- Note: `SetupRadioGroup` implemented in ControlHelpers
-
--- Note: `SetupSwatchVisuals` implemented in ControlHelpers
-
--- Note: `SetupPreviewFrames` implemented in ControlHelpers
-
--- Note: `SetupColorRow` implemented in ControlHelpers
 
 function XPBarEnhancedOptionsMixin:OnLoad()
     Options.frame = self
@@ -395,7 +371,6 @@ function XPBarEnhancedOptionsMixin:OnResetSettingsClicked()
     self:Refresh()
 
     -- Refresh bars immediately to apply new colors and settings
-
     if Addon.EventBus and Addon.EventBus.Emit then
         Addon.EventBus:Emit(EventNames.XPBAR_BROADCAST_UPDATE)
     end
