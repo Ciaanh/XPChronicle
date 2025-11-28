@@ -36,6 +36,11 @@ Addon.state =
 -- Database reference
 Addon.db = Addon.db or {}
 
+-- UI namespaces and compatibility helpers
+Addon.UI = Addon.UI or {}
+Addon.UI.Mixins = Addon.UI.Mixins or {}
+Addon.Mixins = Addon.Mixins or {}
+
 -- Event lifecycle is now split into core/AddOnLifecycle.lua
 
 -- Slash Commands (moved to core/AddOnCommands.lua)
