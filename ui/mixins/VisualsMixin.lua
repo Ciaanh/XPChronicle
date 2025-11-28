@@ -45,7 +45,6 @@ end
 
 -- Exhaustion tick tooltip behavior: small mixin used by Exhaustion tick buttons
 ExhaustionTickMixin = {}
-local ETM = ExhaustionTickMixin
 
 ---Find closest ancestor frame representing a bar (provides state and context methods)
 local function FindBarAncestor(frame)
@@ -59,7 +58,7 @@ local function FindBarAncestor(frame)
     return nil
 end
 
-function ETM:OnEnter()
+function ExhaustionTickMixin:OnEnter()
     local bar = FindBarAncestor(self)
     if not bar then
         return
@@ -93,7 +92,7 @@ function ETM:OnEnter()
     tt:Show()
 end
 
-function ETM:OnLeave()
+function ExhaustionTickMixin:OnLeave()
     if GameTooltip then
         GameTooltip:Hide()
     end

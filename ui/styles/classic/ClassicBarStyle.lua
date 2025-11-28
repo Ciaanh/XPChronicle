@@ -27,8 +27,10 @@ local ClassicBarStyleTemplate = {}
 -- @param iterationData table: Per-frame iteration data with currentRatio
 -- @param eventContext table: Immutable event context
 function ClassicBarStyleTemplate:AnimateBarPosition(iterationData, eventContext)
-    if self.StatusBar then
-        self.StatusBar:SetValue(iterationData.currentRatio)
+    local AddonLocal = rawget(_G, "XPBarEnhanced") or Addon
+    local StyleHelpers = (AddonLocal and AddonLocal.UI and AddonLocal.UI.StyleHelpers) or nil
+    if StyleHelpers and StyleHelpers.AnimateStatusBarPosition then
+        StyleHelpers.AnimateStatusBarPosition(self, iterationData, eventContext)
     end
 end
 
@@ -37,40 +39,10 @@ end
 -- @param eventContext table: Immutable event context
 function ClassicBarStyleTemplate:AnimateBarEffect(iterationData, eventContext)
     -- Access GainFlash with fallback pattern (StatusBar.GainFlash or main frame GainFlash)
-    local gainFlash = (self.StatusBar and self.StatusBar.GainFlash) or self.GainFlash
-    if not gainFlash then
-        return
-    end
-
-    local flashData = iterationData.flashData
-    if flashData and flashData.active and flashData.currentAlpha > 0 then
-        -- Get user-defined color based on rested state (matches V1 behavior)
-        local XPBarColors = _G.XPBarColors
-        local hasRestedXP = eventContext and eventContext.hasRestedXP
-        local colorKey = hasRestedXP and Color.Rested or Color.XpBar
-        local color = XPBarColors:GetUserColor(colorKey)
-
-        -- Apply flash color with current alpha
-        gainFlash:SetColorTexture(color.r, color.g, color.b, flashData.currentAlpha)
-        gainFlash:Show()
-    else
-        gainFlash:Hide()
-    end
-
-    -- Apply quest overlay alpha reduction during flash
-    if iterationData.questOverlayAlpha and self.StatusBar then
-        local questOverlayComplete = self.StatusBar.QuestOverlayComplete
-        local questOverlayIncomplete = self.StatusBar.QuestOverlayIncomplete
-
-        if questOverlayComplete and iterationData.questOverlayCompleteInitialAlpha then
-            local newAlpha = iterationData.questOverlayCompleteInitialAlpha * iterationData.questOverlayAlpha
-            questOverlayComplete:SetAlpha(newAlpha)
-        end
-
-        if questOverlayIncomplete and iterationData.questOverlayIncompleteInitialAlpha then
-            local newAlpha = iterationData.questOverlayIncompleteInitialAlpha * iterationData.questOverlayAlpha
-            questOverlayIncomplete:SetAlpha(newAlpha)
-        end
+    local AddonLocal = rawget(_G, "XPBarEnhanced") or Addon
+    local StyleHelpers = (AddonLocal and AddonLocal.UI and AddonLocal.UI.StyleHelpers) or nil
+    if StyleHelpers and StyleHelpers.AnimateGainFlash then
+        StyleHelpers.AnimateGainFlash(self, iterationData, eventContext)
     end
 end
 
@@ -82,36 +54,10 @@ end
 --- Pure rendering method - orchestration handled by BaseMixin:TriggerBarRefresh
 ---@param context table Immutable context with all state and flags
 function ClassicBarStyleTemplate:RenderBar(context)
-    if not context then
-        error("RenderBar requires an explicit immutable context")
-    end
-
-    -- Calculate target ratio (use currentXP as canonical field)
-    local targetRatio = 0
-    if context.xpMax and context.xpMax > 0 then
-        targetRatio = (context.currentXP or 0) / context.xpMax
-    end
-
-    -- Render at final position (no animation decision - BaseMixin handles that)
-    self:RenderBarFrame(targetRatio, context)
-
-    -- Update overlays (always update, even during animation)
-    if self.UpdateRestedOverlay then
-        self:UpdateRestedOverlay(context)
-    end
-    if self.UpdateQuestCompleteOverlay then
-        self:UpdateQuestCompleteOverlay(context)
-    end
-    if self.UpdateQuestIncompleteOverlay then
-        self:UpdateQuestIncompleteOverlay(context)
-    end
-    if self.UpdateExhaustionTick then
-        self:UpdateExhaustionTick(context)
-    end
-
-    -- Update text
-    if self.UpdateTexts then
-        self:UpdateTexts(context)
+    local AddonLocal = rawget(_G, "XPBarEnhanced") or Addon
+    local StyleHelpers = (AddonLocal and AddonLocal.UI and AddonLocal.UI.StyleHelpers) or nil
+    if StyleHelpers and StyleHelpers.RenderBarBase then
+        StyleHelpers.RenderBarBase(self, context)
     end
 end
 
@@ -120,19 +66,10 @@ end
 ---@param currentRatio number Current animation progress (0-1), or final ratio for instant
 ---@param context table Immutable context with all state and flags
 function ClassicBarStyleTemplate:RenderBarFrame(currentRatio, context)
-    -- 1. MAIN BAR (at current animation position)
-    if self.StatusBar then
-        self.StatusBar:SetValue(currentRatio)
-    end
-
-    -- Update tracked ratio
-    if self.SetCurrentRatio then
-        self:SetCurrentRatio(currentRatio)
-    end
-
-    -- 2. BAR COLORS (apply based on rested state)
-    if self.UpdateBarColors then
-        self:UpdateBarColors(context)
+    local AddonLocal = rawget(_G, "XPBarEnhanced") or Addon
+    local StyleHelpers = (AddonLocal and AddonLocal.UI and AddonLocal.UI.StyleHelpers) or nil
+    if StyleHelpers and StyleHelpers.RenderBarFrameCommon then
+        StyleHelpers.RenderBarFrameCommon(self, currentRatio, context)
     end
 
     -- Note: Overlays and text are currently updated outside this method

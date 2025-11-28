@@ -135,39 +135,24 @@ end
 -- @param iterationData table: Per-frame iteration data with flashData
 -- @param eventContext table: Immutable event context
 function CircularBarStyleTemplate:AnimateBarEffect(iterationData, eventContext)
-    -- Access GainFlash with fallback pattern (StatusBar.GainFlash or main frame GainFlash)
+    local AddonLocal = rawget(_G, "XPBarEnhanced") or Addon
+    local StyleHelpers = (AddonLocal and AddonLocal.UI and AddonLocal.UI.StyleHelpers) or nil
+    if StyleHelpers and StyleHelpers.AnimateGainFlash then
+        StyleHelpers.AnimateGainFlash(self, iterationData, eventContext)
+        return
+    end
+
+    -- fallback: existing circular behavior (keep original semantics)
     local gainFlash = (self.StatusBar and self.StatusBar.GainFlash) or self.GainFlash
     if not gainFlash then
         return
     end
-
     local flashData = iterationData.flashData
     local flashActive = flashData and flashData.active and flashData.currentAlpha > 0
     if flashActive then
-        -- Apply quest overlay dimming for circular segments by reapplying
-        -- segment colors with overlayAlpha = iterationData.questOverlayAlpha
-        -- if iterationData and iterationData.questOverlayAlpha then
-        --     local currentRatio = self._currentRatio or self.lastProgress or 0
-        --     -- Recompute colors with overlayAlpha multiplier
-        --     self:SetArcProgress(currentRatio, eventContext, iterationData.questOverlayAlpha)
-        -- end
-        -- Track that we've seen a flash so that we can restore on completion even
-        -- if iterationData.questOverlayAlpha is not provided on the final frame
-        --self._hadFlash = true
-        -- Show glow with animated alpha
         self.GainFlash:SetAlpha(flashData.currentAlpha)
         self.GainFlash:Show()
     else
-        -- Ensure segments are at normal alpha when flash ends.
-        -- Some styles use iterationData.questOverlayAlpha; circular may not
-        -- receive a non-nil value in iterationData. Track the transition from
-        -- an active flash to ended flash with _hadFlash and force a restore so
-        -- we don't leave dimmed segments around.
-        -- if self._hadFlash then
-        --     local currentRatio = self._currentRatio or self.lastProgress or 0
-        --     self:SetArcProgress(currentRatio, eventContext, 1.0)
-        --     self._hadFlash = nil
-        -- end
         self.GainFlash:Hide()
     end
 end
@@ -331,10 +316,9 @@ function CircularBarStyleTemplate:RenderBar(context)
     self._lastLevel = context.level
 
     -- Calculate target ratio (use currentXP as canonical field)
-    local targetRatio = 0
-    if context.xpMax and context.xpMax > 0 then
-        targetRatio = (context.currentXP or 0) / context.xpMax
-    end
+    local AddonLocal = rawget(_G, "XPBarEnhanced") or Addon
+    local StyleHelpers = (AddonLocal and AddonLocal.UI and AddonLocal.UI.StyleHelpers) or nil
+    local targetRatio = StyleHelpers and StyleHelpers.CalculateTargetRatio and StyleHelpers.CalculateTargetRatio(context) or 0
 
     -- Initialize current ratio if not set (first update after creation)
     if not self._currentRatio then
@@ -379,9 +363,15 @@ function CircularBarStyleTemplate:RenderBarFrame(currentRatio, context)
     -- Pass full context so SetArcProgress can prefer context values and avoid stale cached data
     self:SetArcProgress(currentRatio, context)
 
-    -- Update current ratio tracking
-    if self.SetCurrentRatio then
-        self:SetCurrentRatio(currentRatio)
+    -- Update current ratio and any common frame parts
+    local AddonLocal = rawget(_G, "XPBarEnhanced") or Addon
+    local StyleHelpers = (AddonLocal and AddonLocal.UI and AddonLocal.UI.StyleHelpers) or nil
+    if StyleHelpers and StyleHelpers.RenderBarFrameCommon then
+        StyleHelpers.RenderBarFrameCommon(self, currentRatio, context)
+    else
+        if self.SetCurrentRatio then
+            self:SetCurrentRatio(currentRatio)
+        end
     end
 
     -- 2. TEXT (updates every frame to show animated values)
