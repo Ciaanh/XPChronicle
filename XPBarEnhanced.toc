@@ -37,18 +37,14 @@ core\AddOnPublicAPI.lua
 
 core\Utils.lua
 core\Colors.lua
-core\Config.lua
-core\Database.lua
-core\Session.lua
+core\config\Config.lua
+core\services\Database.lua
+core\services\Session.lua
 core\Compatibility.lua
-core\QuestXPService.lua
+core\services\QuestXPService.lua
 core\TextFormatter.lua
 core\EventBus.lua
 core\ConfigHelper.lua
-core\FrameUtils.lua
-core\PositionStoreMixin.lua
-core\DraggableFrameMixin.lua
-core\OverlayHelper.lua
 
 
 # UI Features
@@ -68,6 +64,9 @@ ui\mixins\TextMixin.lua
 ui\mixins\InteractionMixin.lua
 ui\mixins\TooltipMixin.lua
 ui\mixins\PositionMixin.lua
+ui\components\FrameUtils.lua
+ui\mixins\PositionStoreMixin.lua
+ui\mixins\DraggableFrameMixin.lua
 
 #  Frames
 ui\options\OptionsPanelTemplates.xml
