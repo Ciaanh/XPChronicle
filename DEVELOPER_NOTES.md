@@ -15,6 +15,8 @@ Backward compatibility
 - `Addon.*` fields (e.g., `Addon.Config`, `Addon.Database`, `Addon.Session`, `Addon.UI.Components.FrameUtils`) are still set in canonical modules for code depending on globals.
 - XML mixins are still exported via `_G.*` for compatibility (`_G.PositionStoreMixin`, `_G.DraggableFrameMixin`, `_G.FrameUtils`, `_G.OverlayHelper`).
 
+- Behavior change: When a player reaches max level, the BarManager now forces the Blizzard experience bar (style set to `none`) and hides custom AddOn styles. This change ensures consistent UI behavior at max-level.
+
 Next steps & Notes
 ------------------
 
