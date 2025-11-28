@@ -98,7 +98,13 @@ function ExhaustionTickMixin:OnLeave()
     end
 end
 
+-- Ensure namespaces exist for backward compatibility
+Addon.UI = Addon.UI or {}
+Addon.UI.Mixins = Addon.UI.Mixins or {}
+Addon.Mixins = Addon.Mixins or {}
+
 -- Export mixin
+Addon.UI.Mixins.ExhaustionTickMixin = ExhaustionTickMixin
 Addon.Mixins.ExhaustionTickMixin = ExhaustionTickMixin
 _G.ExhaustionTickMixin = ExhaustionTickMixin
 

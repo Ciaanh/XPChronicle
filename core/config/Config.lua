@@ -124,6 +124,69 @@ function Config:GetColor(key)
     return nil
 end
 
+function Config:GetDefaultColor(key)
+    return Addon.defaults and Addon.defaults.colors and Addon.defaults.colors[key]
+end
+
+function Config:GetColorHex(key)
+    local col = self:GetColor(key)
+    return colorToHex(col)
+end
+
+function Config:SetColor(key, hex, silent)
+    if not key then
+        return false, Addon.L and Addon.L["ERR_UNKNOWN_COLOR_TARGET"]
+    end
+    local r, g, b, a, normalized = parseHexColor(hex)
+    if not r then
+        return false, Addon.L and Addon.L["ERR_INVALID_COLOR"]
+    end
+    Addon.db = Addon.db or {}
+    Addon.db.colors = Addon.db.colors or {}
+    local colorTable = Addon.db.colors[key] or {}
+    colorTable.r = r
+    colorTable.g = g
+    colorTable.b = b
+    colorTable.a = a
+    Addon.db.colors[key] = colorTable
+    if key == "xpBar" then
+        Addon.db.xpBarColor = colorTable
+    end
+    if Addon.EventBus and Addon.EventBus.Emit then
+        Addon.EventBus:Emit(EventNames.COLORS_UPDATED)
+    end
+    return true, normalized
+end
+
+function Config:ResetColor(key, silent)
+    local default = Addon.defaults and Addon.defaults.colors and Addon.defaults.colors[key]
+    if not default then
+        return false, Addon.L and Addon.L["ERR_NO_DEFAULT_COLOR"]
+    end
+    local hex = colorToHex(default)
+    local success, normalized = self:SetColor(key, hex, true)
+    if not success then
+        return false, normalized
+    end
+    if Addon.EventBus and Addon.EventBus.Emit then
+        Addon.EventBus:Emit(EventNames.COLORS_UPDATED)
+    end
+    return true, normalized
+end
+
+function Config:GetColorOption(target)
+    if not target then return nil end
+    return colorOptionMap[string.lower(target)]
+end
+
+function Config:GetColorOptionByKey(key)
+    return colorOptionByKey[key]
+end
+
+function Config:GetColorOptionList()
+    return colorOptionsList
+end
+
 -- (rest of functions copied from original omitted for brevity)
 
 -------------------------------------------------------------------
