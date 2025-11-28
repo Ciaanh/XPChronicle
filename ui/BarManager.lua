@@ -39,6 +39,17 @@ function BarManager:Initialize()
     self:ApplyDefaultXPBarVisibility()
 end
 
+local function IsPlayerAtMaxLevel()
+    local level = UnitLevel("player") or 0
+    local maxLevel = nil
+    if GetMaxPlayerLevel and type(GetMaxPlayerLevel) == "function" then
+        maxLevel = GetMaxPlayerLevel()
+    else
+        maxLevel = MAX_PLAYER_LEVEL or 60
+    end
+    return level >= (maxLevel or 0)
+end
+
 function BarManager:ApplyDefaultXPBarVisibility()
     -- Hide Blizzard main bar components whenever we are using a custom style
     -- (classic, flat, vertical, circular)
@@ -73,7 +84,25 @@ function BarManager:SetStyle(nextStyle)
         nextStyle = (Addon.defaults and Addon.defaults.barStyle) or "classic"
     end
 
+    -- If player is at max level, force Blizzard bar (non-custom) regardless of selected style
+    if IsPlayerAtMaxLevel() then
+        nextStyle = "none"
+    end
+
     if previousStyle == nextStyle then
+        return
+    end
+
+    -- Special case: "none" (Blizzard default) should not attempt to create a custom frame
+    if nextStyle == "none" then
+        -- Hide any custom frames and restore Blizzard bar visibility
+        for key, frame in pairs(self.barFrames) do
+            if frame and frame.Hide then
+                frame:SetShown(false)
+            end
+        end
+        self.currentStyle = "none"
+        self:ApplyDefaultXPBarVisibility()
         return
     end
 
@@ -168,6 +197,10 @@ function BarManager:OnLevelUp()
 
     if Addon.EventBus and Addon.EventBus.Emit then
         Addon.EventBus:Emit(Addon.EventNames.XPBAR_BROADCAST_UPDATE)
+    end
+    -- Re-evaluate style in case player hit max level
+    if Addon and Addon.db then
+        self:SetStyle(Addon.db.barStyle)
     end
 end
 
