@@ -29,6 +29,10 @@ locales\enUS.lua
 # Core Systems
 XPBarEnhanced.lua
 
+core\AddOnLifecycle.lua
+core\AddOnCommands.lua
+core\AddOnPublicAPI.lua
+
 core\Utils.lua
 core\Colors.lua
 core\Config.lua
