@@ -51,6 +51,7 @@ core\ConfigHelper.lua
 ui\ContextBuilder.lua
 ui\StyleBuilder.lua
 ui\BarManager.lua
+ui\helpers\OverlayHelper.lua
 
 #  Base and Mixins
 ui\mixins\BaseMixin.lua
