@@ -85,4 +85,5 @@ function UI.EnableDrag(frame, options)
 end
 
 Addon.UI.Components.FrameUtils = FrameUtils
+_G.FrameUtils = FrameUtils
 return FrameUtils
