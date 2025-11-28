@@ -1,9 +1,9 @@
--- XP Bar Enhanced - QuestXPService
+-- XP Bar Enhanced - QuestXP
 -- Centralized quest XP calculation and caching service
 
 local Addon = XPBarEnhanced
-Addon.QuestXPService = Addon.QuestXPService or {}
-local QuestXPService = Addon.QuestXPService
+Addon.QuestXP = Addon.QuestXP or {}
+local QuestXP = Addon.QuestXP
 
 -- Replace simple cache with a per-quest cache and totals
 local questCache = {
@@ -141,7 +141,7 @@ local function buildQuestCache(force)
 end
 
 -- Invalidate the quest cache (clear per-quest entries and totals)
-function QuestXPService:InvalidateQuestCache()
+function QuestXP:InvalidateQuestCache()
     questCache.perQuest = {}
     questCache.totals = nil
     questCache.timestamp = 0
@@ -153,11 +153,11 @@ end
 
 -- tiny event frame for invalidation & rebuild scheduling
 local function ensureCacheListeners()
-    if QuestXPService._listenerFrame then
+    if QuestXP._listenerFrame then
         return
     end
     local frame = CreateFrame("Frame")
-    QuestXPService._listenerFrame = frame
+    QuestXP._listenerFrame = frame
 
     local function doDelayedRebuild(delay)
         delay = delay or 0.8
@@ -179,7 +179,7 @@ local function ensureCacheListeners()
 
     local function onEvent(_, event, ...)
         -- Invalidate cache on any quest/log related events and schedule rebuild
-        QuestXPService:InvalidateQuestCache()
+        QuestXP:InvalidateQuestCache()
 
         if event == "PLAYER_ENTERING_WORLD" then
             doDelayedRebuild(1.0)
@@ -201,7 +201,7 @@ end
 ensureCacheListeners()
 
 -- Public API: returns totals, using cache and rebuild if needed
-function QuestXPService:GetQuestXP(forceRefresh)
+function QuestXP:GetQuestXP(forceRefresh)
     local comp = Addon.Compatibility
     if not comp or not comp.GetNumQuestLogEntries then
         -- no comp; return zeros
@@ -221,7 +221,7 @@ function QuestXPService:GetQuestXP(forceRefresh)
     return 0, 0, 0
 end
 
-function QuestXPService:GetQuestCounts()
+function QuestXP:GetQuestCounts()
     self:GetQuestXP()
     if questCache.totals then
         return questCache.totals[2] or 0, questCache.totals[3] or 0
@@ -229,4 +229,4 @@ function QuestXPService:GetQuestCounts()
     return 0, 0
 end
 
-return QuestXPService
+return QuestXP

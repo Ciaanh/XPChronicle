@@ -535,8 +535,8 @@ function TooltipMixin:OnEnter()
 	-- 		context.sessionStart = context.sessionStart or s.startTime
 	-- 	end
 	-- end
-	-- if QuestXPService and type(QuestXPService.GetQuestTotals) == "function" then
-	-- 	local q = QuestXPService:GetQuestTotals()
+	-- if QuestXP and type(QuestXP.GetQuestTotals) == "function" then
+	-- 	local q = QuestXP:GetQuestTotals()
 	-- 	if q then
 	-- 		context.questCompleteXP = context.questCompleteXP or q.completeXP
 	-- 		context.questIncompleteXP = context.questIncompleteXP or q.incompleteXP

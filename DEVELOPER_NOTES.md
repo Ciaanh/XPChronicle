@@ -4,7 +4,7 @@ Refactor summary
 This branch reorganizes XPBarEnhanced to centralize UI components and core services:
 
 - Moved UI mixins, helpers, and frame components to `ui/` (mixins, components, helpers, options, styles).
-- Moved service-like logic to `core/services/` (Database, QuestXPService, Session).
+- Moved service-like logic to `core/services/` (Database, QuestXP, Session).
 - Moved configuration to `core/config/` (Config, ConfigHelper, defaults).
 - Removed legacy root `core/*.lua` that duplicated canonical implementations; replaced with clean canonical files or removed entirely.
 - Updated `XPBarEnhanced.toc` to load canonical files and maintain XML/global compatibility where required.

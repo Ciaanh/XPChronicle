@@ -15,18 +15,18 @@ function Database:Initialize()
     if not XPBarEnhancedDB then
         XPBarEnhancedDB = {}
     end
-    
+
     -- Merge defaults if Utils available
     local Utils = Addon.Utils
     local defaults = Addon.defaults
     if Utils and Utils.MergeDefaults and defaults then
         Utils.MergeDefaults(XPBarEnhancedDB, defaults)
     end
-    
+
     -- Set addon database reference
     Addon.db = XPBarEnhancedDB
     Addon.db.sessionData = Addon.db.sessionData or {}
-    
+
     -- Set player key
     local playerName = UnitName("player") or "Unknown"
     local realmName = GetRealmName() or "Unknown"

@@ -175,8 +175,8 @@ function TextFormatter:GetQuestSummaryText(completeXP, incompleteXP, totalXP, ma
 
     -- Counts
     local completeCount, incompleteCount = 0, 0
-    if Addon.QuestXPService and type(Addon.QuestXPService.GetQuestCounts) == "function" then
-        completeCount, incompleteCount = Addon.QuestXPService:GetQuestCounts()
+    if Addon.QuestXP and type(Addon.QuestXP.GetQuestCounts) == "function" then
+        completeCount, incompleteCount = Addon.QuestXP:GetQuestCounts()
     end
 
     -- Completed

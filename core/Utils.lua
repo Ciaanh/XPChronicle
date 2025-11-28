@@ -106,4 +106,3 @@ function Utils.FormatTime(seconds)
         return string.format("%dh %dm", hours, mins)
     end
 end
-

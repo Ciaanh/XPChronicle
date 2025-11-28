@@ -39,8 +39,20 @@ function Compatibility:GetQuestInfo(index)
 
     if GetQuestLogTitle then
         -- Older API returns multiple values; normalize into a single table
-        local title, level, tag, isHeader, isCollapsed, isComplete, frequency, questID, startEvent, displayQuestID, isOnMap = GetQuestLogTitle(index)
-        if not title then return nil end
+        local title,
+            level,
+            tag,
+            isHeader,
+            isCollapsed,
+            isComplete,
+            frequency,
+            questID,
+            startEvent,
+            displayQuestID,
+            isOnMap = GetQuestLogTitle(index)
+        if not title then
+            return nil
+        end
         return {
             title = title,
             level = level,
@@ -49,7 +61,7 @@ function Compatibility:GetQuestInfo(index)
             isCollapsed = isCollapsed,
             isComplete = (isComplete == 1 or isComplete == true),
             questID = questID,
-            isOnMap = isOnMap,
+            isOnMap = isOnMap
         }
     end
 
@@ -114,16 +126,24 @@ function Compatibility:GetQuestRewardXP(indexOrIdentifier, questID)
             okXP, xpVal = pcall(GetQuestLogRewardXP, questID or xi)
             if okXP and type(xpVal) == "number" and xpVal > 0 then
                 -- Restore original selection if we saved one
-                if savedSel and SelectQuestLogEntry then pcall(SelectQuestLogEntry, savedSel) end
+                if savedSel and SelectQuestLogEntry then
+                    pcall(SelectQuestLogEntry, savedSel)
+                end
                 -- Hide potential static popups that may have been triggered by the selection
-                if StaticPopup_Hide then pcall(StaticPopup_Hide, "ABANDON_QUEST") end
+                if StaticPopup_Hide then
+                    pcall(StaticPopup_Hide, "ABANDON_QUEST")
+                end
                 return xpVal or 0
             end
         end
 
         -- Restore selection even if reading failed
-        if savedSel and SelectQuestLogEntry then pcall(SelectQuestLogEntry, savedSel) end
-        if StaticPopup_Hide then pcall(StaticPopup_Hide, "ABANDON_QUEST") end
+        if savedSel and SelectQuestLogEntry then
+            pcall(SelectQuestLogEntry, savedSel)
+        end
+        if StaticPopup_Hide then
+            pcall(StaticPopup_Hide, "ABANDON_QUEST")
+        end
     end
 
     return 0

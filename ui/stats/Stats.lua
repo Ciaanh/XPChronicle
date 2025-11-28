@@ -441,8 +441,8 @@ end
 ---Return quest XP totals (total, complete, incomplete)
 function Stats:GetQuestXP(forceRefresh)
     -- Prefer the new dedicated QuestXP service, then fall back to XPBar shim
-    if Addon.QuestXPService and Addon.QuestXPService.GetQuestXP then
-        return Addon.QuestXPService:GetQuestXP(forceRefresh)
+    if Addon.QuestXP and Addon.QuestXP.GetQuestXP then
+        return Addon.QuestXP:GetQuestXP(forceRefresh)
     end
 
     return 0, 0, 0

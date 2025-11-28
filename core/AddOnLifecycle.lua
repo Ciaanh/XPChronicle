@@ -59,8 +59,8 @@ function eventHandlers:OnPlayerEnteringWorld(isInitialLogin, isReloadingUI)
     if Addon.Session and Addon.Session.OnEnteringWorld then
         Addon.Session:OnEnteringWorld(isInitialLogin, isReloadingUI)
     end
-    if Addon.QuestXPService and Addon.QuestXPService.InvalidateQuestCache then
-        Addon.QuestXPService:InvalidateQuestCache()
+    if Addon.QuestXP and Addon.QuestXP.InvalidateQuestCache then
+        Addon.QuestXP:InvalidateQuestCache()
     end
     if Addon.EventBus and Addon.EventBus.Emit then
         Addon.EventBus:Emit(Addon.EventNames.XPBAR_BROADCAST_UPDATE)
@@ -73,8 +73,8 @@ function eventHandlers:OnPlayerLevelUp(level)
     if Addon.Session and Addon.Session.OnLevelUp then
         Addon.Session:OnLevelUp(level)
     end
-    if Addon.QuestXPService and Addon.QuestXPService.InvalidateQuestCache then
-        Addon.QuestXPService:InvalidateQuestCache()
+    if Addon.QuestXP and Addon.QuestXP.InvalidateQuestCache then
+        Addon.QuestXP:InvalidateQuestCache()
     end
     if Addon.EventBus and Addon.EventBus.Emit then
         Addon.EventBus:Emit(Addon.EventNames.XPBAR_BROADCAST_UPDATE)
@@ -150,15 +150,18 @@ local eventMap = {
     PLAYER_LOGOUT = "OnPlayerLogout"
 }
 
-eventFrame:SetScript("OnEvent", function(self, event, ...)
-    local handlerName = eventMap[event]
-    if handlerName and eventHandlers[handlerName] then
-        local success, err = pcall(eventHandlers[handlerName], eventHandlers, ...)
-        if not success then
-            error("Event handler failed for " .. event .. ": " .. tostring(err))
+eventFrame:SetScript(
+    "OnEvent",
+    function(self, event, ...)
+        local handlerName = eventMap[event]
+        if handlerName and eventHandlers[handlerName] then
+            local success, err = pcall(eventHandlers[handlerName], eventHandlers, ...)
+            if not success then
+                error("Event handler failed for " .. event .. ": " .. tostring(err))
+            end
         end
     end
-end)
+)
 
 for event in pairs(eventMap) do
     eventFrame:RegisterEvent(event)

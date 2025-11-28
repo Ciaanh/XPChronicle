@@ -41,17 +41,16 @@ core\config\Config.lua
 core\services\Database.lua
 core\services\Session.lua
 core\Compatibility.lua
-core\services\QuestXPService.lua
+core\services\QuestXP.lua
 core\TextFormatter.lua
 core\EventBus.lua
-core\ConfigHelper.lua
+core\config\ConfigHelper.lua
 
 
 # UI Features
 ui\ContextBuilder.lua
 ui\StyleBuilder.lua
 ui\BarManager.lua
-ui\helpers\OverlayHelper.lua
 
 #  Base and Mixins
 ui\mixins\BaseMixin.lua

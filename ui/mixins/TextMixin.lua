@@ -149,8 +149,8 @@ function XPBarTextMixin:UpdatePercentText(context)
 		local showComplete = Addon.ConfigHelper.GetShowCompleteQuestOverlay(context)
 		local showIncomplete = Addon.ConfigHelper.GetShowIncompleteQuestOverlay(context)
 		if showQuestPercent then
-			if Addon.QuestXPService and Addon.QuestXPService.GetQuestXP then
-				local totalXP, completeXP, incompleteXP = Addon.QuestXPService:GetQuestXP()
+			if Addon.QuestXP and Addon.QuestXP.GetQuestXP then
+				local totalXP, completeXP, incompleteXP = Addon.QuestXP:GetQuestXP()
 				if showComplete then
 					questXP = questXP + (completeXP or 0)
 				end
@@ -321,8 +321,8 @@ function XPBarTextMixin:UpdateQuestSummaryText(context)
 		totalQuestXP = context.totalQuestXP or 0
 		completeQuestXP = context.completeQuestXP or 0
 		incompleteQuestXP = context.incompleteQuestXP or 0
-	elseif Addon.QuestXPService and Addon.QuestXPService.GetQuestXP then
-		totalQuestXP, completeQuestXP, incompleteQuestXP = Addon.QuestXPService:GetQuestXP()
+	elseif Addon.QuestXP and Addon.QuestXP.GetQuestXP then
+		totalQuestXP, completeQuestXP, incompleteQuestXP = Addon.QuestXP:GetQuestXP()
 	else
 		-- If no service available, default to zeros (safety)
 		totalQuestXP, completeQuestXP, incompleteQuestXP = 0, 0, 0

@@ -175,7 +175,9 @@ function Config:ResetColor(key, silent)
 end
 
 function Config:GetColorOption(target)
-    if not target then return nil end
+    if not target then
+        return nil
+    end
     return colorOptionMap[string.lower(target)]
 end
 

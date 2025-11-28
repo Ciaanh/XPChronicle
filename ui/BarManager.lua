@@ -174,10 +174,10 @@ end
 -- Lifecycle wrappers (compatibility helpers / convenience)
 function BarManager:OnEnteringWorld()
     -- Invalidate Quest cache and notify listeners
-    if Addon.QuestXPService and Addon.QuestXPService.InvalidateQuestCache then
+    if Addon.QuestXP and Addon.QuestXP.InvalidateQuestCache then
         pcall(
             function()
-                Addon.QuestXPService:InvalidateQuestCache()
+                Addon.QuestXP:InvalidateQuestCache()
             end
         )
         return true
@@ -187,10 +187,10 @@ end
 
 function BarManager:OnLevelUp()
     -- Invalidate quest XP cache and notify listeners
-    if Addon.QuestXPService and Addon.QuestXPService.InvalidateQuestCache then
+    if Addon.QuestXP and Addon.QuestXP.InvalidateQuestCache then
         pcall(
             function()
-                Addon.QuestXPService:InvalidateQuestCache()
+                Addon.QuestXP:InvalidateQuestCache()
             end
         )
     end

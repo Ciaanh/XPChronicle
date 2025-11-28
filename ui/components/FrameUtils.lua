@@ -2,7 +2,7 @@ local Addon = XPBarEnhanced
 Addon.UI = Addon.UI or {}
 Addon.UI.Components = Addon.UI.Components or {}
 
-local UI = {}
+
 local FrameUtils = {}
 
 local _G = _G
@@ -80,6 +80,7 @@ function FrameUtils.EnableDrag(frame, options)
     end)
 end
 
+local UI = {}
 function UI.EnableDrag(frame, options)
     FrameUtils.EnableDrag(frame, options)
 end
