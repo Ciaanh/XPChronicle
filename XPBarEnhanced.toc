@@ -29,23 +29,23 @@ locales\enUS.lua
 # Core Systems
 XPBarEnhanced.lua
 
-core\defaults.lua
+core\config\defaults.lua
 
 core\AddOnLifecycle.lua
 core\AddOnCommands.lua
-core\AddOnPublicAPI.lua
 
 core\Utils.lua
 core\Colors.lua
-core\config\Config.lua
-core\services\Database.lua
-core\services\Session.lua
 core\Compatibility.lua
 core\services\QuestXP.lua
 core\TextFormatter.lua
 core\EventBus.lua
+
+core\config\Config.lua
 core\config\ConfigHelper.lua
 
+core\services\Database.lua
+core\services\Session.lua
 
 # UI Features
 ui\ContextBuilder.lua
@@ -54,9 +54,6 @@ ui\BarManager.lua
 
 #  Base and Mixins
 ui\mixins\BaseMixin.lua
-ui\mixins\animation\AnimationUtils.lua
-ui\mixins\animation\AnimationManager.lua
-ui\mixins\animation\AnimationBase.lua
 ui\mixins\LayoutMixin.lua
 ui\mixins\PaintMixin.lua
 ui\mixins\VisualsMixin.lua
@@ -64,9 +61,10 @@ ui\mixins\TextMixin.lua
 ui\mixins\InteractionMixin.lua
 ui\mixins\TooltipMixin.lua
 ui\mixins\PositionMixin.lua
-ui\components\FrameUtils.lua
-ui\mixins\PositionStoreMixin.lua
-ui\mixins\DraggableFrameMixin.lua
+
+ui\mixins\animation\AnimationUtils.lua
+ui\mixins\animation\AnimationManager.lua
+ui\mixins\animation\AnimationBase.lua
 
 #  Frames
 ui\options\OptionsPanelTemplates.xml

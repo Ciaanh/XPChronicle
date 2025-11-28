@@ -21,9 +21,6 @@ Addon.Database = Addon.Database or {}
 Addon.Session = Addon.Session or {}
 Addon.Utils = Addon.Utils or {}
 
--- Features
-Addon.Features = Addon.Features or {}
-
 -- State
 Addon.state =
     Addon.state or
@@ -41,16 +38,3 @@ Addon.UI = Addon.UI or {}
 Addon.UI.Mixins = Addon.UI.Mixins or {}
 Addon.Mixins = Addon.Mixins or {}
 
--- Event lifecycle is now split into core/AddOnLifecycle.lua
-
--- Slash Commands (moved to core/AddOnCommands.lua)
-
--- Slash command handling moved to core/AddOnCommands.lua
-
--- Register slash commands
--- Slash command registration moved to core/AddOnCommands.lua
-
--- Public API moved to core/AddOnPublicAPI.lua
-
----Register a feature module with a short name
--- Public API moved to core/AddOnPublicAPI.lua

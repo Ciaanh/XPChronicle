@@ -15,15 +15,15 @@ end
 -- Expose via multiple namespaces for compatibility
 Addon.UI = Addon.UI or {}
 Addon.App = Addon.App or {}
-Addon.App.Features = Addon.App.Features or {}
-Addon.App.Features.options = Options
+-- Addon.App.Features = Addon.App.Features or {}
+-- Addon.App.Features.options = Options
 
 local _G = _G
 local Settings = rawget(_G, "Settings")
 local InterfaceOptions_AddCategory = rawget(_G, "InterfaceOptions_AddCategory")
 local InterfaceOptionsFrame_OpenToCategory = rawget(_G, "InterfaceOptionsFrame_OpenToCategory")
-local PlaySound = rawget(_G, "PlaySound")
-local SOUNDKIT = rawget(_G, "SOUNDKIT")
+-- local PlaySound = rawget(_G, "PlaySound")
+-- local SOUNDKIT = rawget(_G, "SOUNDKIT")
 local ColorPickerFrame = rawget(_G, "ColorPickerFrame")
 local OpacitySliderFrame = rawget(_G, "OpacitySliderFrame")
 
@@ -855,7 +855,5 @@ Addon.UI = Addon.UI or {}
 Addon.UI.Mixins = Addon.UI.Mixins or {}
 Addon.UI.Mixins.XPBarEnhancedOptionsMixin = XPBarEnhancedOptionsMixin
 _G.XPBarEnhancedOptionsMixin = XPBarEnhancedOptionsMixin
-
-Addon:RegisterFeature("options", Options)
 
 return Options
