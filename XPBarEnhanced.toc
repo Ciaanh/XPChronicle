@@ -29,6 +29,8 @@ locales\enUS.lua
 # Core Systems
 XPBarEnhanced.lua
 
+core\defaults.lua
+
 core\AddOnLifecycle.lua
 core\AddOnCommands.lua
 core\AddOnPublicAPI.lua
@@ -69,6 +71,7 @@ ui\mixins\PositionMixin.lua
 
 #  Frames
 ui\options\OptionsPanelTemplates.xml
+ui\options\OptionMetadata.lua
 ui\options\OptionsPanel.xml
 
 ui\stats\StatsFrame.xml
