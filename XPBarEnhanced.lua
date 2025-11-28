@@ -24,6 +24,18 @@ Addon.Utils = Addon.Utils or {}
 -- Features
 Addon.Features = Addon.Features or {}
 
+-- State
+Addon.state =
+    Addon.state or
+    {
+        requestingTimePlayed = false,
+        xpGainDisabled = false,
+        defaultXPBarHidden = false
+    }
+
+-- Database reference
+Addon.db = Addon.db or {}
+
 -- Event lifecycle is now split into core/AddOnLifecycle.lua
 
 -- Slash Commands (moved to core/AddOnCommands.lua)
