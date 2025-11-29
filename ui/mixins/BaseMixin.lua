@@ -306,6 +306,14 @@ end
 --  UNIFIED RENDER PATTERN (Phase 3: Refactor)
 -------------------------------------------------------------------
 
+function BaseMixin:CalculateTargetRatio(context)
+	local targetRatio = 0
+	if context and context.xpMax and context.xpMax > 0 then
+		targetRatio = (context.currentXP or 0) / context.xpMax
+	end
+	return targetRatio
+end
+
 --- Single entry point for all bar updates (NEW unified pattern)
 --- Orchestrates animation vs immediate render based on context
 ---@param context table Immutable context from ContextBuilder with event flags
@@ -320,17 +328,12 @@ function BaseMixin:TriggerBarRefresh(context)
 		error("Style must implement RenderBar(context) method")
 	end
 
-	local frameName = self:GetName() or "unnamed"
-
 	-- ORCHESTRATION: Decide between animation vs immediate render
 	if context.shouldAnimate and self.StartAnimation then
 		-- Animated update path
 
 		-- Calculate target ratio for animation (use xpMax, not maxXP)
-		local targetRatio = 0
-		if context and context.xpMax and context.xpMax > 0 then
-			targetRatio = (context.currentXP or 0) / context.xpMax
-		end
+		local targetRatio = self:CalculateTargetRatio(context)
 
 		-- Get animation config from nested structure
 		local fullConfig = self.__xpbar_config or {}

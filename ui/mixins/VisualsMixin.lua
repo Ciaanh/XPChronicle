@@ -48,7 +48,7 @@ function XPBarVisualsMixin:RenderBar(context)
     if not context then
         error("RenderBar requires an explicit immutable context")
     end
-    local targetRatio = StyleHelpers.CalculateTargetRatio(context)
+    local targetRatio = self.CalculateTargetRatio(context)
     if self.RenderBarFrame then
         self:RenderBarFrame(targetRatio, context)
     end
@@ -83,9 +83,6 @@ function XPBarVisualsMixin:RenderBarFrame(currentRatio, context)
         self:UpdateBarColors(context)
     end
 end
-
-
-
 
 -- Exhaustion tick tooltip behavior: small mixin used by Exhaustion tick buttons
 ExhaustionTickMixin = {}

@@ -26,8 +26,7 @@ end
 -- Uses available fields and compatibility API/C_QuestLog fallbacks.
 local function isQuestReadyForTurnIn(comp, questID, info)
     if info then
-        -- prefer precomputed info flag if present
-        if info.isComplete or info.isCompleted or info.isAutoComplete then
+        if info.isComplete or info.isCompleted then
             return true
         end
         -- if we have a questLogIndex and the compatibility wrapper exposes a "IsQuestComplete" method, prefer that
@@ -42,6 +41,20 @@ local function isQuestReadyForTurnIn(comp, questID, info)
     -- fallback to C_QuestLog APIs (safe pcall)
     if questID and C_QuestLog and C_QuestLog.IsComplete then
         local ok, val = pcall(C_QuestLog.IsComplete, questID)
+        if ok and val then
+            return true
+        end
+    end
+    -- Also consider quests that are ready to turn-in as effectively 'complete' for the
+    -- purposes of `completeQuestXP` totals similar to WeakAuras behavior.
+    if questID and comp and comp.ReadyForTurnIn then
+        local ok, val = pcall(comp.ReadyForTurnIn, comp, questID)
+        if ok and val then
+            return true
+        end
+    end
+    if questID and C_QuestLog and C_QuestLog.ReadyForTurnIn then
+        local ok, val = pcall(C_QuestLog.ReadyForTurnIn, questID)
         if ok and val then
             return true
         end
@@ -168,12 +181,17 @@ local function ensureCacheListeners()
                     buildQuestCache(true)
                     -- notify the system to refresh UI
                     if Addon.EventBus and Addon.EventBus.Emit then
+                        Addon.EventBus:Emit(Addon.EventNames.QUESTS_CACHE_REBUILT or "QUESTS:CACHE_REBUILT")
                         Addon.EventBus:Emit(Addon.EventNames.XPBAR_BROADCAST_UPDATE or "XPBAR:BROADCAST_UPDATE")
                     end
                 end
             )
         else
             buildQuestCache(true)
+            if Addon.EventBus and Addon.EventBus.Emit then
+                Addon.EventBus:Emit(Addon.EventNames.QUESTS_CACHE_REBUILT or "QUESTS:CACHE_REBUILT")
+                Addon.EventBus:Emit(Addon.EventNames.XPBAR_BROADCAST_UPDATE or "XPBAR:BROADCAST_UPDATE")
+            end
         end
     end
 
@@ -183,6 +201,9 @@ local function ensureCacheListeners()
 
         if event == "PLAYER_ENTERING_WORLD" then
             doDelayedRebuild(1.0)
+        elseif event == "QUEST_TURNED_IN" then
+            -- QUEST_TURNED_IN can arrive before quest log updates; use shorter delay to refresh quickly
+            doDelayedRebuild(0.1)
         else
             -- small delay to allow server to populate scaled values
             doDelayedRebuild(0.5)
@@ -196,6 +217,7 @@ local function ensureCacheListeners()
     frame:RegisterEvent("PLAYER_LEVEL_UP")
     frame:RegisterEvent("ZONE_CHANGED_NEW_AREA")
     frame:RegisterEvent("UNIT_QUEST_LOG_CHANGED")
+    frame:RegisterEvent("QUEST_TURNED_IN")
 end
 
 ensureCacheListeners()
@@ -219,6 +241,44 @@ function QuestXP:GetQuestXP(forceRefresh)
     end
 
     return 0, 0, 0
+end
+
+-- Public helper: return raw per-quest table (read-only)
+function QuestXP:GetPerQuestData()
+    return questCache.perQuest
+end
+
+-- Public helper: get per-quest entry by questID
+function QuestXP:GetQuestByID(questID)
+    if not questID then
+        return nil
+    end
+    local key = tostring(questID)
+    return questCache.perQuest[key]
+end
+
+-- Public helper: force an invalidate + schedule rebuild now or after specified delay
+function QuestXP:Rebuild(delay)
+    QuestXP:InvalidateQuestCache()
+    delay = delay or 0.5
+    if C_Timer and C_Timer.After then
+        C_Timer.After(
+            delay,
+            function()
+                buildQuestCache(true)
+                if Addon.EventBus and Addon.EventBus.Emit then
+                    Addon.EventBus:Emit(Addon.EventNames.QUESTS_CACHE_REBUILT or "QUESTS:CACHE_REBUILT")
+                    Addon.EventBus:Emit(Addon.EventNames.XPBAR_BROADCAST_UPDATE or "XPBAR:BROADCAST_UPDATE")
+                end
+            end
+        )
+    else
+        buildQuestCache(true)
+        if Addon.EventBus and Addon.EventBus.Emit then
+            Addon.EventBus:Emit(Addon.EventNames.QUESTS_CACHE_REBUILT or "QUESTS:CACHE_REBUILT")
+            Addon.EventBus:Emit(Addon.EventNames.XPBAR_BROADCAST_UPDATE or "XPBAR:BROADCAST_UPDATE")
+        end
+    end
 end
 
 function QuestXP:GetQuestCounts()

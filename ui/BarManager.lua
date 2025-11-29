@@ -31,8 +31,9 @@ function BarManager:Initialize()
     if Addon.db == nil then
         Addon.db = {}
     end
-    if Addon.db.locked == nil then
-        Addon.db.locked = false
+    
+    if Addon.db.barLocked == nil then
+        Addon.db.barLocked = false
     end
 
     -- Hide Blizzard default whenever a custom style is active

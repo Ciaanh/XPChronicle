@@ -186,7 +186,8 @@ function Session:OnQuestTurnedIn(questID)
         end
 
         -- Ensure session XP baseline is up-to-date (XP gains from quest may have triggered PLAYER_XP_UPDATE
-        -- before the completed flag became available).
+        -- before the completed flag became available). Also ensure the centralized quest cache is invalidated
+        -- so UI and other services can refresh based on the latest quest state.
         Session:OnXPUpdate()
 
         -- Touch session timestamps so UI/data consumers will refresh.
@@ -194,14 +195,20 @@ function Session:OnQuestTurnedIn(questID)
         if session then
             session.lastUpdate = time()
         end
-    end
 
-    RefreshCompletedQuests()
+        -- Invalidate/rebuild the centralized QuestXP cache to ensure totals reflect the new quest state.
+        if Addon.QuestXP and Addon.QuestXP.Rebuild then
+            pcall(Addon.QuestXP.Rebuild, Addon.QuestXP, 0.1)
+        elseif Addon.QuestXP and Addon.QuestXP.InvalidateQuestCache then
+            pcall(Addon.QuestXP.InvalidateQuestCache, Addon.QuestXP)
+        end
+    end
 
     -- Small delay: the quest history/completed flag may not be instantly available.
     if C_Timer and C_Timer.After then
-        C_Timer.After(0.05, RefreshCompletedQuests)
         C_Timer.After(0.1, RefreshCompletedQuests)
+    else
+        RefreshCompletedQuests()
     end
 end
 
