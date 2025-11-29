@@ -75,7 +75,6 @@ ui\options\OptionsPanel.xml
 ui\stats\StatsFrame.xml
 
 #  Styles
-ui\styles\shared\StyleHelpers.lua
 ui\styles\flat\FlatBarTemplate.xml
 ui\styles\classic\ClassicBarTemplate.xml
 ui\styles\vertical\VerticalBarTemplate.xml

@@ -43,6 +43,50 @@ function XPBarVisualsMixin:UpdateExhaustionTick(context, tickName)
     end
 end
 
+-- Shared render base used by multiple styles. Calls RenderBarFrame then overlay and text updates.
+function XPBarVisualsMixin:RenderBar(context)
+    if not context then
+        error("RenderBar requires an explicit immutable context")
+    end
+    local targetRatio = StyleHelpers.CalculateTargetRatio(context)
+    if self.RenderBarFrame then
+        self:RenderBarFrame(targetRatio, context)
+    end
+
+    if self.UpdateRestedOverlay then
+        self:UpdateRestedOverlay(context)
+    end
+    if self.UpdateQuestCompleteOverlay then
+        self:UpdateQuestCompleteOverlay(context)
+    end
+    if self.UpdateQuestIncompleteOverlay then
+        self:UpdateQuestIncompleteOverlay(context)
+    end
+    if self.UpdateExhaustionTick then
+        self:UpdateExhaustionTick(context)
+    end
+
+    if self.UpdateTexts then
+        self:UpdateTexts(context)
+    end
+end
+
+-- Shared RenderFrame logic for StatusBar-based styles
+function XPBarVisualsMixin:RenderBarFrame(currentRatio, context)
+    if self.StatusBar and currentRatio then
+        self.StatusBar:SetValue(currentRatio)
+    end
+    if self.SetCurrentRatio then
+        self:SetCurrentRatio(currentRatio)
+    end
+    if self.UpdateBarColors then
+        self:UpdateBarColors(context)
+    end
+end
+
+
+
+
 -- Exhaustion tick tooltip behavior: small mixin used by Exhaustion tick buttons
 ExhaustionTickMixin = {}
 

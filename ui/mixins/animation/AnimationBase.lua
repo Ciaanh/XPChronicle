@@ -144,10 +144,9 @@ end
 -- @param iterationData table: Per-frame iteration data with currentRatio
 -- @param eventContext table: Immutable event context
 function AnimationBase:AnimateBarPosition(iterationData, eventContext)
-	-- This is an abstract method that must be implemented by the style mixin
-	-- Example for StatusBar-based styles (Flat, Classic):
-	--   self.StatusBar:SetValue(iterationData.currentRatio)
-	error("AnimateBarPosition must be implemented by style mixin")
+	if self.StatusBar and iterationData and iterationData.currentRatio then
+		self.StatusBar:SetValue(iterationData.currentRatio)
+	end
 end
 
 --- Update visual effects (ABSTRACT - must be implemented by style)
@@ -155,15 +154,51 @@ end
 -- @param iterationData table: Per-frame iteration data with flashData
 -- @param eventContext table: Immutable event context
 function AnimationBase:AnimateBarEffect(iterationData, eventContext)
-	-- This is an abstract method that must be implemented by the style mixin
-	-- Example for StatusBar-based styles (Flat, Classic):
-	--   if iterationData.flashData and iterationData.flashData.active then
-	--     self.GainFlash:SetColorTexture(1, 1, 1, iterationData.flashData.currentAlpha)
-	--     self.GainFlash:Show()
-	--   else
-	--     self.GainFlash:Hide()
-	--   end
-	error("AnimateBarEffect must be implemented by style mixin")
+	local flashData = iterationData and iterationData.flashData
+	-- attempt to find GainFlash on StatusBar first, fallback to frame GainFlash
+	local gainFlash = (self.StatusBar and self.StatusBar.GainFlash) or self.GainFlash
+	if not gainFlash then
+		return
+	end
+	if flashData and flashData.active and flashData.currentAlpha and flashData.currentAlpha > 0 then
+		local XPBarColors = _G.XPBarColors
+		local hasRestedXP = eventContext and eventContext.hasRestedXP
+		local colorKey = hasRestedXP and Color.Rested or Color.XpBar
+		local color = XPBarColors and XPBarColors.GetUserColor and XPBarColors:GetUserColor(colorKey)
+		if color then
+			gainFlash:SetColorTexture(color.r, color.g, color.b, flashData.currentAlpha)
+		else
+			gainFlash:SetColorTexture(1, 1, 1, flashData.currentAlpha)
+		end
+		gainFlash:Show()
+	else
+		gainFlash:Hide()
+	end
+
+	if iterationData and iterationData.questOverlayAlpha then
+		if self.StatusBar then
+			local complete = self.StatusBar.QuestOverlayComplete
+			local incomplete = self.StatusBar.QuestOverlayIncomplete
+			if complete and iterationData.questOverlayCompleteInitialAlpha then
+				local newAlpha = iterationData.questOverlayCompleteInitialAlpha * iterationData.questOverlayAlpha
+				complete:SetAlpha(newAlpha)
+			end
+			if incomplete and iterationData.questOverlayIncompleteInitialAlpha then
+				local newAlpha = iterationData.questOverlayIncompleteInitialAlpha * iterationData.questOverlayAlpha
+				incomplete:SetAlpha(newAlpha)
+			end
+		else
+			-- frame-level overlays
+			if self.QuestOverlayComplete and iterationData.questOverlayCompleteInitialAlpha then
+				local newAlpha = iterationData.questOverlayCompleteInitialAlpha * iterationData.questOverlayAlpha
+				self.QuestOverlayComplete:SetAlpha(newAlpha)
+			end
+			if self.QuestOverlayIncomplete and iterationData.questOverlayIncompleteInitialAlpha then
+				local newAlpha = iterationData.questOverlayIncompleteInitialAlpha * iterationData.questOverlayAlpha
+				self.QuestOverlayIncomplete:SetAlpha(newAlpha)
+			end
+		end
+	end
 end
 
 --- Animation completion callback (optional hook)

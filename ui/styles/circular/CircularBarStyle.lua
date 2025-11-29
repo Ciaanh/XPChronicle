@@ -135,21 +135,16 @@ end
 -- @param iterationData table: Per-frame iteration data with flashData
 -- @param eventContext table: Immutable event context
 function CircularBarStyleTemplate:AnimateBarEffect(iterationData, eventContext)
-    local AddonLocal = rawget(_G, "XPBarEnhanced") or Addon
-    local StyleHelpers = (AddonLocal and AddonLocal.UI and AddonLocal.UI.StyleHelpers) or nil
-    if StyleHelpers and StyleHelpers.AnimateGainFlash then
-        StyleHelpers.AnimateGainFlash(self, iterationData, eventContext)
-        return
-    end
-
-    -- fallback: existing circular behavior (keep original semantics)
+    -- Access GainFlash with fallback pattern (StatusBar.GainFlash or main frame GainFlash)
     local gainFlash = (self.StatusBar and self.StatusBar.GainFlash) or self.GainFlash
     if not gainFlash then
         return
     end
+
     local flashData = iterationData.flashData
     local flashActive = flashData and flashData.active and flashData.currentAlpha > 0
     if flashActive then
+        -- Show glow with animated alpha
         self.GainFlash:SetAlpha(flashData.currentAlpha)
         self.GainFlash:Show()
     else
@@ -305,6 +300,7 @@ end
 --  UNIFIED RENDER PATTERN
 -------------------------------------------------------------------
 
+ -- OVERRIDES 
 --- Single render method for circular bar ( unified pattern)
 --- Pure rendering method - orchestration handled by BaseMixin:TriggerBarRefresh
 ---@param context table Immutable context with all state and flags
@@ -316,9 +312,10 @@ function CircularBarStyleTemplate:RenderBar(context)
     self._lastLevel = context.level
 
     -- Calculate target ratio (use currentXP as canonical field)
-    local AddonLocal = rawget(_G, "XPBarEnhanced") or Addon
-    local StyleHelpers = (AddonLocal and AddonLocal.UI and AddonLocal.UI.StyleHelpers) or nil
-    local targetRatio = StyleHelpers and StyleHelpers.CalculateTargetRatio and StyleHelpers.CalculateTargetRatio(context) or 0
+    local targetRatio = 0
+    if context.xpMax and context.xpMax > 0 then
+        targetRatio = (context.currentXP or 0) / context.xpMax
+    end
 
     -- Initialize current ratio if not set (first update after creation)
     if not self._currentRatio then
@@ -354,6 +351,7 @@ function CircularBarStyleTemplate:RenderBar(context)
     end
 end
 
+ -- OVERRIDES 
 --- Render all bar elements for a single animation frame
 --- Called by AnimationManager on each tick, or once for instant updates
 ---@param currentRatio number Current animation progress (0-1), or final ratio for instant
@@ -363,15 +361,9 @@ function CircularBarStyleTemplate:RenderBarFrame(currentRatio, context)
     -- Pass full context so SetArcProgress can prefer context values and avoid stale cached data
     self:SetArcProgress(currentRatio, context)
 
-    -- Update current ratio and any common frame parts
-    local AddonLocal = rawget(_G, "XPBarEnhanced") or Addon
-    local StyleHelpers = (AddonLocal and AddonLocal.UI and AddonLocal.UI.StyleHelpers) or nil
-    if StyleHelpers and StyleHelpers.RenderBarFrameCommon then
-        StyleHelpers.RenderBarFrameCommon(self, currentRatio, context)
-    else
-        if self.SetCurrentRatio then
-            self:SetCurrentRatio(currentRatio)
-        end
+    -- Update current ratio tracking
+    if self.SetCurrentRatio then
+        self:SetCurrentRatio(currentRatio)
     end
 
     -- 2. TEXT (updates every frame to show animated values)

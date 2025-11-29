@@ -56,6 +56,9 @@ function Session:SetupEventFrame()
     frame:RegisterEvent("PLAYER_XP_UPDATE")
     frame:RegisterEvent("PLAYER_LEVEL_UP")
     frame:RegisterEvent("TIME_PLAYED_MSG")
+    frame:RegisterEvent("QUEST_TURNED_IN")
+    frame:RegisterEvent("QUEST_LOG_UPDATE")
+
     frame:SetScript(
         "OnEvent",
         function(_, event, ...)
@@ -67,6 +70,12 @@ function Session:SetupEventFrame()
             elseif event == "TIME_PLAYED_MSG" then
                 local totalTime, levelTime = ...
                 Session:OnTimePlayed(totalTime, levelTime)
+            elseif event == "QUEST_TURNED_IN" then
+                local questID = ...
+                Session:OnQuestTurnedIn(questID)
+            elseif event == "QUEST_LOG_UPDATE" then
+                -- keep lastXP/maxXP/current cache fresh just in case
+                Session:RefreshSessionTimes()
             end
         end
     )
@@ -152,6 +161,48 @@ function Session:OnTimePlayed(totalTime, levelTime)
 
     -- Clear the ticker
     self:ClearTimePlayedRequest()
+end
+
+-- Ensure completed-quest cache and session XP are refreshed after a quest is turned in.
+-- Delay slightly to allow the server/game to update the quest/completion state.
+function Session:OnQuestTurnedIn(questID)
+    if not questID then
+        return
+    end
+
+    local function RefreshCompletedQuests()
+        -- Touch the API to ensure it's updated
+        local completed = false
+        if C_QuestLog and C_QuestLog.IsQuestFlaggedCompleted then
+            completed = C_QuestLog.IsQuestFlaggedCompleted(questID) or false
+        end
+
+        -- If the addon maintains a database/quest cache, try to update it.
+        -- Use existence checks to remain non-invasive if those APIs don't exist.
+        if Addon.Database and Addon.Database.UpdateQuestCompletion then
+            pcall(Addon.Database.UpdateQuestCompletion, Addon.Database, questID, completed)
+        elseif Addon.Database and Addon.Database.MarkQuestCompleted then
+            pcall(Addon.Database.MarkQuestCompleted, Addon.Database, questID, completed)
+        end
+
+        -- Ensure session XP baseline is up-to-date (XP gains from quest may have triggered PLAYER_XP_UPDATE
+        -- before the completed flag became available).
+        Session:OnXPUpdate()
+
+        -- Touch session timestamps so UI/data consumers will refresh.
+        local session = Session:GetCurrent()
+        if session then
+            session.lastUpdate = time()
+        end
+    end
+
+    RefreshCompletedQuests()
+
+    -- Small delay: the quest history/completed flag may not be instantly available.
+    if C_Timer and C_Timer.After then
+        C_Timer.After(0.05, RefreshCompletedQuests)
+        C_Timer.After(0.1, RefreshCompletedQuests)
+    end
 end
 
 function Session:RefreshSessionTimes()

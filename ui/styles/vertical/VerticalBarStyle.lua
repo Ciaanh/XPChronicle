@@ -34,57 +34,57 @@ end
 --  ANIMATION IMPLEMENTATION (AnimationManager integration)
 -------------------------------------------------------------------
 
---- Update bar position - smooth fill animation
--- @param iterationData table: Per-frame iteration data with currentRatio
--- @param eventContext table: Immutable event context
--- Note: This is called by AnimationManager for standard smooth bar fill
-function VerticalBarStyleTemplate:AnimateBarPosition(iterationData, eventContext)
-    local AddonLocal = rawget(_G, "XPBarEnhanced") or Addon
-    local StyleHelpers = (AddonLocal and AddonLocal.UI and AddonLocal.UI.StyleHelpers) or nil
-    if StyleHelpers and StyleHelpers.AnimateStatusBarPosition then
-        StyleHelpers.AnimateStatusBarPosition(self, iterationData, eventContext)
-    end
-end
+-- --- Update bar position - smooth fill animation
+-- -- @param iterationData table: Per-frame iteration data with currentRatio
+-- -- @param eventContext table: Immutable event context
+-- -- Note: This is called by AnimationManager for standard smooth bar fill
+-- function VerticalBarStyleTemplate:AnimateBarPosition(iterationData, eventContext)
+--     local AddonLocal = rawget(_G, "XPBarEnhanced") or Addon
+--     local StyleHelpers = (AddonLocal and AddonLocal.UI and AddonLocal.UI.StyleHelpers) or nil
+--     if StyleHelpers and StyleHelpers.AnimateStatusBarPosition then
+--         StyleHelpers.AnimateStatusBarPosition(self, iterationData, eventContext)
+--     end
+-- end
 
---- Update visual effects - flash overlay animation
--- @param iterationData table: Per-frame iteration data with flashData
--- @param eventContext table: Immutable event context
-function VerticalBarStyleTemplate:AnimateBarEffect(iterationData, eventContext)
-    local AddonLocal = rawget(_G, "XPBarEnhanced") or Addon
-    local StyleHelpers = (AddonLocal and AddonLocal.UI and AddonLocal.UI.StyleHelpers) or nil
-    if StyleHelpers and StyleHelpers.AnimateGainFlash then
-        StyleHelpers.AnimateGainFlash(self, iterationData, eventContext)
-    end
-end
+-- --- Update visual effects - flash overlay animation
+-- -- @param iterationData table: Per-frame iteration data with flashData
+-- -- @param eventContext table: Immutable event context
+-- function VerticalBarStyleTemplate:AnimateBarEffect(iterationData, eventContext)
+--     local AddonLocal = rawget(_G, "XPBarEnhanced") or Addon
+--     local StyleHelpers = (AddonLocal and AddonLocal.UI and AddonLocal.UI.StyleHelpers) or nil
+--     if StyleHelpers and StyleHelpers.AnimateGainFlash then
+--         StyleHelpers.AnimateGainFlash(self, iterationData, eventContext)
+--     end
+-- end
 
 -------------------------------------------------------------------
 --  UNIFIED RENDER PATTERN
 -------------------------------------------------------------------
 
---- Single render method for vertical bar ( unified pattern)
---- Pure rendering method - orchestration handled by BaseMixin:TriggerBarRefresh
----@param context table Immutable context with all state and flags
-function VerticalBarStyleTemplate:RenderBar(context)
-    local AddonLocal = rawget(_G, "XPBarEnhanced") or Addon
-    local StyleHelpers = (AddonLocal and AddonLocal.UI and AddonLocal.UI.StyleHelpers) or nil
-    if StyleHelpers and StyleHelpers.RenderBarBase then
-        StyleHelpers.RenderBarBase(self, context)
-    end
-end
+-- --- Single render method for vertical bar ( unified pattern)
+-- --- Pure rendering method - orchestration handled by BaseMixin:TriggerBarRefresh
+-- ---@param context table Immutable context with all state and flags
+-- function VerticalBarStyleTemplate:RenderBar(context)
+--     local AddonLocal = rawget(_G, "XPBarEnhanced") or Addon
+--     local StyleHelpers = (AddonLocal and AddonLocal.UI and AddonLocal.UI.StyleHelpers) or nil
+--     if StyleHelpers and StyleHelpers.RenderBarBase then
+--         StyleHelpers.RenderBarBase(self, context)
+--     end
+-- end
 
---- Render all bar elements for a single animation frame
---- Called once for instant updates
----@param currentRatio number Current animation progress (0-1), or final ratio for instant
----@param context table Immutable context with all state and flags
-function VerticalBarStyleTemplate:RenderBarFrame(currentRatio, context)
-    local AddonLocal = rawget(_G, "XPBarEnhanced") or Addon
-    local StyleHelpers = (AddonLocal and AddonLocal.UI and AddonLocal.UI.StyleHelpers) or nil
-    if StyleHelpers and StyleHelpers.RenderBarFrameCommon then
-        StyleHelpers.RenderBarFrameCommon(self, currentRatio, context)
-    end
+-- --- Render all bar elements for a single animation frame
+-- --- Called once for instant updates
+-- ---@param currentRatio number Current animation progress (0-1), or final ratio for instant
+-- ---@param context table Immutable context with all state and flags
+-- function VerticalBarStyleTemplate:RenderBarFrame(currentRatio, context)
+--     local AddonLocal = rawget(_G, "XPBarEnhanced") or Addon
+--     local StyleHelpers = (AddonLocal and AddonLocal.UI and AddonLocal.UI.StyleHelpers) or nil
+--     if StyleHelpers and StyleHelpers.RenderBarFrameCommon then
+--         StyleHelpers.RenderBarFrameCommon(self, currentRatio, context)
+--     end
 
-    -- Note: Overlays and text are currently updated outside this method
-end
+--     -- Note: Overlays and text are currently updated outside this method
+-- end
 
 -------------------------------------------------------------------
 -- OVERRIDES for the vertical layout
