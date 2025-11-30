@@ -30,12 +30,11 @@ local function handleStats()
 end
 
 local function handleOptions()
-    if Addon.Config and Addon.Config.OpenOptions then
-        Addon.Config:OpenOptions()
-    else
-        -- Fallback: open via settings
-        Settings.OpenToCategory("XP Bar Enhanced")
-    end
+    if Addon and Addon.Options and Addon.Options.Open then
+		Addon.Options:Open()
+	elseif Settings and Settings.OpenToCategory then
+		Settings.OpenToCategory(Addon.OptionsCategory)
+	end
 end
 
 local function handleReset()

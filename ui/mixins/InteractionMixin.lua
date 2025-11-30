@@ -87,19 +87,17 @@ end
 
 --- OnAltClick - Handle Alt + Click (open options)
 function InteractionMixin:OnAltClick(button)
-	local addon = XPBarEnhanced
-	if addon and addon.Config and addon.Config.OpenOptions then
-		addon.Config:OpenOptions()
+	if Addon and Addon.Options and Addon.Options.Open then
+		Addon.Options:Open()
 	elseif Settings and Settings.OpenToCategory then
-		Settings.OpenToCategory("XP Bar Enhanced")
+		Settings.OpenToCategory(Addon.OptionsCategory)
 	end
 end
 
 --- OnCtrlClick - Handle Ctrl + Click (toggle stats)
 function InteractionMixin:OnCtrlClick(button)
-	local addon = XPBarEnhanced
-	if addon and addon.Stats and addon.Stats.Toggle then
-		addon.Stats:Toggle()
+	if Addon and Addon.Stats and Addon.Stats.Toggle then
+		Addon.Stats:Toggle()
 	end
 end
 

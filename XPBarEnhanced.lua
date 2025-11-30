@@ -16,6 +16,8 @@ Addon.EventNames = {
     XPBAR_ANIMATION_CONTEXT = "XPBAR:ANIMATION_CONTEXT"
 }
 
+Addon.OptionsCategory = "XP Bar Enhanced"
+
 -- Core modules
 Addon.Config = Addon.Config or {}
 Addon.Database = Addon.Database or {}
