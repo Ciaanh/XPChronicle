@@ -32,7 +32,7 @@ end
 
 --- Update rested overlay color
 ---@param overlayName string|nil Overlay name (default: "RestedOverlay")
-function XPBarPaintMixin:UpdateRestedOverlayColor(overlayName)
+function XPBarPaintMixin:UpdateRestedBarColor(overlayName)
 	overlayName = overlayName or "RestedOverlay"
 	-- Try main frame first, then StatusBar (for flatbar compatibility)
 	local overlay = self[overlayName] or (self.StatusBar and self.StatusBar[overlayName])
@@ -47,7 +47,7 @@ end
 
 --- Update completed quest overlay color
 ---@param overlayName string|nil Overlay name (default: "QuestOverlayComplete")
-function XPBarPaintMixin:UpdateQuestCompleteOverlayColor(overlayName)
+function XPBarPaintMixin:UpdateQuestCompleteBarColor(overlayName)
 	overlayName = overlayName or "QuestOverlayComplete"
 	local overlay = self[overlayName]
 
@@ -61,7 +61,7 @@ end
 
 --- Update incomplete quest overlay color
 ---@param overlayName string|nil Overlay name (default: "QuestOverlayIncomplete")
-function XPBarPaintMixin:UpdateQuestIncompleteOverlayColor(overlayName)
+function XPBarPaintMixin:UpdateQuestIncompleteBarColor(overlayName)
 	overlayName = overlayName or "QuestOverlayIncomplete"
 	local overlay = self[overlayName]
 

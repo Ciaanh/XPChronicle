@@ -81,8 +81,8 @@ function StyleBuilder:BuildBehaviorList(config)
 	end
 
 	-- Visuals mixin (aggregator coordinating Layout + Paint)
-	if XPBarVisualsMixin then
-		table.insert(behaviors, XPBarVisualsMixin)
+	if BarDisplayMixin then
+		table.insert(behaviors, BarDisplayMixin)
 	end
 
 	-- Text mixin (text content and visibility)

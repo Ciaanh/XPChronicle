@@ -444,7 +444,8 @@ function ContextBuilder.BuildContext(event, ...)
 		eventContext.source = eventContext.source or "UNKNOWN"
 	end
 
-	return ContextBuilder.MakeImmutable(eventContext, coreContext)
+	local immutableContext = ContextBuilder.MakeImmutable(eventContext, coreContext)
+	return immutableContext
 end
 
 -------------------------------------------------------------------

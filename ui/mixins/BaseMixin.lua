@@ -27,7 +27,6 @@ function BaseMixin:Refresh()
 	end
 
 	local context = XPBarContextBuilder.BuildContext("MANUAL_REFRESH")
-
 	self:TriggerBarRefresh(context)
 end
 
@@ -307,6 +306,10 @@ end
 -------------------------------------------------------------------
 
 function BaseMixin:CalculateTargetRatio(context)
+	if not context then
+		error("BaseMixin:CalculateTargetRatio called with nil context")
+	end
+
 	local targetRatio = 0
 	if context and context.xpMax and context.xpMax > 0 then
 		targetRatio = (context.currentXP or 0) / context.xpMax
@@ -356,14 +359,14 @@ function BaseMixin:TriggerBarRefresh(context)
 		-- Before starting animation, update overlays (if present)
 		-- This mirrors the non-animated RenderBar flow
 		-- and avoids stale visuals during animation.
-		if self.UpdateRestedOverlay then
-			self:UpdateRestedOverlay(context)
+		if self.UpdateRestedBar then
+			self:UpdateRestedBar(context)
 		end
-		if self.UpdateQuestCompleteOverlay then
-			self:UpdateQuestCompleteOverlay(context)
+		if self.UpdateQuestCompleteBar then
+			self:UpdateQuestCompleteBar(context)
 		end
-		if self.UpdateQuestIncompleteOverlay then
-			self:UpdateQuestIncompleteOverlay(context)
+		if self.UpdateQuestIncompleteBar then
+			self:UpdateQuestIncompleteBar(context)
 		end
 		if self.UpdateExhaustionTick then
 			self:UpdateExhaustionTick(context)

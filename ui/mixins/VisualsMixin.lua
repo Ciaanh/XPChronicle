@@ -1,66 +1,66 @@
--- XPBarEnhanced - XPBarVisualsMixin
+-- XPBarEnhanced - BarDisplayMixin
 -- Provides overlay update methods (layout + color combined)
 -- Used by style RenderBar methods to update individual overlays
 
-XPBarVisualsMixin = {}
+BarDisplayMixin = {}
 
 local Addon = XPBarEnhanced
 
 --- Update rested overlay (layout + color)
-function XPBarVisualsMixin:UpdateRestedOverlay(context, overlayName)
-    if self.UpdateRestedOverlayLayout then
-        self:UpdateRestedOverlayLayout(context, overlayName)
+function BarDisplayMixin:UpdateRestedBar(context, overlayName)
+    if self.UpdateRestedBarLayout then
+        self:UpdateRestedBarLayout(context, overlayName)
     end
-    if self.UpdateRestedOverlayColor then
-        self:UpdateRestedOverlayColor(overlayName)
+    if self.UpdateRestedBarColor then
+        self:UpdateRestedBarColor(overlayName)
     end
 end
 
 --- Update quest complete overlay (layout + color)
-function XPBarVisualsMixin:UpdateQuestCompleteOverlay(context, overlayName)
-    if self.UpdateQuestCompleteOverlayLayout then
-        self:UpdateQuestCompleteOverlayLayout(context, overlayName)
+function BarDisplayMixin:UpdateQuestCompleteBar(context, overlayName)
+    if self.UpdateQuestCompleteBarLayout then
+        self:UpdateQuestCompleteBarLayout(context, overlayName)
     end
-    if self.UpdateQuestCompleteOverlayColor then
-        self:UpdateQuestCompleteOverlayColor(overlayName)
+    if self.UpdateQuestCompleteBarColor then
+        self:UpdateQuestCompleteBarColor(overlayName)
     end
 end
 
 --- Update quest incomplete overlay (layout + color)
-function XPBarVisualsMixin:UpdateQuestIncompleteOverlay(context, overlayName)
-    if self.UpdateQuestIncompleteOverlayLayout then
-        self:UpdateQuestIncompleteOverlayLayout(context, overlayName)
+function BarDisplayMixin:UpdateQuestIncompleteBar(context, overlayName)
+    if self.UpdateQuestIncompleteBarLayout then
+        self:UpdateQuestIncompleteBarLayout(context, overlayName)
     end
-    if self.UpdateQuestIncompleteOverlayColor then
-        self:UpdateQuestIncompleteOverlayColor(overlayName)
+    if self.UpdateQuestIncompleteBarColor then
+        self:UpdateQuestIncompleteBarColor(overlayName)
     end
 end
 
 --- Update exhaustion tick position
-function XPBarVisualsMixin:UpdateExhaustionTick(context, tickName)
+function BarDisplayMixin:UpdateExhaustionTick(context, tickName)
     if self.UpdateExhaustionTickLayout then
         self:UpdateExhaustionTickLayout(context, tickName)
     end
 end
 
--- Shared render base used by multiple styles. Calls RenderBarFrame then overlay and text updates.
-function XPBarVisualsMixin:RenderBar(context)
+-- Shared render base used by multiple styles. Calls UpdateGainedBar then overlay and text updates.
+function BarDisplayMixin:RenderBar(context)
     if not context then
         error("RenderBar requires an explicit immutable context")
     end
-    local targetRatio = self.CalculateTargetRatio(context)
-    if self.RenderBarFrame then
-        self:RenderBarFrame(targetRatio, context)
+    local targetRatio = self:CalculateTargetRatio(context)
+    if self.UpdateGainedBar then
+        self:UpdateGainedBar(targetRatio, context)
     end
 
-    if self.UpdateRestedOverlay then
-        self:UpdateRestedOverlay(context)
+    if self.UpdateRestedBar then
+        self:UpdateRestedBar(context)
     end
-    if self.UpdateQuestCompleteOverlay then
-        self:UpdateQuestCompleteOverlay(context)
+    if self.UpdateQuestCompleteBar then
+        self:UpdateQuestCompleteBar(context)
     end
-    if self.UpdateQuestIncompleteOverlay then
-        self:UpdateQuestIncompleteOverlay(context)
+    if self.UpdateQuestIncompleteBar then
+        self:UpdateQuestIncompleteBar(context)
     end
     if self.UpdateExhaustionTick then
         self:UpdateExhaustionTick(context)
@@ -72,7 +72,7 @@ function XPBarVisualsMixin:RenderBar(context)
 end
 
 -- Shared RenderFrame logic for StatusBar-based styles
-function XPBarVisualsMixin:RenderBarFrame(currentRatio, context)
+function BarDisplayMixin:UpdateGainedBar(currentRatio, context)
     if self.StatusBar and currentRatio then
         self.StatusBar:SetValue(currentRatio)
     end
@@ -140,13 +140,13 @@ function ExhaustionTickMixin:OnLeave()
 end
 
 -- Ensure namespaces exist for backward compatibility
-Addon.UI = Addon.UI or {}
-Addon.UI.Mixins = Addon.UI.Mixins or {}
-Addon.Mixins = Addon.Mixins or {}
+-- Addon.UI = Addon.UI or {}
+-- Addon.UI.Mixins = Addon.UI.Mixins or {}
+-- Addon.Mixins = Addon.Mixins or {}
 
--- Export mixin
-Addon.UI.Mixins.ExhaustionTickMixin = ExhaustionTickMixin
-Addon.Mixins.ExhaustionTickMixin = ExhaustionTickMixin
-_G.ExhaustionTickMixin = ExhaustionTickMixin
+-- -- Export mixin
+-- Addon.UI.Mixins.ExhaustionTickMixin = ExhaustionTickMixin
+-- Addon.Mixins.ExhaustionTickMixin = ExhaustionTickMixin
+-- _G.ExhaustionTickMixin = ExhaustionTickMixin
 
-return XPBarVisualsMixin
+return BarDisplayMixin

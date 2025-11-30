@@ -144,9 +144,15 @@ end
 -- @param iterationData table: Per-frame iteration data with currentRatio
 -- @param eventContext table: Immutable event context
 function AnimationBase:AnimateBarPosition(iterationData, eventContext)
-	if self.StatusBar and iterationData and iterationData.currentRatio then
-		self.StatusBar:SetValue(iterationData.currentRatio)
+	-- Prefer style-specific UpdateGainedBar if provided (handles overlay layout, colors, and text updates)
+	if self.UpdateGainedBar and iterationData and iterationData.currentRatio then
+		-- UpdateGainedBar takes currentRatio and immutable context
+		self:UpdateGainedBar(iterationData.currentRatio, eventContext)
+		return
+	else
+		error("UpdateGainedBar must be implemented in style mixin")
 	end
+
 end
 
 --- Update visual effects (ABSTRACT - must be implemented by style)

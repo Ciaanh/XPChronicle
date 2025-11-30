@@ -156,7 +156,7 @@ end
 --- Update rested overlay position/size/visibility (not color)
 ---@param context table Context with restedXP, currentXP, xpMax
 ---@param overlayName string|nil Overlay name (default: "RestedOverlay")
-function XPBarLayoutMixin:UpdateRestedOverlayLayout(context, overlayName)
+function XPBarLayoutMixin:UpdateRestedBarLayout(context, overlayName)
 	overlayName = overlayName or "RestedOverlay"
 	-- Try main frame first, then StatusBar (for flatbar compatibility)
 	local overlay = self[overlayName] or (self.StatusBar and self.StatusBar[overlayName])
@@ -187,7 +187,7 @@ end
 --- Update completed quest overlay position/size/visibility (not color)
 ---@param context table Context with completeQuestXP
 ---@param overlayName string|nil Overlay name (default: "QuestOverlayComplete")
-function XPBarLayoutMixin:UpdateQuestCompleteOverlayLayout(context, overlayName)
+function XPBarLayoutMixin:UpdateQuestCompleteBarLayout(context, overlayName)
 	overlayName = overlayName or "QuestOverlayComplete"
 	local overlay = self[overlayName]
 
@@ -225,7 +225,7 @@ end
 --- Update incomplete quest overlay position/size/visibility (not color)
 ---@param context table Context with incompleteQuestXP
 ---@param overlayName string|nil Overlay name (default: "QuestOverlayIncomplete")
-function XPBarLayoutMixin:UpdateQuestIncompleteOverlayLayout(context, overlayName)
+function XPBarLayoutMixin:UpdateQuestIncompleteBarLayout(context, overlayName)
 	overlayName = overlayName or "QuestOverlayIncomplete"
 	local overlay = self[overlayName]
 

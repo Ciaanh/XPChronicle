@@ -300,7 +300,7 @@ end
 --  UNIFIED RENDER PATTERN
 -------------------------------------------------------------------
 
- -- OVERRIDES 
+-- OVERRIDES
 --- Single render method for circular bar ( unified pattern)
 --- Pure rendering method - orchestration handled by BaseMixin:TriggerBarRefresh
 ---@param context table Immutable context with all state and flags
@@ -312,10 +312,7 @@ function CircularBarStyleTemplate:RenderBar(context)
     self._lastLevel = context.level
 
     -- Calculate target ratio (use currentXP as canonical field)
-    local targetRatio = 0
-    if context.xpMax and context.xpMax > 0 then
-        targetRatio = (context.currentXP or 0) / context.xpMax
-    end
+    local targetRatio = self:CalculateTargetRatio(context)
 
     -- Initialize current ratio if not set (first update after creation)
     if not self._currentRatio then
@@ -326,24 +323,24 @@ function CircularBarStyleTemplate:RenderBar(context)
 
     -- Update overlays FIRST (always update, matches Classic/Vertical pattern)
     -- These populate the cached overlay data that SetArcProgress uses.
-    -- Doing this before the RenderBarFrame / SetArcProgress call ensures the
+    -- Doing this before the UpdateGainedBar / SetArcProgress call ensures the
     -- Circular style uses the latest context values (e.g., when toggling
     -- quest XP or on level-up) and avoids showing stale overlay colors.
-    if self.UpdateRestedOverlay then
-        self:UpdateRestedOverlay(context)
+    if self.UpdateRestedBar then
+        self:UpdateRestedBar(context)
     end
-    if self.UpdateQuestCompleteOverlay then
-        self:UpdateQuestCompleteOverlay(context)
+    if self.UpdateQuestCompleteBar then
+        self:UpdateQuestCompleteBar(context)
     end
-    if self.UpdateQuestIncompleteOverlay then
-        self:UpdateQuestIncompleteOverlay(context)
+    if self.UpdateQuestIncompleteBar then
+        self:UpdateQuestIncompleteBar(context)
     end
     if self.UpdateExhaustionTick then
         self:UpdateExhaustionTick(context)
     end
 
     -- Render at final position (no animation decision - BaseMixin handles that)
-    self:RenderBarFrame(targetRatio, context)
+    self:UpdateGainedBar(targetRatio, context)
 
     -- Update text (always update, matches Classic/Vertical pattern)
     if self.UpdateTexts then
@@ -351,13 +348,12 @@ function CircularBarStyleTemplate:RenderBar(context)
     end
 end
 
- -- OVERRIDES 
+-- OVERRIDES
 --- Render all bar elements for a single animation frame
 --- Called by AnimationManager on each tick, or once for instant updates
 ---@param currentRatio number Current animation progress (0-1), or final ratio for instant
 ---@param context table Immutable context with all state and flags
-function CircularBarStyleTemplate:RenderBarFrame(currentRatio, context)
-    -- 1. MAIN BAR (at current animation position)
+function CircularBarStyleTemplate:UpdateGainedBar(currentRatio, context)
     -- Pass full context so SetArcProgress can prefer context values and avoid stale cached data
     self:SetArcProgress(currentRatio, context)
 
@@ -366,48 +362,36 @@ function CircularBarStyleTemplate:RenderBarFrame(currentRatio, context)
         self:SetCurrentRatio(currentRatio)
     end
 
-    -- 2. TEXT (updates every frame to show animated values)
     if self.UpdateTexts then
         self:UpdateTexts(context)
     end
 
     -- Note: Overlays are handled inside SetArcProgress for circular bar
     -- SetArcProgress calculates segment types for: current XP, rested, quest complete, quest incomplete
-    -- This is the IDEAL pattern - all segments calculated and colored in one pass!
 end
 
 -------------------------------------------------------------------
 -- OVERRIDES for circular layout
----------------------------------------------------------------------- Override UpdateRestedOverlay to store rested data for segment coloring
-function CircularBarStyleTemplate:UpdateRestedOverlay(context)
-    if not context then
-        return
-    end
+-------------------------------------------------------------------
 
-    local currentRatio = (context.currentXP or 0) / context.xpMax
-    self:SetArcProgress(currentRatio, context)
+-- Override UpdateRestedBar to store rested data for segment coloring
+function CircularBarStyleTemplate:UpdateRestedBar(context)
+    local targetRatio = self:CalculateTargetRatio(context)
+    self:SetArcProgress(targetRatio, context)
 end
 
-function CircularBarStyleTemplate:UpdateQuestCompleteOverlay(context)
-    local Addon = XPBarEnhanced
-    local dbFlag = Addon.db and Addon.db.showCompleteQuestOverlay
-    local ctxFlag = context and context.showCompleteQuestOverlay
-
+function CircularBarStyleTemplate:UpdateQuestCompleteBar(context)
     if not context then
         return
     end
 
-    local currentRatio = (context.currentXP or 0) / context.xpMax
-    self:SetArcProgress(currentRatio, context)
+    local targetRatio = self:CalculateTargetRatio(context)
+    self:SetArcProgress(targetRatio, context)
 end
 
-function CircularBarStyleTemplate:UpdateQuestIncompleteOverlay(context)
-    if not context then
-        return
-    end
-
-    local currentRatio = (context.currentXP or 0) / context.xpMax
-    self:SetArcProgress(currentRatio, context)
+function CircularBarStyleTemplate:UpdateQuestIncompleteBar(context)
+    local targetRatio = self:CalculateTargetRatio(context)
+    self:SetArcProgress(targetRatio, context)
 end
 
 --- Override UpdateVisuals to trigger text updates
