@@ -60,33 +60,40 @@ end
 
 function Config:SetOptionKey(key, value, silent)
     local detail = self.optionDetails and self.optionDetails[key]
+
+    -- For dropdowns and other non-boolean options, preserve the actual value
     local newValue
     if detail and detail.type == "dropdown" then
         newValue = value
     else
         newValue = value and true or false
     end
+
     local oldValue = Addon.db[key]
     Addon.db[key] = newValue
+
     self:ApplyOptionSideEffects(key)
 end
 
 -------------------------------------------------------------------
--- COLOR API (truncated for brevity)
+-- COLOR API
 -------------------------------------------------------------------
 
 local function colorToHex(color)
     if not color then
         return "FFFFFFFF"
     end
+
     local function component(value)
         value = math.min(math.max(value or 1, 0), 1)
         return math.floor(value * 255 + 0.5)
     end
+
     local r = component(color.r or color[1])
     local g = component(color.g or color[2])
     local b = component(color.b or color[3])
     local a = component(color.a or color[4] or 1)
+
     return string.format("%02X%02X%02X%02X", r, g, b, a)
 end
 
@@ -94,20 +101,25 @@ local function parseHexColor(hex)
     if not hex or hex == "" then
         return nil
     end
+
     hex = string.upper(hex):gsub("^#", "")
+
     if #hex ~= 6 and #hex ~= 8 then
         return nil
     end
     if not hex:match("^[0-9A-F]+$") then
         return nil
     end
+
     local r = tonumber(hex:sub(1, 2), 16)
     local g = tonumber(hex:sub(3, 4), 16)
     local b = tonumber(hex:sub(5, 6), 16)
     local a = #hex == 8 and tonumber(hex:sub(7, 8), 16) or 255
+
     if not (r and g and b and a) then
         return nil
     end
+
     return r / 255, g / 255, b / 255, a / 255, hex
 end
 
@@ -115,12 +127,15 @@ function Config:GetColor(key)
     if not key then
         return nil
     end
+
     if Addon.db and Addon.db.colors and Addon.db.colors[key] then
         return Addon.db.colors[key]
     end
+
     if Addon.defaults and Addon.defaults.colors and Addon.defaults.colors[key] then
         return Addon.defaults.colors[key]
     end
+
     return nil
 end
 
@@ -129,14 +144,14 @@ function Config:GetDefaultColor(key)
 end
 
 function Config:GetColorHex(key)
-    local col = self:GetColor(key)
-    return colorToHex(col)
+    return colorToHex(self:GetColor(key))
 end
 
 function Config:SetColor(key, hex, silent)
     if not key then
         return false, Addon.L and Addon.L["ERR_UNKNOWN_COLOR_TARGET"]
     end
+
     local r, g, b, a, normalized = parseHexColor(hex)
     if not r then
         return false, Addon.L and Addon.L["ERR_INVALID_COLOR"]
@@ -149,12 +164,16 @@ function Config:SetColor(key, hex, silent)
     colorTable.b = b
     colorTable.a = a
     Addon.db.colors[key] = colorTable
+
     if key == "xpBar" then
         Addon.db.xpBarColor = colorTable
     end
+
+    -- Emit a dedicated color update event so views can update only their color previews
     if Addon.EventBus and Addon.EventBus.Emit then
         Addon.EventBus:Emit(EventNames.COLORS_UPDATED)
     end
+
     return true, normalized
 end
 
@@ -163,14 +182,17 @@ function Config:ResetColor(key, silent)
     if not default then
         return false, Addon.L and Addon.L["ERR_NO_DEFAULT_COLOR"]
     end
+
     local hex = colorToHex(default)
     local success, normalized = self:SetColor(key, hex, true)
     if not success then
         return false, normalized
     end
+
     if Addon.EventBus and Addon.EventBus.Emit then
         Addon.EventBus:Emit(EventNames.COLORS_UPDATED)
     end
+
     return true, normalized
 end
 
@@ -189,7 +211,96 @@ function Config:GetColorOptionList()
     return colorOptionsList
 end
 
--- (rest of functions copied from original omitted for brevity)
+-------------------------------------------------------------------
+-- SIDE EFFECTS
+-------------------------------------------------------------------
+
+function Config:ApplyOptionSideEffects(key)
+    -- Emit a config-level event for fine-grained subscribers; also leave broadcast for compatibility
+    if Addon.EventBus and Addon.EventBus.Emit then
+        Addon.EventBus:Emit(EventNames.CONFIG_UPDATED)
+    end
+    -- Bar visual options that require refresh
+    local barVisualOptions = {
+        "showQuestXP",
+        "showPercentage",
+        "showQuestPercent",
+        "showBarAtMaxLevel",
+        "showCompleteQuestOverlay",
+        "showIncompleteQuestOverlay",
+        "abbreviateNumbers",
+        "showRemainingXP",
+        "showLevelText",
+        "showXPText",
+        "showXPPerHourText",
+        "showLevelTimeText",
+        "showSessionTimeText",
+        "showTimeToLevelText",
+        "showRestedOverlay"
+    }
+
+    local needsBarRefresh = false
+    for _, optionKey in ipairs(barVisualOptions) do
+        if key == optionKey then
+            needsBarRefresh = true
+            break
+        end
+    end
+
+    if needsBarRefresh then
+        -- Update XP bar controller (use new EventBus first)
+        if Addon.EventBus and Addon.EventBus.Emit then
+            Addon.EventBus:Emit(EventNames.XPBAR_BROADCAST_UPDATE)
+        end
+    end
+
+    -- Request time played if time text options enabled
+    if key == "showLevelTimeText" or key == "showSessionTimeText" then
+        local session = Addon.db.sessionData
+        if
+            session and (session.lastTimePlayedRequest or 0) == 0 and
+                (Addon.db.showLevelTimeText or Addon.db.showSessionTimeText)
+         then
+            if Addon.Session and Addon.Session.RequestTimePlayed then
+                Addon.Session:RequestTimePlayed()
+            end
+        end
+    end
+
+    -- Stats options that require refresh
+    local statsOptions = {
+        "showXPPerHourText",
+        "showLevelTimeText",
+        "showSessionTimeText",
+        "showQuestXP",
+        "abbreviateNumbers",
+        "showPercentage",
+        "showRemainingXP"
+    }
+
+    local needsStatsRefresh = false
+    for _, optionKey in ipairs(statsOptions) do
+        if key == optionKey then
+            needsStatsRefresh = true
+            break
+        end
+    end
+
+    if needsStatsRefresh then
+        local stats = Addon.Stats
+        if stats and stats.Update then
+            stats:Update()
+        end
+    end
+
+    -- Bar style changed
+    if key == "barStyle" then
+        local newStyle = Addon.db.barStyle
+        if Addon.BarManager and Addon.BarManager.SetStyle then
+            Addon.BarManager:SetStyle(newStyle)
+        end
+    end
+end
 
 -------------------------------------------------------------------
 -- HELPERS
@@ -208,7 +319,6 @@ function Config:ShowHelp()
     print("  |cFFFFD700/xpbe style <none|classic|flat>|r - Change bar style")
 end
 
---- Reset all settings to defaults
 function Config:Reset()
     -- Wipe saved-variables and reinitialize database
     XPBarEnhancedDB = {}
@@ -220,9 +330,38 @@ function Config:Reset()
         Addon.EventBus:Emit(EventNames.CONFIG_UPDATED)
         Addon.EventBus:Emit(EventNames.XPBAR_BROADCAST_UPDATE)
     end
+
+    -- local Utils = Addon.Utils
+
+    -- -- Clone defaults
+    -- local copy = {}
+    -- for key, value in pairs(Addon.defaults or {}) do
+    --     copy[key] = Utils and Utils.Clone and Utils.Clone(value) or value
+    -- end
+
+    -- -- Apply to database
+    -- for key, value in pairs(copy) do
+    --     Addon.db[key] = value
+    -- end
+
+    -- -- Use XPBarController's ResetToDefaults
+    -- local xpBarController = Addon.Features and Addon.Features.xpbar
+    -- if xpBarController and xpBarController.ResetToDefaults then
+    --     xpBarController:ResetToDefaults()
+    -- end
+
+    -- local stats = Addon.Stats
+    -- if stats and stats.Update then
+    --     stats:Update()
+    -- end
+
+    -- if Addon.Session and Addon.Session.ClearTimePlayedRequest then
+    --     Addon.Session:ClearTimePlayedRequest()
+    -- end
+
+    -- print(Addon.L["MSG_SETTINGS_RESET"])
 end
 
---- Reset/clear all tracked statistics stored in DB
 function Config:ResetStats()
     if Addon and Addon.db then
         Addon.db.sessionData = {}
@@ -241,6 +380,54 @@ function Config:ResetStats()
     if Addon.EventBus and Addon.EventBus.Emit then
         Addon.EventBus:Emit(EventNames.CONFIG_UPDATED)
     end
+
+    -- local Utils = Addon.Utils
+    -- local playerKey = Addon.playerKey
+    -- if not playerKey then
+    --     local name = UnitName("player")
+    --     local realm = GetRealmName()
+    --     playerKey = string.format("%s-%s", name or "Player", realm or "Realm")
+    --     Addon.playerKey = playerKey
+    -- end
+
+    -- Addon.db.levelData = Addon.db.levelData or {}
+    -- local currentLevel = UnitLevel("player")
+    -- Addon.db.levelData[playerKey] = {
+    --     [currentLevel] = {
+    --         levelStart = time(),
+    --         xpAtStart = UnitXP("player")
+    --     }
+    -- }
+
+    -- Addon.db.sessionData = {
+    --     sessionStart = time(),
+    --     sessionXP = 0,
+    --     gainedXP = 0,
+    --     lastXP = UnitXP("player"),
+    --     maxXP = UnitXPMax("player"),
+    --     realTotalTime = 0,
+    --     realLevelTime = 0,
+    --     lastTimePlayedRequest = 0,
+    --     lastUpdate = time()
+    -- }
+
+    -- if Addon.Session and Addon.Session.ClearTimePlayedRequest then
+    --     Addon.Session:ClearTimePlayedRequest()
+    -- end
+
+    -- Addon.state.requestingTimePlayed = false
+    -- Addon.state.snapshot = nil
+
+    -- local stats = Addon.Stats
+    -- if stats and stats.Update then
+    --     stats:Update()
+    -- end
+
+    -- if Addon.EventBus and Addon.EventBus.Emit then
+    --     Addon.EventBus:Emit(EventNames.XPBAR_BROADCAST_UPDATE)
+    -- end
+
+    -- print(Addon.L["MSG_SETTINGS_RESET"])
 end
 
 Addon.Config = Config
