@@ -420,7 +420,7 @@ function Stats:UpdateLevelStats(statsFrame)
     if not content then return end
 
     -- Get current player stats
-    local currentLevel = UnitLevel("player")
+    local level = UnitLevel("player")
     local currentXP = UnitXP("player") or 0
     local maxXP = UnitXPMax("player") or 0
     local remainingXP = math_max(0, (maxXP - currentXP))
@@ -447,7 +447,7 @@ function Stats:UpdateLevelStats(statsFrame)
     end
 
     -- Update current level and XP values using safe setters
-    SetTextSafe(content.CurrentLevelValue, tostring(currentLevel))
+    SetTextSafe(content.levelValue, tostring(level))
     SetTextSafe(content.CurrentXPValue, Utils.ShortNumber(currentXP))
     SetTextSafe(content.MaxXPValue, Utils.ShortNumber(maxXP))
     SetTextSafe(content.ProgressValue, string_format("%.1f%%", percent))

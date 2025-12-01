@@ -330,36 +330,6 @@ function Config:Reset()
         Addon.EventBus:Emit(EventNames.CONFIG_UPDATED)
         Addon.EventBus:Emit(EventNames.XPBAR_BROADCAST_UPDATE)
     end
-
-    -- local Utils = Addon.Utils
-
-    -- -- Clone defaults
-    -- local copy = {}
-    -- for key, value in pairs(Addon.defaults or {}) do
-    --     copy[key] = Utils and Utils.Clone and Utils.Clone(value) or value
-    -- end
-
-    -- -- Apply to database
-    -- for key, value in pairs(copy) do
-    --     Addon.db[key] = value
-    -- end
-
-    -- -- Use XPBarController's ResetToDefaults
-    -- local xpBarController = Addon.Features and Addon.Features.xpbar
-    -- if xpBarController and xpBarController.ResetToDefaults then
-    --     xpBarController:ResetToDefaults()
-    -- end
-
-    -- local stats = Addon.Stats
-    -- if stats and stats.Update then
-    --     stats:Update()
-    -- end
-
-    -- if Addon.Session and Addon.Session.ClearTimePlayedRequest then
-    --     Addon.Session:ClearTimePlayedRequest()
-    -- end
-
-    -- print(Addon.L["MSG_SETTINGS_RESET"])
 end
 
 function Config:ResetStats()
@@ -380,54 +350,6 @@ function Config:ResetStats()
     if Addon.EventBus and Addon.EventBus.Emit then
         Addon.EventBus:Emit(EventNames.CONFIG_UPDATED)
     end
-
-    -- local Utils = Addon.Utils
-    -- local playerKey = Addon.playerKey
-    -- if not playerKey then
-    --     local name = UnitName("player")
-    --     local realm = GetRealmName()
-    --     playerKey = string.format("%s-%s", name or "Player", realm or "Realm")
-    --     Addon.playerKey = playerKey
-    -- end
-
-    -- Addon.db.levelData = Addon.db.levelData or {}
-    -- local currentLevel = UnitLevel("player")
-    -- Addon.db.levelData[playerKey] = {
-    --     [currentLevel] = {
-    --         levelStart = time(),
-    --         xpAtStart = UnitXP("player")
-    --     }
-    -- }
-
-    -- Addon.db.sessionData = {
-    --     sessionStart = time(),
-    --     sessionXP = 0,
-    --     gainedXP = 0,
-    --     lastXP = UnitXP("player"),
-    --     maxXP = UnitXPMax("player"),
-    --     realTotalTime = 0,
-    --     realLevelTime = 0,
-    --     lastTimePlayedRequest = 0,
-    --     lastUpdate = time()
-    -- }
-
-    -- if Addon.Session and Addon.Session.ClearTimePlayedRequest then
-    --     Addon.Session:ClearTimePlayedRequest()
-    -- end
-
-    -- Addon.state.requestingTimePlayed = false
-    -- Addon.state.snapshot = nil
-
-    -- local stats = Addon.Stats
-    -- if stats and stats.Update then
-    --     stats:Update()
-    -- end
-
-    -- if Addon.EventBus and Addon.EventBus.Emit then
-    --     Addon.EventBus:Emit(EventNames.XPBAR_BROADCAST_UPDATE)
-    -- end
-
-    -- print(Addon.L["MSG_SETTINGS_RESET"])
 end
 
 Addon.Config = Config

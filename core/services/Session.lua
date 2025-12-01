@@ -134,7 +134,7 @@ function Session:OnXPUpdate()
     session.lastUpdate = time()
 end
 
-function Session:OnLevelUp(newLevel)
+function Session:OnLevelUp(level)
     local session = self:GetCurrent()
     if not session then
         return
