@@ -277,20 +277,10 @@ function BaseMixin:OnEvent(event, ...)
 		return
 	end
 
-	local context = XPBarContextBuilder.BuildContext(event, ...)
+	-- PLAYER_LEVEL_UP is now optional - we detect level-up via xpMax change in PLAYER_XP_UPDATE
+	-- But we still process it for any level-up specific UI (flash effect, etc.)
 
-	-- "PLAYER_ENTERING_WORLD"
-	-- "PLAYER_XP_UPDATE"
-	-- "PLAYER_LEVEL_UP"
-	-- "UPDATE_EXHAUSTION"
-	-- "PLAYER_UPDATE_RESTING"
-	-- "QUEST_ACCEPTED"
-	-- "QUEST_REMOVED"
-	-- "QUEST_TURNED_IN"
-	-- "QUEST_LOG_UPDATE"
-	-- "UNIT_QUEST_LOG_CHANGED"
-	-- "QUEST_WATCH_UPDATE"
-	-- "TIME_PLAYED_MSG"
+	local context = XPBarContextBuilder.BuildContext(event, ...)
 
 	if context then
 		self:TriggerBarRefresh(context)
@@ -302,7 +292,7 @@ end
 -------------------------------------------------------------------
 
 -------------------------------------------------------------------
---  UNIFIED RENDER PATTERN (Phase 3: Refactor)
+--  UNIFIED RENDER PATTERN
 -------------------------------------------------------------------
 
 function BaseMixin:CalculateTargetRatio(context)
@@ -331,11 +321,67 @@ function BaseMixin:TriggerBarRefresh(context)
 		error("Style must implement RenderBar(context) method")
 	end
 
+	local ev = context and context.event
+
+	-- Log only level-up events for debugging two-phase animation
+	if context.hasLeveledUp then
+		print(
+			"=== TriggerBarRefresh LEVEL-UP ===",
+			"event=" .. tostring(ev),
+			"preLevelXP=" .. tostring(context.preLevelCurrentXP),
+			"preLevelMax=" .. tostring(context.preLevelXPMax),
+			"newXP=" .. tostring(context.currentXP),
+			"newMax=" .. tostring(context.xpMax)
+		)
+	end
+
+	-- determine if this update should force render
+	local forceRender = false
+	if ev == "FULL_UPDATE" or ev == "BROADCAST_UPDATE" or ev == "MANUAL_REFRESH" or ev == "OPTIONS_CHANGED" then
+		forceRender = true
+	end
+
+	-- Short-circuit: ignore pure no-change PLAYER_XP_UPDATE (avoid snapping / redundant renders)
+	if ev == "PLAYER_XP_UPDATE" and not forceRender and not context.hasGainedXP and not context.hasLeveledUp then
+		-- Update only overlays and text; do not call RenderBar or affect animation state
+		if context.restedChanged and self.UpdateRestedBar then
+			self:UpdateRestedBar(context)
+		end
+		if context.questsChanged and self.UpdateQuestCompleteBar then
+			self:UpdateQuestCompleteBar(context)
+		end
+		if context.questsChanged and self.UpdateQuestIncompleteBar then
+			self:UpdateQuestIncompleteBar(context)
+		end
+		if context.restedChanged and self.UpdateExhaustionTick then
+			self:UpdateExhaustionTick(context)
+		end
+
+		if self.UpdateTextVisibility then
+			self:UpdateTextVisibility(context)
+		end
+		if self.UpdateSessionText then
+			self:UpdateSessionText(context)
+		end
+		if self.UpdateRateText then
+			self:UpdateRateText(context)
+		end
+		if self.UpdateXPText then
+			self:UpdateXPText(context)
+		end
+		if self.UpdatePercentText then
+			self:UpdatePercentText(context)
+		end
+		if self.UpdateLevelText then
+			self:UpdateLevelText(context)
+		end
+
+		return
+	end
+
 	-- ORCHESTRATION: Decide between animation vs immediate render
 	if context.shouldAnimate and self.StartAnimation then
 		-- Animated update path
-
-		-- Calculate target ratio for animation (use xpMax, not maxXP)
 		local targetRatio = self:CalculateTargetRatio(context)
 
 		-- Get animation config from nested structure
@@ -376,7 +422,6 @@ function BaseMixin:TriggerBarRefresh(context)
 		self:StartAnimation(targetRatio, context, config)
 	else
 		-- Immediate render path
-
 		-- Call style-specific render method directly
 		-- If an animation is currently running, we still allow immediate render
 		-- when this is an explicit full update or broadcast (e.g., options change)

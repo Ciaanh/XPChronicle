@@ -162,19 +162,24 @@ function CircularBarStyleTemplate:CountSegmentsToDisplay(progress, totalSegments
     return segments
 end
 
+-- Debug logging helper (disabled by default)
+local function debugLog(...)
+    -- Disabled - only enable for specific debugging
+    -- print(...)
+end
+
 --- Set arc progress and calculate all segment types in one pass
 -- @param progress number: Progress ratio (0-1)
--- @param hasRestedXP boolean: Whether player has rested XP available
+-- @param context table: Immutable context with all state and flags
+-- @param overlayAlpha number: Optional alpha for overlay segments
 function CircularBarStyleTemplate:SetArcProgress(progress, context, overlayAlpha)
-    -- Require a valid context (do not rebuild or fallback to DB)
+    -- Defensive: if context is nil, return silently rather than raising errors.
     if not context then
-        error("SetArcProgress requires an explicit immutable context")
+        return
     end
 
     local totalSegments = RING_SEGMENTS or 100
 
-    -- DO NOT accept overlaySegments from context; compute them internally so
-    -- the segment computation remains an internal concern of the style.
     local overlaySegments = self:ComputeOverlaySegments(progress, context, totalSegments)
 
     -- Reset segment types to empty
@@ -216,7 +221,7 @@ function CircularBarStyleTemplate:SetArcProgress(progress, context, overlayAlpha
         end
     end
 
-    -- Apply colors - pass hasRestedXP from the context explicitly
+    -- Apply colors
     local hasRestedXP = context.hasRestedXP == true
     self:UpdateSegmentColors(hasRestedXP, overlayAlpha)
 end

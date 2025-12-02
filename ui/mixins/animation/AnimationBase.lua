@@ -34,40 +34,54 @@ end
 -- @param xpContext table: XP context { xpBefore, xpAfter, xpMax, xpGained, restedXP, isResting, hasRestedXP, level, timestamp }
 -- @param config table: Animation config { enableAnimations, flashOnGain }
 function AnimationBase:StartAnimation(targetRatio, context, config)
-	if not Addon.AnimationManager then
-		-- Fallback to instant update if manager not available
-		if self.ApplyAnimationStep then
-			local now = GetTime()
-			local instantIterationData = {
-				currentRatio = targetRatio,
-				targetRatio = targetRatio,
-				startRatio = self._currentRatio or 0,
-				progress = 1.0,
-				easedProgress = 1.0,
-				startTime = now,
-				currentTime = now,
-				elapsedTime = 0,
-				duration = 0,
-				flashData = nil,
-				isFlashing = false,
-				questOverlayAlpha = nil,
-				questOverlayCompleteInitialAlpha = nil,
-				questOverlayIncompleteInitialAlpha = nil,
-				config = config
-			}
-			self:ApplyAnimationStep(instantIterationData, context)
-		end
-		self._currentRatio = targetRatio
-		return
-	end
+    -- Log only level-up animations for debugging two-phase animation
+    if context and context.hasLeveledUp then
+        print("=== StartAnimation LEVEL-UP ===",
+            "targetRatio=" .. tostring(targetRatio),
+            "preLevelXP=" .. tostring(context.preLevelCurrentXP),
+            "preLevelMax=" .. tostring(context.preLevelXPMax))
+    end
+    
+    -- Check if animations are disabled
+    if config and config.enableAnimations == false then
+        self:RenderBar(context)
+        return
+    end
 
-	-- Delegate to AnimationManager
-	Addon.AnimationManager:AnimateTo(self, targetRatio, context, config)
+    if not Addon.AnimationManager then
+        -- Fallback to instant update if manager not available
+        if self.ApplyAnimationStep then
+            local now = GetTime()
+            local instantIterationData = {
+                currentRatio = targetRatio,
+                targetRatio = targetRatio,
+                startRatio = self._currentRatio or 0,
+                progress = 1.0,
+                easedProgress = 1.0,
+                startTime = now,
+                currentTime = now,
+                elapsedTime = 0,
+                duration = 0,
+                flashData = nil,
+                isFlashing = false,
+                questOverlayAlpha = nil,
+                questOverlayCompleteInitialAlpha = nil,
+                questOverlayIncompleteInitialAlpha = nil,
+                config = config
+            }
+            self:ApplyAnimationStep(instantIterationData, context)
+        end
+        self._currentRatio = targetRatio
+        return
+    end
 
-	-- Update text
-	if self.UpdateTexts then
-		self:UpdateTexts(context)
-	end
+    -- Delegate to AnimationManager
+    Addon.AnimationManager:AnimateTo(self, targetRatio, context, config)
+
+    -- Update text
+    if self.UpdateTexts then
+        self:UpdateTexts(context)
+    end
 end
 
 --- Cleanup animation state
@@ -152,7 +166,6 @@ function AnimationBase:AnimateBarPosition(iterationData, eventContext)
 	else
 		error("UpdateGainedBar must be implemented in style mixin")
 	end
-
 end
 
 --- Update visual effects (ABSTRACT - must be implemented by style)
