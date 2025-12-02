@@ -136,35 +136,70 @@ function AnimationManager:AnimateTo(bar, targetRatio, xpContext, config)
 			anim.isAnimating = false
 		end
 
-		-- Reset bar to 0 immediately with separated iteration data and event context
-		local resetIterationData = {
-			currentRatio = 0,
-			targetRatio = 0,
-			startRatio = 0,
-			progress = 1.0,
-			easedProgress = 1.0,
-			startTime = now,
-			currentTime = now,
-			elapsedTime = 0,
-			duration = 0,
-			flashData = nil,
-			isFlashing = false,
-			questOverlayAlpha = nil,
-			questOverlayCompleteInitialAlpha = nil,
-			questOverlayIncompleteInitialAlpha = nil,
-			config = config
-		}
-
-		if bar.ApplyAnimationStep then
-			bar:ApplyAnimationStep(resetIterationData, xpContext)
+		-- Check if two-phase animation is enabled
+		local twoPhaseEnabled = config.twoPhaseOnLevelUp
+		-- Default to true if not explicitly set
+		if twoPhaseEnabled == nil then
+			twoPhaseEnabled = true
 		end
 
-		-- Now animate to new XP position
-		-- Level-up resets XP, use currentXP (xpAfter may be nil in level-up contexts)
-		local currentXP = xpContext.currentXP or xpContext.xpAfter or 0
-		targetRatio = currentXP / xpContext.xpMax
-		anim.startRatio = 0
-		anim.eventContext = xpContext -- Store single immutable context
+		if twoPhaseEnabled then
+			-- TWO-PHASE ANIMATION:
+			-- Phase 1: Animate from current position to 100%
+			-- Phase 2: Reset to 0 and animate to new XP (queued)
+
+			-- Calculate current visual position for phase 1 start
+			local currentVisual = bar:GetCurrentRatio() or 0
+
+			-- Store phase 2 target for after phase 1 completes
+			local currentXP = xpContext.currentXP or xpContext.xpAfter or 0
+			local newXPRatio = currentXP / xpContext.xpMax
+
+			-- Queue phase 2 animation data
+			anim.pendingSecondPhase = {
+				targetRatio = newXPRatio,
+				context = xpContext
+			}
+
+			-- Mark this as Phase 1 of level-up (hides overlays during animation)
+			anim.isLevelUpPhase1 = true
+
+			-- Set up phase 1: animate to 100%
+			anim.startRatio = currentVisual
+			anim.targetRatio = 1.0
+			anim.eventContext = xpContext
+			targetRatio = 1.0 -- Override for phase 1
+		else
+			-- INSTANT RESET (original behavior):
+			-- Reset bar to 0 immediately, then animate to new XP
+			local resetIterationData = {
+				currentRatio = 0,
+				targetRatio = 0,
+				startRatio = 0,
+				progress = 1.0,
+				easedProgress = 1.0,
+				startTime = now,
+				currentTime = now,
+				elapsedTime = 0,
+				duration = 0,
+				flashData = nil,
+				isFlashing = false,
+				questOverlayAlpha = nil,
+				questOverlayCompleteInitialAlpha = nil,
+				questOverlayIncompleteInitialAlpha = nil,
+				config = config
+			}
+
+			if bar.ApplyAnimationStep then
+				bar:ApplyAnimationStep(resetIterationData, xpContext)
+			end
+
+			-- Now animate to new XP position
+			local currentXP = xpContext.currentXP or xpContext.xpAfter or 0
+			targetRatio = currentXP / xpContext.xpMax
+			anim.startRatio = 0
+			anim.eventContext = xpContext
+		end
 	elseif anim.isAnimating then
 		-- Retargeting: new XP gain during active animation
 		-- With immutable context, use incoming context (no aggregation)
@@ -444,6 +479,8 @@ function AnimationManager:UpdateBarAnimation(bar, now)
 		questOverlayAlpha = questOverlayAlpha,
 		questOverlayCompleteInitialAlpha = anim.questOverlayCompleteInitialAlpha,
 		questOverlayIncompleteInitialAlpha = anim.questOverlayIncompleteInitialAlpha,
+		-- Level-up phase 1 flag (hides overlays during fill-to-100% animation)
+		isLevelUpPhase1 = anim.isLevelUpPhase1 or false,
 		-- Configuration
 		config = config
 	}
@@ -490,9 +527,58 @@ function AnimationManager:UpdateBarAnimation(bar, now)
 			bar:ApplyAnimationStep(cleanupIterationData, eventContext)
 		end
 
-		-- Call completion callback if bar provides one
-		if bar.OnAnimationComplete then
-			bar:OnAnimationComplete(eventContext)
+		-- Check if there's a pending second phase (from two-phase level-up animation)
+		if anim.pendingSecondPhase then
+			local phase2 = anim.pendingSecondPhase
+			anim.pendingSecondPhase = nil -- Clear the pending state
+			anim.isLevelUpPhase1 = false -- Clear Phase 1 flag
+
+			-- Reset bar to 0 immediately
+			if bar.SetCurrentRatio then
+				bar:SetCurrentRatio(0)
+			end
+
+			-- Apply reset visually
+			local resetIterationData = {
+				currentRatio = 0,
+				targetRatio = 0,
+				startRatio = anim.targetRatio,
+				progress = 1.0,
+				easedProgress = 1.0,
+				startTime = now,
+				currentTime = now,
+				elapsedTime = 0,
+				duration = 0,
+				flashData = nil,
+				isFlashing = false,
+				questOverlayAlpha = nil,
+				questOverlayCompleteInitialAlpha = nil,
+				questOverlayIncompleteInitialAlpha = nil,
+				config = config
+			}
+
+			if bar.ApplyAnimationStep then
+				bar:ApplyAnimationStep(resetIterationData, phase2.context)
+			end
+
+			-- Start phase 2: animate from 0 to new XP
+			anim.isAnimating = true
+			anim.startRatio = 0
+			anim.targetRatio = phase2.targetRatio
+			anim.startTime = now
+			anim.eventContext = phase2.context
+
+			-- Calculate duration for phase 2
+			local delta = math.abs(phase2.targetRatio - 0)
+			anim.duration = AnimationUtils.CalculateDuration(delta)
+
+			-- Register bar to continue animation
+			self:Register(bar)
+		else
+			-- Call completion callback if bar provides one
+			if bar.OnAnimationComplete then
+				bar:OnAnimationComplete(eventContext)
+			end
 		end
 	end
 

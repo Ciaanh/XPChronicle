@@ -224,6 +224,16 @@ function XPBarEnhancedOptionsMixin:OnLoad()
             container.TextDisplayHeader.Title:SetText(ResolveLocale("OPT_HEADER_TEXT_DISPLAY"))
         end
 
+        -- Animation section
+        if container.AnimationHeader and container.AnimationHeader.Title then
+            container.AnimationHeader.Title:SetText(ResolveLocale("OPT_HEADER_ANIMATION"))
+        end
+
+        -- Circular Bar section
+        if container.CircularHeader and container.CircularHeader.Title then
+            container.CircularHeader.Title:SetText(ResolveLocale("OPT_HEADER_CIRCULAR"))
+        end
+
         -- Colors section
         if container.ColorsHeader and container.ColorsHeader.Title then
             container.ColorsHeader.Title:SetText(ResolveLocale("OPT_HEADER_COLORS"))
@@ -579,6 +589,7 @@ function XPBarEnhancedOptionsMixin:Refresh()
     -- Get current barStyle value for conditional visibility
     local barStyle = Config:GetOptionValue("barStyle")
     local isNoneMode = (barStyle == "none")
+    local isCircularMode = (barStyle == "circular")
 
     -- Refresh checkboxes
     for key, checkbox in pairs(self.controls) do
@@ -624,7 +635,9 @@ function XPBarEnhancedOptionsMixin:Refresh()
             if checkbox.Slider.SetValue then
                 checkbox.Slider:SetValue(value)
                 if checkbox.ValueText then
-                    checkbox.ValueText:SetText(string.format("%.1f", value))
+                    local slider = self.sliders and self.sliders[key]
+                    local formatStr = (slider and slider.format) or "%.1f"
+                    checkbox.ValueText:SetText(string.format(formatStr, value))
                 end
             end
         end
@@ -680,6 +693,29 @@ function XPBarEnhancedOptionsMixin:Refresh()
                 slider:SetValue(value)
                 slider.settingValue = false
             end
+        end
+    end
+
+    -- Conditional visibility for circular-only settings
+    local circularKeys = {"circularSegments"}
+    local container = self.ContentFrame and self.ContentFrame.OptionsContainer
+    for _, key in ipairs(circularKeys) do
+        local rowKey = "Row_" .. key
+        local rowFrame = container and container[rowKey]
+        if rowFrame then
+            if isCircularMode then
+                rowFrame:Show()
+            else
+                rowFrame:Hide()
+            end
+        end
+    end
+    -- Also show/hide the Circular header
+    if container and container.CircularHeader then
+        if isCircularMode then
+            container.CircularHeader:Show()
+        else
+            container.CircularHeader:Hide()
         end
     end
 
@@ -775,11 +811,18 @@ function Options:OnOptionChanged(key)
         -- No additional action needed here
     elseif key == "barLocked" then
     elseif
-        key == "enableAnimations" or key == "animationSpeed" or key == "animationEasing" or key == "flashOnGain" or
-            key == "pauseOnHover"
+        key == "enableAnimations" or key == "flashOnGain" or key == "twoPhaseOnLevelUp"
      then
         if Addon.BarManager and Addon.BarManager.UpdateAnimationSettings then
             Addon.BarManager:UpdateAnimationSettings()
+        end
+    elseif key == "circularSegments" then
+        -- Immediately reposition segments on the circular bar
+        if Addon.BarManager and Addon.BarManager.GetCurrentFrame then
+            local bar = Addon.BarManager:GetCurrentFrame()
+            if bar and bar.RepositionSegments then
+                bar:RepositionSegments()
+            end
         end
     elseif
         key == "showQuestXP" or key == "showQuestPercent" or key == "questOverlaysEnabled" or

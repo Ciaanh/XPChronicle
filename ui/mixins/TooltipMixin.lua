@@ -522,29 +522,8 @@ function TooltipMixin:OnEnter()
 		return
 	end
 
-	-- Build the context (try centralized builder, fall back to services/context on self)
+	-- Build the context using centralized builder
 	local context = XPBarContextBuilder:BuildContext("TOOLTIP")
-	-- context.currentXP = (self and self.currentXP) or context.currentXP or 0
-	-- context.xpMax = (self and self.xpMax) or context.xpMax or 1
-	-- context.level = (self and self.level) or context.level or 1
-	-- -- attempt to populate session/quest from services if available
-	-- if SessionService and type(SessionService.GetSession) == "function" then
-	-- 	local s = SessionService:GetSession()
-	-- 	if s then
-	-- 		context.sessionXP = context.sessionXP or s.gainedXP
-	-- 		context.sessionStart = context.sessionStart or s.startTime
-	-- 	end
-	-- end
-	-- if QuestXP and type(QuestXP.GetQuestTotals) == "function" then
-	-- 	local q = QuestXP:GetQuestTotals()
-	-- 	if q then
-	-- 		context.questCompleteXP = context.questCompleteXP or q.completeXP
-	-- 		context.questIncompleteXP = context.questIncompleteXP or q.incompleteXP
-	-- 		context.questCompleteCount = context.questCompleteCount or q.completeCount
-	-- 		context.questIncompleteCount = context.questIncompleteCount or q.incompleteCount
-	-- 		context.quests = context.quests or q.quests
-	-- 	end
-	-- end
 
 	-- If there's an explicit per-bar toggle to disable tooltip content, return
 	if tooltipConfig.enabled == false then

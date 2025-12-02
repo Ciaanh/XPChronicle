@@ -54,6 +54,10 @@ local function BuildDBConfig()
 	setIfPresent("abbreviateNumbers")
 	setIfPresent("flashOnGain")
 
+	-- Animation settings
+	setIfPresent("enableAnimations")
+	setIfPresent("twoPhaseOnLevelUp")
+
 	return cfg
 end
 
@@ -378,15 +382,6 @@ local function isImportantEvent(event, xpGained, lastXP, coreState)
 	return false
 end
 
-local function _logContextBuilder(...)
-	local AddonGlobal = _G["XPBarEnhanced"]
-	if AddonGlobal and AddonGlobal.Logger and AddonGlobal.Logger.Debug then
-		AddonGlobal.Logger.Debug(...)
-	else
-		print(...)
-	end
-end
-
 -- Events that should NOT consume XP changes (internal addon events)
 -- Only real WoW XP events should update _lastXP and trigger animation
 local XP_CONSUMING_EVENTS = {
@@ -410,19 +405,6 @@ function XPBarContextBuilder.BuildContext(event, ...)
 		preLevelXP = ContextBuilder._lastXP or coreState.currentXP
 		preLevelMax = ContextBuilder._lastMaxXP or coreState.xpMax
 		didLevelUp = false
-	end
-
-	-- Log only level-up events for debugging two-phase animation
-	if didLevelUp then
-		print(
-			"=== LEVEL-UP DETECTED ===",
-			"event=" .. tostring(event),
-			"preLevelXP=" .. tostring(preLevelXP),
-			"preLevelMax=" .. tostring(preLevelMax),
-			"newXP=" .. tostring(coreState.currentXP),
-			"newMax=" .. tostring(coreState.xpMax),
-			"xpGained=" .. tostring(xpGained)
-		)
 	end
 
 	local sessionStart, sessionXP, sessionDuration, xpPerHour = ContextBuilder.UpdateSessionWithGain(xpGained)
@@ -471,18 +453,17 @@ function XPBarContextBuilder.BuildContext(event, ...)
 		eventContext.level = level
 		eventContext.previousLevel = (level and level - 1) or (coreState.level and coreState.level - 1)
 
-		local postCoreState = ContextBuilder.GetCoreState() or coreState
-		eventContext.xpAfter = coreState.currentXP or 0
-		eventContext.xpMax = coreState.xpMax or 1
-		eventContext.level = coreState.level or level
+		-- IMPORTANT: On PLAYER_LEVEL_UP, the WoW API (UnitXP/UnitXPMax) hasn't updated yet.
+		-- The actual new XP values come in the subsequent PLAYER_XP_UPDATE event.
+		-- We mark hasLeveledUp for informational purposes but DON'T trigger animation here.
+		-- The two-phase animation will be triggered by PLAYER_XP_UPDATE when it detects
+		-- the xpMax change and has the actual new XP values.
+		eventContext.hasLeveledUp = false  -- Let PLAYER_XP_UPDATE detect this via xpMax change
+		eventContext.shouldAnimate = false -- Don't animate with stale data
+		eventContext.hasGainedXP = false
+		eventContext.shouldFlash = false
 
-		eventContext.hasLeveledUp = true
-		eventContext.shouldAnimate = true
-		eventContext.hasGainedXP = (eventContext.xpAfter and eventContext.xpAfter > 0) or false
-		eventContext.shouldFlash = eventContext.hasGainedXP
-
-		ContextBuilder._lastXP = coreState.currentXP or 0
-		ContextBuilder._lastMaxXP = coreState.xpMax or 1
+		-- DON'T update _lastXP/_lastMaxXP here - let PLAYER_XP_UPDATE do it with real values
 	elseif event == "UPDATE_EXHAUSTION" or event == "PLAYER_UPDATE_RESTING" then
 		eventContext.source = "RESTED_UPDATE"
 		eventContext.hasGainedXP = false

@@ -287,9 +287,59 @@
                                         </KeyValues>
                                     </Frame>
 
-                                    <Frame parentKey="ColorsHeader" inherits="ConfigSectionHeader">
+                                    <Frame parentKey="AnimationHeader" inherits="ConfigSectionHeader">
                                         <Anchors>
                                             <Anchor point="TOPLEFT" relativeKey="$parent.Row_showLevelTimeText" relativePoint="BOTTOMLEFT" x="-16" y="-20"/>
+                                            <Anchor point="RIGHT"/>
+                                        </Anchors>
+                                    </Frame>
+                                    <Frame parentKey="Row_enableAnimations" inherits="ConfigCheckboxTemplate">
+                                        <Anchors>
+                                            <Anchor point="TOPLEFT" relativeKey="$parent.AnimationHeader" relativePoint="BOTTOMLEFT" x="16" y="-8"/>
+                                            <Anchor point="RIGHT"/>
+                                        </Anchors>
+                                        <KeyValues>
+                                            <KeyValue key="configKey" value="enableAnimations" type="string"/>
+                                        </KeyValues>
+                                    </Frame>
+                                    <Frame parentKey="Row_flashOnGain" inherits="ConfigCheckboxTemplate">
+                                        <Anchors>
+                                            <Anchor point="TOPLEFT" relativeKey="$parent.Row_enableAnimations" relativePoint="BOTTOMLEFT" x="0" y="0"/>
+                                            <Anchor point="RIGHT"/>
+                                        </Anchors>
+                                        <KeyValues>
+                                            <KeyValue key="configKey" value="flashOnGain" type="string"/>
+                                        </KeyValues>
+                                    </Frame>
+                                    <Frame parentKey="Row_twoPhaseOnLevelUp" inherits="ConfigCheckboxTemplate">
+                                        <Anchors>
+                                            <Anchor point="TOPLEFT" relativeKey="$parent.Row_flashOnGain" relativePoint="BOTTOMLEFT" x="0" y="0"/>
+                                            <Anchor point="RIGHT"/>
+                                        </Anchors>
+                                        <KeyValues>
+                                            <KeyValue key="configKey" value="twoPhaseOnLevelUp" type="string"/>
+                                        </KeyValues>
+                                    </Frame>
+
+                                    <Frame parentKey="CircularHeader" inherits="ConfigSectionHeader">
+                                        <Anchors>
+                                            <Anchor point="TOPLEFT" relativeKey="$parent.Row_twoPhaseOnLevelUp" relativePoint="BOTTOMLEFT" x="-16" y="-20"/>
+                                            <Anchor point="RIGHT"/>
+                                        </Anchors>
+                                    </Frame>
+                                    <Frame parentKey="Row_circularSegments" inherits="ConfigSliderTemplate">
+                                        <Anchors>
+                                            <Anchor point="TOPLEFT" relativeKey="$parent.CircularHeader" relativePoint="BOTTOMLEFT" x="16" y="-8"/>
+                                            <Anchor point="RIGHT"/>
+                                        </Anchors>
+                                        <KeyValues>
+                                            <KeyValue key="configKey" value="circularSegments" type="string"/>
+                                        </KeyValues>
+                                    </Frame>
+
+                                    <Frame parentKey="ColorsHeader" inherits="ConfigSectionHeader">
+                                        <Anchors>
+                                            <Anchor point="TOPLEFT" relativeKey="$parent.Row_circularSegments" relativePoint="BOTTOMLEFT" x="-16" y="-20"/>
                                             <Anchor point="RIGHT"/>
                                         </Anchors>
                                     </Frame>

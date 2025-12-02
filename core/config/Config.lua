@@ -61,9 +61,9 @@ end
 function Config:SetOptionKey(key, value, silent)
     local detail = self.optionDetails and self.optionDetails[key]
 
-    -- For dropdowns and other non-boolean options, preserve the actual value
+    -- For dropdowns, sliders, and other non-boolean options, preserve the actual value
     local newValue
-    if detail and detail.type == "dropdown" then
+    if detail and (detail.type == "dropdown" or detail.type == "slider") then
         newValue = value
     else
         newValue = value and true or false

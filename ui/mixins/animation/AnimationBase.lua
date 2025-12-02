@@ -34,14 +34,6 @@ end
 -- @param xpContext table: XP context { xpBefore, xpAfter, xpMax, xpGained, restedXP, isResting, hasRestedXP, level, timestamp }
 -- @param config table: Animation config { enableAnimations, flashOnGain }
 function AnimationBase:StartAnimation(targetRatio, context, config)
-    -- Log only level-up animations for debugging two-phase animation
-    if context and context.hasLeveledUp then
-        print("=== StartAnimation LEVEL-UP ===",
-            "targetRatio=" .. tostring(targetRatio),
-            "preLevelXP=" .. tostring(context.preLevelCurrentXP),
-            "preLevelMax=" .. tostring(context.preLevelXPMax))
-    end
-    
     -- Check if animations are disabled
     if config and config.enableAnimations == false then
         self:RenderBar(context)

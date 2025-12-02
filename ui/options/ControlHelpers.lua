@@ -7,7 +7,6 @@ Addon.UI.ControlHelpers = Addon.UI.ControlHelpers or {}
 
 local ControlHelpers = {}
 local Config = Addon.Config
-local Options = Addon.Options
 
 -- Play sound helper from Options.lua
 local PlaySound = rawget(_G, "PlaySound")
@@ -25,7 +24,8 @@ end
 local function CheckboxOnClick(selfFrame, checkbox, key)
     PlayCheckboxSound(checkbox:GetChecked())
     Config:SetOptionKey(key, checkbox:GetChecked(), true)
-    local controller = Options
+    -- Get fresh reference to Options module (avoids stale upvalue issue)
+    local controller = Addon.Options
     if controller and controller.OnOptionChanged then
         controller:OnOptionChanged(key)
     else
@@ -42,7 +42,8 @@ local function SliderOnValueChanged(selfFrame, slider, key, value)
         return
     end
     Config:SetOptionKey(key, value, true)
-    local controller = Options
+    -- Get fresh reference to Options module (avoids stale upvalue issue)
+    local controller = Addon.Options
     if controller and controller.OnOptionChanged then
         controller:OnOptionChanged(key)
     else
@@ -121,18 +122,27 @@ function ControlHelpers.SetupProperSlider(selfFrame, row, key, detail)
         label:SetText(detail.label)
     end
 
+    -- Set current value now (useful as initial value for Init)
+    local currentValue = Config:GetOptionValue(key)
+    if type(currentValue) ~= "number" then
+        currentValue = detail.min or 0
+    end
+
     -- Setup slider only once (Init API may exist on custom slider mixin)
     if not slider.initialized then
         local minValue = detail.min or 0
         local maxValue = detail.max or 100
         local stepSize = detail.step or 1
-        local numSteps = math.floor((maxValue - minValue) / stepSize)
-
-        -- Try to maintain existing formatting behavior used by MinimalSliderWithSteppersMixin
+        -- steps is the number of intervals: (max-min)/stepSize
+        -- Blizzard calculates: actualStep = (max-min)/steps
+        -- So for 20 to 100 with stepSize=5: steps = 80/5 = 16
+        local steps = math.floor((maxValue - minValue) / stepSize)
+        local formatStr = detail.format or "%.1f"
+        -- MinimalSliderWithSteppersMixin.Init signature: Init(value, minValue, maxValue, steps, formatters)
         if slider.Init then
-            slider:Init(minValue, minValue, maxValue, numSteps, {
+            slider:Init(currentValue, minValue, maxValue, steps, {
                 [MinimalSliderWithSteppersMixin.Label.Right] = function(value)
-                    return string.format("%.1f", value)
+                    return string.format(formatStr, value)
                 end
             })
 
@@ -149,13 +159,11 @@ function ControlHelpers.SetupProperSlider(selfFrame, row, key, detail)
         end
 
         slider.initialized = true
+        slider.format = formatStr
     end
 
     -- Set current value while preserving programmatic flag
-    local currentValue = Config:GetOptionValue(key)
-    if type(currentValue) ~= "number" then
-        currentValue = detail.min or 1.0
-    end
+    -- currentValue was already computed above
     slider.settingValue = true
     if slider.SetValue then
         slider:SetValue(currentValue)
@@ -212,10 +220,12 @@ function ControlHelpers.SetupSlider(selfFrame, sliderFrame, key, detail)
     slider.settingValue = true
     slider:SetValue(currentValue)
     slider.settingValue = false
-    sliderFrame.ValueText:SetText(string.format("%.1f", currentValue))
+    local formatStr = detail.format or "%.1f"
+    slider.format = formatStr
+    sliderFrame.ValueText:SetText(string.format(formatStr, currentValue))
 
     slider:SetScript("OnValueChanged", function(s, value)
-        sliderFrame.ValueText:SetText(string.format("%.1f", value))
+        sliderFrame.ValueText:SetText(string.format(slider.format or "%.1f", value))
         SliderOnValueChanged(selfFrame, s, key, value)
     end)
 
@@ -265,7 +275,7 @@ function ControlHelpers.SetupProperDropdown(selfFrame, row, key, detail)
                 for _, option in ipairs(detail.options) do
                     rootDescription:CreateButton(option.label, function()
                         Config:SetOptionKey(key, option.value, true)
-                        local controller = Options
+                        local controller = Addon.Options
                         if controller and controller.OnOptionChanged then
                             controller:OnOptionChanged(key)
                         end
@@ -363,7 +373,7 @@ function ControlHelpers.SetupDropdown(selfFrame, dropdown, key, detail)
         local nextLabel = btn.options[nextIndex].label
         Config:SetOptionKey(key, nextValue, true)
         btn:SetText(nextLabel)
-        local controller = Options
+        local controller = Addon.Options
         if controller and controller.OnOptionChanged then
             controller:OnOptionChanged(key)
         else
@@ -402,7 +412,7 @@ function ControlHelpers.SetupRadioGroup(selfFrame, radioGroup, key, detail)
             end
             btn:SetChecked(true)
             Config:SetOptionKey(key, btn.value, true)
-            local controller = Options
+            local controller = Addon.Options
             if controller and controller.OnOptionChanged then
                 controller:OnOptionChanged(key)
             else
@@ -524,7 +534,7 @@ function ControlHelpers.SetupColorRow(selfFrame, row, info)
         swatch:SetScript("OnClick", function()
             if IsShiftKeyDown and IsShiftKeyDown() then
                 Config:ResetColor(info.key, true)
-                local controller = Options
+                local controller = Addon.Options
                 if controller and controller.OnColorReset then
                     controller:OnColorReset(info.key)
                 else

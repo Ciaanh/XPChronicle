@@ -121,36 +121,30 @@ local optionDetails = {
         description = Addon.L["OPT_ENABLE_ANIMATIONS_DESC"],
         commandKeys = {"animations", "animate"}
     },
-    animationEasing = {
-        key = "animationEasing",
-        type = "dropdown",
-        label = Addon.L["OPT_ANIMATION_EASING"],
-        description = Addon.L["OPT_ANIMATION_EASING_DESC"],
-        options = {
-            {value = "linear", label = Addon.L["OPT_EASING_LINEAR"]},
-            {value = "easeIn", label = Addon.L["OPT_EASING_EASE_IN"]},
-            {value = "easeOut", label = Addon.L["OPT_EASING_EASE_OUT"]},
-            {value = "easeInOut", label = Addon.L["OPT_EASING_EASE_IN_OUT"]}
-        },
-        commandKeys = {"easing"}
-    },
     flashOnGain = {
         key = "flashOnGain",
         label = Addon.L["OPT_FLASH_ON_GAIN"],
         description = Addon.L["OPT_FLASH_ON_GAIN_DESC"],
         commandKeys = {"flash"}
     },
-    pauseOnHover = {
-        key = "pauseOnHover",
-        label = Addon.L["OPT_PAUSE_ON_HOVER"],
-        description = Addon.L["OPT_PAUSE_ON_HOVER_DESC"],
-        commandKeys = {"pause", "pausehover"}
+    twoPhaseOnLevelUp = {
+        key = "twoPhaseOnLevelUp",
+        label = Addon.L["OPT_TWO_PHASE_LEVEL_UP"],
+        description = Addon.L["OPT_TWO_PHASE_LEVEL_UP_DESC"],
+        commandKeys = {"twophase", "levelupanimation"}
+    },
+    circularSegments = {
+        key = "circularSegments",
+        type = "slider",
+        label = Addon.L["OPT_CIRCULAR_SEGMENTS"],
+        description = Addon.L["OPT_CIRCULAR_SEGMENTS_DESC"],
+        min = 25,
+        max = 100,
+        step = 5,
+        format = "%.0f",
+        commandKeys = {"segments", "circlesegments"}
     }
 }
-
--- NOTE: The full option details are numerous and were extracted from Config.lua.
--- For simplicity and to avoid duplication, ensure this file is updated to include the
--- complete `optionDetails` definition. The IDE or subsequent patch will include the remaining entries.
 
 local optionOrder = {
     "barStyle",
@@ -171,9 +165,9 @@ local optionOrder = {
     "abbreviateNumbers",
     "showBarAtMaxLevel",
     "enableAnimations",
-    "animationEasing",
     "flashOnGain",
-    "pauseOnHover"
+    "twoPhaseOnLevelUp",
+    "circularSegments"
 }
 
 local colorOptionsList = {

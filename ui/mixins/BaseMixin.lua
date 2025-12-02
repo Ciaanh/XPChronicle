@@ -323,18 +323,6 @@ function BaseMixin:TriggerBarRefresh(context)
 
 	local ev = context and context.event
 
-	-- Log only level-up events for debugging two-phase animation
-	if context.hasLeveledUp then
-		print(
-			"=== TriggerBarRefresh LEVEL-UP ===",
-			"event=" .. tostring(ev),
-			"preLevelXP=" .. tostring(context.preLevelCurrentXP),
-			"preLevelMax=" .. tostring(context.preLevelXPMax),
-			"newXP=" .. tostring(context.currentXP),
-			"newMax=" .. tostring(context.xpMax)
-		)
-	end
-
 	-- determine if this update should force render
 	local forceRender = false
 	if ev == "FULL_UPDATE" or ev == "BROADCAST_UPDATE" or ev == "MANUAL_REFRESH" or ev == "OPTIONS_CHANGED" then
@@ -384,22 +372,23 @@ function BaseMixin:TriggerBarRefresh(context)
 		-- Animated update path
 		local targetRatio = self:CalculateTargetRatio(context)
 
-		-- Get animation config from nested structure
-		local fullConfig = self.__xpbar_config or {}
-		local animConfig = fullConfig.animation or {}
-
-		-- Build flat config object for AnimationManager
+		-- Build config from context (populated via BuildDBConfig in ContextBuilder)
+		-- Context is the source of truth for all settings
 		local config = {
-			enableAnimations = animConfig.enableAnimations,
-			flashOnGain = animConfig.flashOnGain
+			enableAnimations = context.enableAnimations,
+			flashOnGain = context.flashOnGain,
+			twoPhaseOnLevelUp = context.twoPhaseOnLevelUp
 		}
 
-		-- Apply defaults only if not explicitly set
+		-- Apply defaults only if not explicitly set in context
 		if config.enableAnimations == nil then
 			config.enableAnimations = true
 		end
 		if config.flashOnGain == nil then
 			config.flashOnGain = true
+		end
+		if config.twoPhaseOnLevelUp == nil then
+			config.twoPhaseOnLevelUp = true
 		end
 
 		-- Before starting animation, update overlays (if present)

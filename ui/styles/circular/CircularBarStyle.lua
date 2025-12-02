@@ -1,8 +1,7 @@
 -- XP Bar Enhanced - CircularBar Style
 -- Circular progress ring with optimized 100-segment system
--- Integrates with  AnimationManager for standard effects
+-- Integrates with AnimationManager for standard effects
 
--- what if you were to keep only the bar style and recreate a clean version of the project from the
 -------------------------------------------------------------------
 -- DEPENDENCIES
 -------------------------------------------------------------------
@@ -17,9 +16,11 @@ end
 -- CONSTANTS
 -------------------------------------------------------------------
 
-local RING_SEGMENTS = 50 -- Number of segments to display
+local MAX_SEGMENTS = 100 -- Always create this many (pool size)
+local DEFAULT_SEGMENTS = 50 -- Default visible segments
 
 local SEGMENT_TYPE = {
+    HIDDEN = -1, -- Not displayed (beyond configured count)
     EMPTY = 0, -- Background/transparent segment
     CURRENT_XP = 1, -- Current XP (main bar color)
     RESTED = 2, -- Rested XP overlay
@@ -32,11 +33,14 @@ local EMPTY_SEGMENT_COLOR = {r = 0.1, g = 0.1, b = 0.1, a = 0.3}
 
 local CIRCULAR_BAR_STYLE = {
     RING_RADIUS_PX = 97, -- Distance from center to segment center (placement radius)
-    SEGMENT_WIDTH_PX = 5, -- Width of each segment in pixels
+    SEGMENT_WIDTH_PX = 5, -- Base width of each segment at 100 segments
     SEGMENT_HEIGHT_PX = 15, -- Height of each segment in pixels
     SEGMENT_TEXTURE_PATH_SOLID = "Interface\\Buttons\\WHITE8X8", -- Solid texture for segments
     SEGMENT_TEXTURE_PATH = "Interface\\AddOns\\XPBarEnhanced\\assets\\xp-bar" -- Texture for each segment
 }
+
+-- Reference segment count for base width (segments are wider with fewer count)
+local REFERENCE_SEGMENT_COUNT = 100
 
 -------------------------------------------------------------------
 -- STYLE TEMPLATE
@@ -69,25 +73,67 @@ end
 -- SEGMENT CREATION AND POSITIONING
 -------------------------------------------------------------------
 
+--- Get the configured number of segments to display (from saved settings)
+-- @return number: Number of segments to display (clamped to 20-100)
+function CircularBarStyleTemplate:GetDisplaySegmentCount()
+    local Addon = XPBarEnhanced
+    local count = DEFAULT_SEGMENTS
+    if Addon and Addon.db then
+        local saved = Addon.db.circularSegments
+        if type(saved) == "number" then
+            count = saved
+        else
+            -- Migrate any boolean/invalid saved values to default
+            if saved ~= nil then
+                Addon.db.circularSegments = DEFAULT_SEGMENTS
+            end
+        end
+    end
+    -- Clamp to valid range
+    -- normalize to integer and clamp
+    count = math.floor(tonumber(count) or DEFAULT_SEGMENTS)
+    return math.max(25, math.min(100, count))
+end
+
+--- Calculate segment width based on display count
+-- Wider segments for fewer count to maintain visual ring coverage
+-- @param displayCount number: Number of segments being displayed
+-- @return number: Width in pixels for each segment
+function CircularBarStyleTemplate:GetSegmentWidth(displayCount)
+    -- Scale width inversely with segment count
+    -- At 100 segments: base width (5px)
+    -- At 20 segments: 5x wider (25px)
+    local baseWidth = CIRCULAR_BAR_STYLE.SEGMENT_WIDTH_PX
+    local scaleFactor = REFERENCE_SEGMENT_COUNT / displayCount
+    return baseWidth * scaleFactor
+end
+
 function CircularBarStyleTemplate:CreateRingSegments()
-    -- Create single set of segments (no separate arrays for rested/quest)
+    -- Create full pool of segments (all hidden initially)
     local color = EMPTY_SEGMENT_COLOR
-    for i = 1, RING_SEGMENTS do
+    for i = 1, MAX_SEGMENTS do
         local segment = self:CreateTexture(nil, "ARTWORK")
         segment:SetTexture(CIRCULAR_BAR_STYLE.SEGMENT_TEXTURE_PATH)
         segment:SetSize(CIRCULAR_BAR_STYLE.SEGMENT_WIDTH_PX, CIRCULAR_BAR_STYLE.SEGMENT_HEIGHT_PX)
         segment:SetVertexColor(color.r, color.g, color.b, color.a)
-        segment:Show()
+        segment:Hide() -- Start hidden
         self.segments[i] = segment
-        self.segmentTypes[i] = SEGMENT_TYPE.EMPTY
+        self.segmentTypes[i] = SEGMENT_TYPE.HIDDEN
     end
 
-    self:PositionSegments()
+    -- Position and show only the configured number
+    self:RepositionSegments()
 end
 
-function CircularBarStyleTemplate:PositionSegments()
+--- Reposition segments based on current config (called on config change)
+function CircularBarStyleTemplate:RepositionSegments()
+    local displayCount = self:GetDisplaySegmentCount()
     local clockwise = -1
     local placementRadius = CIRCULAR_BAR_STYLE.RING_RADIUS_PX
+
+    -- Calculate segment width based on count (wider for fewer segments)
+    local segmentWidth = self:GetSegmentWidth(displayCount)
+    local segmentHeight = CIRCULAR_BAR_STYLE.SEGMENT_HEIGHT_PX
 
     -- Localize heavy math functions for the inner loop
     local math_cos = math.cos
@@ -98,21 +144,39 @@ function CircularBarStyleTemplate:PositionSegments()
     local startAngle = math_pi / 2
     local fullCircle = 2 * math_pi
 
-    for i = 1, RING_SEGMENTS do
-        local angle = startAngle + ((i - 1) / RING_SEGMENTS) * fullCircle
+    -- Position visible segments
+    for i = 1, displayCount do
+        local angle = startAngle + ((i - 1) / displayCount) * fullCircle
 
         -- Offsets relative to frame center (use CENTER anchor)
         local xOff = math_cos(angle) * placementRadius
         local yOff = math_sin(angle) * placementRadius * clockwise
         local rotation = (clockwise * angle) + startAngle
 
-        -- Position segment
+        -- Position and size segment
         local segment = self.segments[i]
+        segment:SetSize(segmentWidth, segmentHeight)
         segment:ClearAllPoints()
         segment:SetPoint("CENTER", self, "CENTER", xOff, yOff)
         if segment.SetRotation then
             segment:SetRotation(rotation)
         end
+        segment:Show()
+        self.segmentTypes[i] = SEGMENT_TYPE.EMPTY
+    end
+
+    -- Hide excess segments beyond displayCount
+    for i = displayCount + 1, MAX_SEGMENTS do
+        local segment = self.segments[i]
+        if segment then
+            segment:Hide()
+            self.segmentTypes[i] = SEGMENT_TYPE.HIDDEN
+        end
+    end
+
+    -- Re-apply current progress colors after repositioning
+    if self.Refresh then
+        self:Refresh()
     end
 end
 
@@ -124,11 +188,32 @@ end
 -- @param iterationData table: Per-frame iteration data with currentRatio
 -- @param eventContext table: Immutable event context
 function CircularBarStyleTemplate:AnimateBarPosition(iterationData, eventContext)
+    -- During level-up Phase 1 (animating to 100%), hide overlays to avoid visual artifacts
+    -- The context contains new level data, but we're animating the old level's progress
+    local contextToUse = eventContext
+    if iterationData.isLevelUpPhase1 then
+        -- Create a modified context that hides overlays during Phase 1
+        contextToUse = {
+            -- Copy essential fields from eventContext
+            hasRestedXP = eventContext.hasRestedXP,
+            xpMax = eventContext.preLevelXPMax or eventContext.xpMax or 1,
+            currentXP = math.floor((iterationData.currentRatio or 0) * (eventContext.preLevelXPMax or eventContext.xpMax or 1)),
+            -- Hide all overlays during Phase 1
+            showQuestXP = false,
+            showCompleteQuestOverlay = false,
+            showIncompleteQuestOverlay = false,
+            showRestedOverlay = false,
+            completeQuestXP = 0,
+            incompleteQuestXP = 0,
+            restedXP = 0
+        }
+    end
+    
     -- Update the arc progress with current ratio
     -- Pass hasRestedXP from eventContext to ensure correct coloring
     -- Pass complete event context into SetArcProgress to ensure the style
     -- uses fresh flags (showQuestXP, showCompleteQuestOverlay, etc.) during animation.
-    self:SetArcProgress(iterationData.currentRatio, eventContext, iterationData.questOverlayAlpha)
+    self:SetArcProgress(iterationData.currentRatio, contextToUse, iterationData.questOverlayAlpha)
 end
 
 --- Update visual effects - glow overlay animation
@@ -162,12 +247,6 @@ function CircularBarStyleTemplate:CountSegmentsToDisplay(progress, totalSegments
     return segments
 end
 
--- Debug logging helper (disabled by default)
-local function debugLog(...)
-    -- Disabled - only enable for specific debugging
-    -- print(...)
-end
-
 --- Set arc progress and calculate all segment types in one pass
 -- @param progress number: Progress ratio (0-1)
 -- @param context table: Immutable context with all state and flags
@@ -178,7 +257,7 @@ function CircularBarStyleTemplate:SetArcProgress(progress, context, overlayAlpha
         return
     end
 
-    local totalSegments = RING_SEGMENTS or 100
+    local totalSegments = self:GetDisplaySegmentCount()
 
     local overlaySegments = self:ComputeOverlaySegments(progress, context, totalSegments)
 
@@ -242,8 +321,8 @@ function CircularBarStyleTemplate:UpdateSegmentColors(hasRestedXP, overlayAlpha)
 
     local currentXPColor = hasRestedXP and colorXpBarRested or colorNormal
 
-    -- Determine progress (prefer current ratio from animation, fall back to lastProgress)
-    local totalSegments = RING_SEGMENTS
+    -- Only process visible segments
+    local totalSegments = self:GetDisplaySegmentCount()
 
     for i = 1, totalSegments do
         local segment = self.segments[i]
@@ -507,7 +586,7 @@ end
 -- @param currentXPSegments number: Number of segments filled by current XP
 -- @return table { completeCount, completeStart, incompleteCount, incompleteStart, restedCount, restedStart }
 function CircularBarStyleTemplate:ComputeOverlaySegments(progress, context, totalSegments)
-    totalSegments = totalSegments or RING_SEGMENTS or 100
+    totalSegments = totalSegments or self:GetDisplaySegmentCount()
 
     local currentProgress = math.max(0, math.min(progress or 0, 1))
 

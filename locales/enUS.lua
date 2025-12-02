@@ -147,21 +147,21 @@ L["OPT_HEADER_BAR_SETTINGS"] = "Bar Settings"
 L["OPT_HEADER_DISPLAY_FEATURES"] = "Display Features"
 L["OPT_HEADER_QUEST_FEATURES"] = "Quest Features"
 L["OPT_HEADER_TEXT_DISPLAY"] = "Text Display"
+L["OPT_HEADER_ANIMATION"] = "Animation"
 L["OPT_HEADER_COLORS"] = "Colors"
+L["OPT_HEADER_CIRCULAR"] = "Circular Bar"
 
 -- Animation options
 L["OPT_ENABLE_ANIMATIONS"] = "Enable animations"
 L["OPT_ENABLE_ANIMATIONS_DESC"] = "Enable smooth fill animations when XP changes."
-L["OPT_ANIMATION_EASING"] = "Animation easing"
-L["OPT_ANIMATION_EASING_DESC"] = "The animation curve style (easeOut recommended for natural feel)."
-L["OPT_EASING_LINEAR"] = "Linear"
-L["OPT_EASING_EASE_IN"] = "Ease In"
-L["OPT_EASING_EASE_OUT"] = "Ease Out"
-L["OPT_EASING_EASE_IN_OUT"] = "Ease In/Out"
 L["OPT_FLASH_ON_GAIN"] = "Flash on XP gain"
 L["OPT_FLASH_ON_GAIN_DESC"] = "Briefly flash the bar when XP is gained."
-L["OPT_PAUSE_ON_HOVER"] = "Pause animation on hover"
-L["OPT_PAUSE_ON_HOVER_DESC"] = "Pause the fill animation when hovering over the bar."
+L["OPT_TWO_PHASE_LEVEL_UP"] = "Two-phase level-up animation"
+L["OPT_TWO_PHASE_LEVEL_UP_DESC"] = "When leveling up, animate the bar filling to 100% first, then reset and animate to your new XP."
+
+-- Circular bar options
+L["OPT_CIRCULAR_SEGMENTS"] = "Segment count"
+L["OPT_CIRCULAR_SEGMENTS_DESC"] = "Number of segments in the circular progress ring. Lower values give a chunky look, higher values appear smoother."
 
 -- Color options
 L["COLOR_XP_BAR"] = "XP Bar Fill"
