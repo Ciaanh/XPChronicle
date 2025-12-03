@@ -37,38 +37,11 @@ function TextFormatter:FormatNumber(num, abbreviate)
 end
 
 function TextFormatter:FormatTime(seconds, short)
-    if not seconds or seconds <= 0 then
-        return short and "0s" or "0 seconds"
-    end
-    local days = math.floor(seconds / 86400)
-    local hours = math.floor((seconds % 86400) / 3600)
-    local minutes = math.floor((seconds % 3600) / 60)
-    local secs = math.floor(seconds % 60)
+    local TimeCalc = Addon.TimeCalculations
     if short then
-        if days > 0 then
-            return string.format("%dd %dh", days, hours)
-        elseif hours > 0 then
-            return string.format("%dh %dm", hours, minutes)
-        elseif minutes > 0 then
-            return string.format("%dm", minutes)
-        else
-            return string.format("%ds", secs)
-        end
+        return TimeCalc.FormatSmart(seconds)
     else
-        local parts = {}
-        if days > 0 then
-            table.insert(parts, days == 1 and "1 day" or string.format("%d days", days))
-        end
-        if hours > 0 then
-            table.insert(parts, hours == 1 and "1 hour" or string.format("%d hours", hours))
-        end
-        if minutes > 0 and days == 0 then
-            table.insert(parts, minutes == 1 and "1 minute" or string.format("%d minutes", minutes))
-        end
-        if secs > 0 and hours == 0 and days == 0 then
-            table.insert(parts, secs == 1 and "1 second" or string.format("%d seconds", secs))
-        end
-        return #parts > 0 and table.concat(parts, " ") or "0 seconds"
+        return TimeCalc.FormatDuration(seconds, false)
     end
 end
 
@@ -76,9 +49,8 @@ function TextFormatter:FormatPercent(value, maxValue, decimals)
     if not value or not maxValue or maxValue == 0 then
         return "0%"
     end
-    decimals = decimals or 1
-    local percent = (value / maxValue) * 100
-    return string.format("%." .. decimals .. "f%%", percent)
+    local XPCalc = Addon.XPCalculations
+    return string.format("%." .. (decimals or 1) .. "f%%", XPCalc.ComputePercent(value, maxValue, decimals))
 end
 
 function TextFormatter:GetXPRateText(xpPerHour, abbreviate)

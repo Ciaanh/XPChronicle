@@ -200,11 +200,11 @@ function Config:GetColorOption(target)
     if not target then
         return nil
     end
-    return colorOptionMap[string.lower(target)]
+    return self.colorOptionMap and self.colorOptionMap[string.lower(target)]
 end
 
 function Config:GetColorOptionByKey(key)
-    return colorOptionByKey[key]
+    return self.colorOptionByKey and self.colorOptionByKey[key]
 end
 
 function Config:GetColorOptionList()
@@ -225,7 +225,7 @@ function Config:ApplyOptionSideEffects(key)
         "showQuestXP",
         "showPercentage",
         "showQuestPercent",
-        "showBarAtMaxLevel",
+
         "showCompleteQuestOverlay",
         "showIncompleteQuestOverlay",
         "abbreviateNumbers",

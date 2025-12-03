@@ -14,7 +14,7 @@
                 </Anchors>
                 <Frames>
                     <Frame parentKey="ContentFrame">
-                        <Size x="560" y="1550"/>
+                        <Size x="560" y="1900"/>
                         <Anchors>
                             <Anchor point="TOPLEFT"/>
                         </Anchors>
@@ -38,7 +38,7 @@
                                 <Anchors>
                                     <Anchor point="TOPLEFT" relativeKey="$parent.SubtitleText" relativePoint="BOTTOMLEFT" x="0" y="-12"/>
                                 </Anchors>
-                                <Size x="520" y="200"/>
+                                <Size x="520" y="1750"/>
                                 <Frames>
                                     <Frame parentKey="BarSettingsHeader" inherits="ConfigSectionHeader">
                                         <Anchors>
@@ -132,19 +132,10 @@
                                             <KeyValue key="configKey" value="abbreviateNumbers" type="string"/>
                                         </KeyValues>
                                     </Frame>
-                                    <Frame parentKey="Row_showBarAtMaxLevel" inherits="ConfigCheckboxTemplate">
-                                        <Anchors>
-                                            <Anchor point="TOPLEFT" relativeKey="$parent.Row_abbreviateNumbers" relativePoint="BOTTOMLEFT" x="0" y="0"/>
-                                            <Anchor point="RIGHT"/>
-                                        </Anchors>
-                                        <KeyValues>
-                                            <KeyValue key="configKey" value="showBarAtMaxLevel" type="string"/>
-                                        </KeyValues>
-                                    </Frame>
 
                                     <Frame parentKey="TextOnBarHeader" inherits="ConfigSubSectionHeader">
                                         <Anchors>
-                                            <Anchor point="TOPLEFT" relativeKey="$parent.Row_showBarAtMaxLevel" relativePoint="BOTTOMLEFT" x="0" y="-8"/>
+                                            <Anchor point="TOPLEFT" relativeKey="$parent.Row_abbreviateNumbers" relativePoint="BOTTOMLEFT" x="0" y="-8"/>
                                             <Anchor point="RIGHT"/>
                                         </Anchors>
                                     </Frame>

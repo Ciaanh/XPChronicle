@@ -103,12 +103,6 @@ local optionDetails = {
         description = Addon.L["OPT_TIME_TO_LEVEL_DESC"],
         commandKeys = {"timetolevel", "ttl"}
     },
-    showBarAtMaxLevel = {
-        key = "showBarAtMaxLevel",
-        label = Addon.L["OPT_SHOW_AT_MAX"],
-        description = Addon.L["OPT_SHOW_AT_MAX_DESC"],
-        commandKeys = {"showmax"}
-    },
     abbreviateNumbers = {
         key = "abbreviateNumbers",
         label = Addon.L["OPT_ABBREVIATE_NUMBERS"],
@@ -163,7 +157,6 @@ local optionOrder = {
     "showSessionTimeText",
     "showTimeToLevelText",
     "abbreviateNumbers",
-    "showBarAtMaxLevel",
     "enableAnimations",
     "flashOnGain",
     "twoPhaseOnLevelUp",

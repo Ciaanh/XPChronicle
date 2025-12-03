@@ -1,6 +1,20 @@
 -- XP Bar Enhanced - Colors.lua
 -- Centralized color management for all XP bar elements
 
+---@class Color
+---@field r number Red component (0-1)
+---@field g number Green component (0-1)
+---@field b number Blue component (0-1)
+---@field a number Alpha component (0-1)
+
+---@class Colors
+---@field Key table<string, string> Color key constants
+---@field Get fun(self: Colors, colorKey: string): Color Get color by key
+---@field Set fun(self: Colors, colorKey: string, color: Color) Set color by key
+---@field GetDefault fun(self: Colors, colorKey: string): Color Get default color
+---@field Reset fun(self: Colors, colorKey: string) Reset color to default
+---@field ResetAll fun(self: Colors) Reset all colors to defaults
+
 local Addon = XPBarEnhanced
 Addon.Colors = {}
 local Colors = Addon.Colors
@@ -22,7 +36,8 @@ Colors.Key = {
 -------------------------------------------------------------------
 
 ---Get color from config or defaults
--- table with fields r,g,b,a
+---@param colorKey string The color key to look up
+---@return Color color The color table with r,g,b,a fields
 function Colors:Get(colorKey)
     local db = Addon.db or {}
     local colors = db.colors or (Addon.defaults and Addon.defaults.colors)
@@ -36,6 +51,8 @@ function Colors:Get(colorKey)
 end
 
 ---Set color in configuration
+---@param colorKey string The color key to set
+---@param color Color|table The color to set (can be {r,g,b,a} or array)
 function Colors:Set(colorKey, color)
     if not Addon.db then
         return
@@ -54,6 +71,8 @@ function Colors:Set(colorKey, color)
 end
 
 ---Get default color from the defaults table
+---@param colorKey string The color key to look up
+---@return Color color The default color table
 function Colors:GetDefault(colorKey)
     if not Addon.defaults or not Addon.defaults.colors then
         return {r = 1, g = 1, b = 1, a = 1}
@@ -63,12 +82,13 @@ function Colors:GetDefault(colorKey)
 end
 
 ---Reset a color to its default value
+---@param colorKey string The color key to reset
 function Colors:Reset(colorKey)
     local defaultColor = self:GetDefault(colorKey)
     self:Set(colorKey, defaultColor)
 end
 
--- Reset all colors to defaults
+---Reset all colors to defaults
 function Colors:ResetAll()
     if not Addon.db then
         return

@@ -1,8 +1,21 @@
+-- XP Bar Enhanced - Utils.lua
+-- General utility functions
+
+---@class Utils
+---@field Clone fun(value: any): any Deep clone a value
+---@field MergeDefaults fun(target: table, source: table) Merge defaults without overwriting
+---@field ShortNumber fun(value: number): string Format number as short string (1.2K, 3.4M)
+---@field FormatDuration fun(seconds: number): string Format duration as compact string
+---@field FormatTime fun(seconds: number): string Format time in user-friendly format
+
 local Addon = XPBarEnhanced
 Addon.Utils = Addon.Utils or {}
 
 local Utils = Addon.Utils
 
+---Deep clone a table recursively
+---@param value any Value to clone
+---@return any cloned Cloned value
 local function cloneTable(value)
     if type(value) ~= "table" then
         return value
@@ -15,6 +28,9 @@ local function cloneTable(value)
     return copy
 end
 
+---Merge source defaults into target without overwriting existing values
+---@param target table Target table to merge into
+---@param source table Source table with defaults
 local function mergeDefaults(target, source)
     if type(target) ~= "table" or type(source) ~= "table" then
         return
@@ -31,16 +47,22 @@ local function mergeDefaults(target, source)
 end
 
 ---Deep clone a value (tables are cloned recursively)
+---@param value any Value to clone
+---@return any cloned Deep copy of value
 function Utils.Clone(value)
     return cloneTable(value)
 end
 
 ---Merge defaults from `source` into `target` without overwriting explicit values
+---@param target table Target table to merge into
+---@param source table Source table with defaults
 function Utils.MergeDefaults(target, source)
     mergeDefaults(target, source)
 end
 
 ---Return a human-friendly short representation of a number (e.g. 1.2K, 3.4M)
+---@param value number The number to format
+---@return string formatted Short format string
 function Utils.ShortNumber(value)
     if not value or value <= 0 then
         return "0"
@@ -56,53 +78,19 @@ function Utils.ShortNumber(value)
 end
 
 ---Format a duration in seconds into compact days/hours/minutes string
+---Uses centralized TimeCalculations module
+---@param seconds number Duration in seconds
+---@return string formatted Compact duration string (e.g. "1d 2h 30m")
 function Utils.FormatDuration(seconds)
-    if not seconds or seconds <= 0 then
-        return "--"
-    end
-
-    local minutes = math.floor(seconds / 60)
-    if minutes < 1 then
-        return "<1m"
-    end
-
-    local days = math.floor(minutes / 1440)
-    minutes = minutes % 1440
-    local hours = math.floor(minutes / 60)
-    minutes = minutes % 60
-
-    local parts = {}
-    if days > 0 then
-        table.insert(parts, string.format("%dd", days))
-    end
-    if hours > 0 then
-        table.insert(parts, string.format("%dh", hours))
-    end
-    if minutes > 0 then
-        table.insert(parts, string.format("%dm", minutes))
-    end
-
-    return table.concat(parts, " ")
+    local TimeCalc = Addon.TimeCalculations
+    return TimeCalc.FormatSmart(seconds)
 end
 
 ---Format seconds into a user-friendly time string (e.g. "1h 2m")
+---Uses centralized TimeCalculations module
+---@param seconds number Duration in seconds
+---@return string formatted User-friendly time string
 function Utils.FormatTime(seconds)
-    seconds = tonumber(seconds)
-    if not seconds or seconds <= 0 then
-        return "--"
-    end
-
-    seconds = math.floor(seconds + 0.5)
-
-    if seconds < 60 then
-        return string.format("%ds", seconds)
-    elseif seconds < 3600 then
-        local mins = math.floor(seconds / 60)
-        local secs = seconds % 60
-        return string.format("%dm %ds", mins, secs)
-    else
-        local hours = math.floor(seconds / 3600)
-        local mins = math.floor((seconds % 3600) / 60)
-        return string.format("%dh %dm", hours, mins)
-    end
+    local TimeCalc = Addon.TimeCalculations
+    return TimeCalc.FormatHMS(seconds)
 end

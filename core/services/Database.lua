@@ -1,6 +1,14 @@
 -- XP Bar Enhanced - Database.lua
 -- Simplified database management
 
+---@class Database
+---@field Initialize fun(self: Database) Initialize the database with defaults
+---@field GetDB fun(self: Database): table Get the root saved-variables table
+---@field GetSessionData fun(self: Database): table Get the session data table
+---@field GetPlayerKey fun(self: Database): string Get the player-realm key
+---@field IsXPGainDisabled fun(self: Database): boolean Check if XP gain is disabled
+---@field SetXPGainDisabled fun(self: Database, disabled: boolean) Set XP gain disabled state
+
 local Addon = XPBarEnhanced
 Addon.Database = Addon.Database or {}
 

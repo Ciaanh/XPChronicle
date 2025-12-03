@@ -17,18 +17,14 @@ XP Bar Enhanced is a World of Warcraft add-on that replaces and augments the def
 
 ## Developer Notes
 
-- Event names are centralized in `core/EventNames.lua` and exposed via `Addon.EventNames`.
+- Event names are defined in `XPBarEnhanced.lua` as `Addon.EventNames`.
 - Prefer `Addon.EventBus` for cross-module publish/subscribe and use the constants from `Addon.EventNames` to avoid string literal duplication. Example:
 
 ```lua
 Addon.EventBus:Register(Addon.EventNames.XPBAR_BROADCAST_UPDATE, "myHandler", function(ctx)
-	-- handle context
+    -- handle context
 end)
 
 Addon.EventBus:Emit(Addon.EventNames.XPBAR_BROADCAST_UPDATE)
 ```
-
-## Documentation
-
-- Canonical documentation files live in the `_docs/` directory (e.g., `_docs/ARCHITECTURE_EVENT_FLOW.md`). Please make and edit docs there — root-level copies are deprecated and should not be recreated.
 

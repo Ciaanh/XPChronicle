@@ -16,7 +16,7 @@ local defaults = {
     showTimeToLevelText = true,
     abbreviateNumbers = true,
     showRemainingXP = true,
-    showBarAtMaxLevel = false,
+
     showLevelText = true,
     showXPText = true,
     showCompleteQuestOverlay = true,

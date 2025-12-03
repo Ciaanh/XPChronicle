@@ -12,6 +12,8 @@ local Stats = {}
 --------------------------------------------------------------------------------
 
 local SessionService = Addon and Addon.Session
+local TimeCalc = Addon and Addon.TimeCalculations
+local XPCalc = Addon and Addon.XPCalculations
 
 --------------------------------------------------------------------------------
 -- Local caches & helpers
@@ -506,18 +508,15 @@ function Stats:UpdateSessionStats(statsFrame)
         session = { sessionStart = time(), gainedXP = 0, realLevelTime = 0 }
     end
 
-    -- Calculate session duration
-    local sessionElapsed = time() - (session.sessionStart or time())
+    -- Calculate session duration using TimeCalculations
+    local sessionElapsed = TimeCalc and TimeCalc.SessionDuration(session.sessionStart) or (time() - (session.sessionStart or time()))
     local sessionXP = session.gainedXP or 0
 
-    -- Calculate XP per hour
-    local xpPerHour = 0
-    if sessionElapsed > 0 and sessionXP > 0 then
-        xpPerHour = math_floor((sessionXP / sessionElapsed) * 3600)
-    end
+    -- Calculate XP per hour using TimeCalculations
+    local xpPerHour = TimeCalc and TimeCalc.CalculateXPPerHour(session.sessionStart, sessionXP) or 0
 
-    -- Levels gained (placeholder; TODO track actual session levels)
-    local levelsGained = 0
+    -- Levels gained this session (tracked via PLAYER_LEVEL_UP)
+    local levelsGained = session.levelsGained or 0
 
     -- Update session duration & start
     SetTextSafe(content.SessionDurationValue, Utils.FormatDuration(sessionElapsed))

@@ -108,8 +108,6 @@ L["OPT_TIME_TO_LEVEL_DESC"] =
     "Display estimated time remaining to reach next level (based on current XP/hour rate) as text beneath the XP bar."
 L["OPT_ABBREVIATE_NUMBERS"] = "Abbreviate numbers"
 L["OPT_ABBREVIATE_NUMBERS_DESC"] = "Use abbreviated number format (K, M, B) instead of full numbers in all displays."
-L["OPT_SHOW_AT_MAX"] = "Show bar at max level"
-L["OPT_SHOW_AT_MAX_DESC"] = "Keep the custom XP bar visible even at maximum level."
 L["OPT_HIDE_DEFAULT"] = "Hide default XP bar"
 L["OPT_HIDE_DEFAULT_DESC"] = "Hide Blizzard's default experience bar when the addon loads."
 

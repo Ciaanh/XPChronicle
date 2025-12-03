@@ -1,6 +1,29 @@
 -- XP Bar Enhanced - Session.lua
 -- Manages player session data such as XP gained and time played
 
+---@class SessionData
+---@field sessionStart number Unix timestamp when session started
+---@field sessionXP number Total XP at session start (deprecated, use gainedXP)
+---@field gainedXP number Total XP gained this session
+---@field lastXP number Last recorded current XP
+---@field maxXP number Last recorded max XP for level
+---@field realTotalTime number Total time played on character (from TIME_PLAYED_MSG)
+---@field realLevelTime number Time played at current level (from TIME_PLAYED_MSG)
+---@field lastTimePlayedRequest number Timestamp of last TIME_PLAYED_MSG
+---@field lastUpdate number Timestamp of last session update
+---@field startLevel number Player level when session started
+---@field levelsGained number Number of levels gained this session
+
+---@class Session
+---@field eventFrame? Frame Event handler frame
+---@field GetCurrent fun(self: Session): SessionData|nil Get current session data
+---@field Initialize fun(self: Session) Initialize session tracking
+---@field Reset fun(self: Session) Reset session data
+---@field RecordXPGain fun(self: Session, xpGained: number) Record an XP gain
+---@field OnXPUpdate fun(self: Session) Handle PLAYER_XP_UPDATE event
+---@field OnLevelUp fun(self: Session, newLevel: number) Handle PLAYER_LEVEL_UP event
+---@field OnTimePlayed fun(self: Session, totalTime: number, levelTime: number) Handle TIME_PLAYED_MSG
+
 local Addon = XPBarEnhanced
 Addon.Session = Addon.Session or {}
 
@@ -11,6 +34,7 @@ local timePlayedTicker
 -- SESSION HELPERS
 -------------------------------------------------------------------
 
+---@param session SessionData
 local function ensureSessionDefaults(session)
     session.sessionStart = session.sessionStart or time()
     session.sessionXP = session.sessionXP or 0
@@ -21,6 +45,8 @@ local function ensureSessionDefaults(session)
     session.realLevelTime = session.realLevelTime or 0
     session.lastTimePlayedRequest = session.lastTimePlayedRequest or 0
     session.lastUpdate = session.lastUpdate or time()
+    session.startLevel = session.startLevel or (UnitLevel("player") or 1)
+    session.levelsGained = session.levelsGained or 0
 end
 
 -------------------------------------------------------------------
@@ -92,6 +118,8 @@ function Session:OnEnteringWorld(isInitialLogin, isReloadingUI)
     if isInitialLogin then
         session.sessionStart = time()
         session.gainedXP = 0
+        session.startLevel = UnitLevel("player") or 1
+        session.levelsGained = 0
     end
 
     if isInitialLogin or isReloadingUI then
@@ -114,17 +142,11 @@ function Session:OnXPUpdate()
     local currentXP = UnitXP("player") or 0
     local maxXP = UnitXPMax("player") or 0
     local lastXP = session.lastXP or currentXP
-    local gained = currentXP - lastXP
+    local lastMax = session.maxXP or maxXP
 
-    -- Handle level-up case (XP resets to 0)
-    if gained < 0 then
-        gained = (session.maxXP or maxXP) - lastXP + currentXP
-    end
-
-    -- Ensure non-negative gain
-    if gained < 0 then
-        gained = 0
-    end
+    -- Use centralized XPCalculations module for XP gain computation
+    local XPCalc = Addon.XPCalculations
+    local gained, didLevelUp = XPCalc.ComputeGain(currentXP, maxXP, lastXP, lastMax)
 
     -- Update session
     session.gainedXP = (session.gainedXP or 0) + gained
@@ -139,6 +161,9 @@ function Session:OnLevelUp(level)
     if not session then
         return
     end
+
+    -- Track levels gained this session
+    session.levelsGained = (session.levelsGained or 0) + 1
 
     -- Reset level time
     session.realLevelTime = 0

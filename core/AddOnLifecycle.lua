@@ -49,6 +49,11 @@ function eventHandlers:OnPlayerLogin()
         Addon.BarManager:Initialize()
     end
 
+    -- Initialize Minimap Button
+    if Addon.MinimapButton and Addon.MinimapButton.Initialize then
+        Addon.MinimapButton:Initialize()
+    end
+
     local options = Addon.Options
     if options and options.Initialize then
         options:Initialize()

@@ -80,17 +80,45 @@ function XPBarEnhancedOptionsMixin:OnLoad()
     self.ContentFrame = self.ScrollBox.ContentFrame
     local scrollChild = self.ContentFrame
 
-    -- SIMPLIFIED SCROLLBOX SETUP:
+    -- DYNAMIC SCROLLBOX SETUP:
+    -- Calculate content height dynamically based on actual content
+    local function CalculateContentHeight()
+        -- Find the bottom-most element to determine actual content height
+        local bottomY = 0
+        local contentTop = scrollChild:GetTop() or 0
+
+        -- Check reset buttons (they're at the bottom)
+        local bottomElements = {
+            scrollChild.ResetSettingsButton,
+            scrollChild.ResetBarPositionButton,
+            scrollChild.ResetStatsButton
+        }
+
+        for _, element in ipairs(bottomElements) do
+            if element and element:IsShown() and element:GetBottom() then
+                local elementBottom = contentTop - element:GetBottom()
+                if elementBottom > bottomY then
+                    bottomY = elementBottom
+                end
+            end
+        end
+
+        -- Add padding at the bottom
+        return math.max(bottomY + 40, 800) -- Minimum 800, plus 40px padding
+    end
+
     -- Use the modern ScrollBox API with ContentFrame as the scroll target
     local view = CreateScrollBoxListLinearView()
     view:SetPanExtent(100) -- Mousewheel scroll amount
 
-    -- Get the full height for the extent calculator
-    local contentHeight = scrollChild:GetHeight()
+    -- Store reference for dynamic updates
+    self.scrollView = view
+    self.calculateContentHeight = CalculateContentHeight
 
     view:SetElementExtentCalculator(
         function(dataIndex, elementData)
-            return contentHeight
+            -- Recalculate each time for dynamic sizing
+            return CalculateContentHeight()
         end
     )
 
@@ -102,7 +130,7 @@ function XPBarEnhancedOptionsMixin:OnLoad()
                 function(frame, elementData)
                     if not frame.initialized then
                         -- Just set the frame to match ContentFrame's size
-                        frame:SetSize(scrollChild:GetSize())
+                        frame:SetSize(scrollChild:GetWidth(), CalculateContentHeight())
                         -- Make ContentFrame visible within this frame
                         scrollChild:ClearAllPoints()
                         scrollChild:SetAllPoints(frame)
@@ -121,6 +149,14 @@ function XPBarEnhancedOptionsMixin:OnLoad()
     ScrollUtil.InitScrollBoxListWithScrollBar(self.ScrollBox, self.ScrollBar, view)
     self.ScrollBox:SetDataProvider(dataProvider)
     self.ScrollBox:SetScrollPercentage(0, ScrollBoxConstants.NoScrollInterpolation)
+
+    -- Schedule a layout update after the frame is fully loaded
+    C_Timer.After(0.1, function()
+        if self.ScrollBox and self.ScrollBox:GetDataProvider() then
+            self.ScrollBox:GetDataProvider():Flush()
+            self.ScrollBox:SetDataProvider(dataProvider)
+        end
+    end)
 
     if scrollChild.TitleText then
         scrollChild.TitleText:SetText(PANEL_NAME)
@@ -256,6 +292,17 @@ end
 
 function XPBarEnhancedOptionsMixin:OnPanelShow()
     self:Refresh()
+    -- Recalculate scroll height when panel is shown
+    self:RefreshScrollLayout()
+end
+
+function XPBarEnhancedOptionsMixin:RefreshScrollLayout()
+    -- Force recalculation of scroll content height
+    if self.ScrollBox and self.ScrollBox:GetDataProvider() then
+        local dataProvider = CreateDataProvider()
+        dataProvider:Insert({id = "content"})
+        self.ScrollBox:SetDataProvider(dataProvider)
+    end
 end
 
 function XPBarEnhancedOptionsMixin:BuildOptionCheckboxes()

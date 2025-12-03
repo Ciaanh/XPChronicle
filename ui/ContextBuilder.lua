@@ -3,13 +3,22 @@
 -- Integrates session calculation methods (duplicated from core/Session.lua)
 -- NO DEPENDENCIES on existing Session, Database, or other core modules
 
+---@class CoreState
+---@field currentXP number Current player XP
+---@field xpMax number Maximum XP for current level
+---@field level number Current player level
+---@field restedXP number Amount of rested XP available
+---@field isResting boolean Whether player is in a resting area
+---@field hasRestedXP boolean Whether player has any rested XP
+---@field isFullyRested boolean Whether player has max rested XP
+
 -------------------------------------------------------------------
 -- STATIC CONFIGURATION (SHARED)
 -------------------------------------------------------------------
 
---- Build fresh static configuration from database
---- Called each time a context is built to ensure latest settings
---- @return table staticConfig Fresh configuration with current settings
+---Build fresh static configuration from database
+---Called each time a context is built to ensure latest settings
+---@return table staticConfig Fresh configuration with current settings
 local function BuildDBConfig()
 	local AddonGlobal = _G["XPBarEnhanced"]
 	local db = AddonGlobal and AddonGlobal.db
@@ -200,26 +209,14 @@ function ContextBuilder.MakeImmutable(eventData, coreData)
 end
 
 -- Compute XP gained since last snapshot (handles level-up wrap-around)
+-- Uses centralized XPCalculations module
 function ContextBuilder.ComputeXPGained(currentXP, xpMax)
 	local lastXP = ContextBuilder._lastXP or currentXP
 	local lastMax = ContextBuilder._lastMaxXP or xpMax
 
-	local xpGained = 0
-	local didLevelUp = false
-
-	-- Detect level-up: xpMax changed (new level has different XP requirement)
-	if lastMax and xpMax and lastMax ~= xpMax then
-		didLevelUp = true
-		-- Level-up occurred: XP gained = (old max - old current) + new current
-		xpGained = (lastMax - lastXP) + currentXP
-	elseif currentXP >= lastXP then
-		-- Normal XP gain (same level)
-		xpGained = currentXP - lastXP
-	else
-		-- Edge case: currentXP < lastXP but xpMax same (shouldn't happen normally)
-		-- Could be a data reset or edge case - treat as no gain
-		xpGained = 0
-	end
+	-- Use centralized XPCalculations module
+	local XPCalc = XPBarEnhanced.XPCalculations
+	local xpGained, didLevelUp = XPCalc.ComputeGain(currentXP, xpMax, lastXP, lastMax)
 
 	-- Store pre-level snapshot BEFORE updating (for two-phase animation)
 	local preLevelXP = lastXP
@@ -507,46 +504,26 @@ end
 -------------------------------------------------------------------
 
 --- Calculate XP gain rate (XP per hour)
---- Duplicated from Session:GetXPPerHour() - independent implementation
+--- Uses centralized TimeCalculations module
 ---@param sessionStart number Session start timestamp
 ---@param sessionXP number Total XP gained in session
 ---@param realLevelTime number|nil Real played time at current level (optional)
 ---@param currentXP number|nil Current XP amount (optional, for fallback calculation)
 ---@return number xpPerHour XP per hour rate
 function ContextBuilder.CalculateXPPerHour(sessionStart, sessionXP, realLevelTime, currentXP)
-	local duration = time() - (sessionStart or time())
-	local gainedXP = sessionXP or 0
-
-	-- Prefer session-derived rate when session is meaningful (at least 10 seconds)
-	if duration >= 10 and gainedXP > 0 then
-		return math.floor((gainedXP / duration) * 3600)
-	end
-
-	-- Fallback: estimate from realLevelTime if available
-	if realLevelTime and realLevelTime > 0 and currentXP and currentXP > 0 then
-		return math.floor((currentXP / realLevelTime) * 3600)
-	end
-
-	return 0
+	local TimeCalc = XPBarEnhanced.TimeCalculations
+	return TimeCalc.CalculateXPPerHour(sessionStart, sessionXP, realLevelTime, currentXP)
 end
 
 --- Calculate estimated time to next level
---- Duplicated from Session:GetTimeToLevel() - independent implementation
+--- Uses centralized TimeCalculations module
 ---@param currentXP number Current XP amount
 ---@param maxXP number Max XP for current level
 ---@param xpPerHour number XP gain rate (per hour)
 ---@return number seconds Estimated seconds to level up
 function ContextBuilder.CalculateTimeToLevel(currentXP, maxXP, xpPerHour)
-	if not maxXP or maxXP <= 0 then
-		return 0
-	end
-
-	local remainingXP = (maxXP or 0) - (currentXP or 0)
-	if xpPerHour > 0 and remainingXP > 0 then
-		return math.floor((remainingXP / xpPerHour) * 3600)
-	end
-
-	return 0
+	local TimeCalc = XPBarEnhanced.TimeCalculations
+	return TimeCalc.TimeToLevelFromXP(currentXP, maxXP, xpPerHour) or 0
 end
 
 -------------------------------------------------------------------
