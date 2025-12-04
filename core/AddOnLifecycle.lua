@@ -81,10 +81,12 @@ function eventHandlers:OnPlayerLevelUp(level)
     if Addon.QuestXP and Addon.QuestXP.InvalidateQuestCache then
         Addon.QuestXP:InvalidateQuestCache()
     end
+    -- Always call BarManager to check if we hit max level and need to hide the bar
+    if Addon.BarManager and Addon.BarManager.OnLevelUp then
+        Addon.BarManager:OnLevelUp(level)
+    end
     if Addon.EventBus and Addon.EventBus.Emit then
         Addon.EventBus:Emit(Addon.EventNames.XPBAR_BROADCAST_UPDATE)
-    elseif Addon.BarManager and Addon.BarManager.OnLevelUp then
-        Addon.BarManager:OnLevelUp(level)
     end
     local stats = Addon.Stats
     if stats and stats.OnLevelUp then

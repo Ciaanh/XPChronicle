@@ -328,17 +328,13 @@ function ControlHelpers.SetupDropdown(selfFrame, dropdown, key, detail)
     button.tooltipRequirement = detail.description
 
     local currentValue = Config:GetOptionValue(key)
-    -- Helper: detect if player is at max level (compatibility safe)
+
     local function IsPlayerAtMaxLevel()
-        local level = (UnitLevel and UnitLevel("player")) or 0
-        local maxLevel = nil
-        if GetMaxPlayerLevel and type(GetMaxPlayerLevel) == "function" then
-            maxLevel = GetMaxPlayerLevel()
-        else
-            maxLevel = MAX_PLAYER_LEVEL or 60
-        end
-        return level >= (maxLevel or 0)
+        local level = UnitLevel("player") or 0
+        local maxLevel = GetMaxPlayerLevel() or 80
+        return level >= maxLevel
     end
+
     for i, opt in ipairs(button.options) do
         if opt.value == currentValue then
             button:SetText(opt.label)

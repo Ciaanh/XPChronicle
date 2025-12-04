@@ -36,8 +36,7 @@ Addon.state =
 -- Database reference
 Addon.db = Addon.db or {}
 
--- UI namespaces and compatibility helpers
+-- UI namespaces
 Addon.UI = Addon.UI or {}
 Addon.UI.Mixins = Addon.UI.Mixins or {}
-Addon.Mixins = Addon.Mixins or {}
 

@@ -42,13 +42,8 @@ end
 
 local function IsPlayerAtMaxLevel()
     local level = UnitLevel("player") or 0
-    local maxLevel = nil
-    if GetMaxPlayerLevel and type(GetMaxPlayerLevel) == "function" then
-        maxLevel = GetMaxPlayerLevel()
-    else
-        maxLevel = MAX_PLAYER_LEVEL or 60
-    end
-    return level >= (maxLevel or 0)
+    local maxLevel = GetMaxPlayerLevel() or 80
+    return level >= maxLevel
 end
 
 function BarManager:ApplyDefaultXPBarVisibility()
@@ -187,22 +182,8 @@ function BarManager:OnEnteringWorld()
 end
 
 function BarManager:OnLevelUp()
-    -- Invalidate quest XP cache and notify listeners
-    if Addon.QuestXP and Addon.QuestXP.InvalidateQuestCache then
-        pcall(
-            function()
-                Addon.QuestXP:InvalidateQuestCache()
-            end
-        )
-    end
-
-    if Addon.EventBus and Addon.EventBus.Emit then
-        Addon.EventBus:Emit(Addon.EventNames.XPBAR_BROADCAST_UPDATE)
-    end
-    -- Re-evaluate style in case player hit max level
-    if Addon and Addon.db then
-        self:SetStyle(Addon.db.barStyle)
-    end
+    -- Re-evaluate style in case player hit max level (will hide bar if at max)
+    self:SetStyle(Addon.db.barStyle)
 end
 
 function BarManager:OnRestedChanged()
