@@ -36,7 +36,6 @@ core\AddOnCommands.lua
 
 core\Utils.lua
 core\Colors.lua
-core\Compatibility.lua
 
 # Calculation helpers (shared by Session, ContextBuilder)
 core\calculations\XPCalculations.lua
@@ -51,9 +50,9 @@ core\config\ConfigHelper.lua
 
 core\services\Database.lua
 core\services\Session.lua
+core\services\ContextBuilder.lua
 
 # UI Features
-ui\ContextBuilder.lua
 ui\MinimapButton.lua
 
 # Base and Mixins (must load before StyleBuilder)

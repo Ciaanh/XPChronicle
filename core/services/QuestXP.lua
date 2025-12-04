@@ -5,12 +5,19 @@ local Addon = XPBarEnhanced
 Addon.QuestXP = Addon.QuestXP or {}
 local QuestXP = Addon.QuestXP
 
-local questCache = {
-    perQuest = {},
-    totals = nil,
-    timestamp = 0,
-    TTL = 0.5,
-}
+-------------------------------------------------------------------
+-- QUEST API HELPERS
+-------------------------------------------------------------------
+
+---Return number of quest log entries
+local function getNumQuestLogEntries()
+    return C_QuestLog.GetNumQuestLogEntries() or 0
+end
+
+---Return quest info table for the given index
+local function getQuestInfo(index)
+    return C_QuestLog.GetInfo(index)
+end
 
 ---Check if a quest is ready for turn-in
 local function isQuestComplete(questID)
@@ -28,10 +35,20 @@ local function getQuestXP(questID)
     return GetQuestLogRewardXP(questID) or 0
 end
 
+-------------------------------------------------------------------
+-- QUEST CACHE
+-------------------------------------------------------------------
+
+local questCache = {
+    perQuest = {},
+    totals = nil,
+    timestamp = 0,
+    TTL = 0.5,
+}
+
 ---Build or refresh the quest cache
 local function buildQuestCache()
-    local comp = Addon.Compatibility
-    local numEntries = comp:GetNumQuestLogEntries()
+    local numEntries = getNumQuestLogEntries()
 
     if numEntries <= 0 then
         questCache.perQuest = {}
@@ -44,7 +61,7 @@ local function buildQuestCache()
     local perQuest = {}
 
     for i = 1, numEntries do
-        local info = comp:GetQuestInfo(i)
+        local info = getQuestInfo(i)
         if info and not info.isHeader and not info.isHidden and info.questID then
             local questID = info.questID
             local key = tostring(questID)
@@ -83,7 +100,10 @@ function QuestXP:InvalidateQuestCache()
     Addon.EventBus:Emit(Addon.EventNames.QUESTS_CACHE_INVALIDATED)
 end
 
----Set up event listeners for cache invalidation
+-------------------------------------------------------------------
+-- EVENT LISTENERS
+-------------------------------------------------------------------
+
 local function setupCacheListeners()
     if QuestXP._listenerFrame then
         return
@@ -122,6 +142,10 @@ local function setupCacheListeners()
 end
 
 setupCacheListeners()
+
+-------------------------------------------------------------------
+-- PUBLIC API
+-------------------------------------------------------------------
 
 ---Get quest XP totals (total, complete, incomplete)
 function QuestXP:GetQuestXP(forceRefresh)
